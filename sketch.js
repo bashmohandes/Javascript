@@ -1,23 +1,28 @@
 "use strict";
 
-var N = 6;
+var N = 10;
 var tiles = [];
-var tileSize = 100;
-var odds = 0.2;
+var tileSize = 50;
+var odds = 0.1;
+var totalBombs = 0;
+var totalNotVisited = N * N;
+var died = false;
+var bombsPlaced = false;
 function setup() {
     for(var x = 0; x< N; x++) {
         tiles[x] = [];
         for(var y = 0; y<N; y++) {
-            tiles[x].push(new Tile(x, y, random() <= odds, tileSize));
+            tiles[x].push(new Tile(x, y, false, tileSize));
         }
     }
 
-    createCanvas(600, 600)
+    createCanvas(N * tileSize, N * tileSize)
     background(0)
 }
 
 function draw(){
     drawTiles();
+    checkWinOrLose();
 }
 
 function drawTiles() {
@@ -42,6 +47,15 @@ function mouseClicked() {
 function check(x, y) {
     print(x,y)
     tiles[x][y].visited = true;
+    totalNotVisited--;
+    if(!bombsPlaced) {
+        placeBombs(x, y)
+    }
+
+    if(tiles[x][y].isBomb) {
+        died = true;
+        return;
+    }
     var neighbours = getNeighbours(x, y)
     print(neighbours.length)
     var nearbyBombs = checkNearbyBombs(neighbours);
@@ -99,4 +113,35 @@ function getNeighbours(x, y) {
     }
 
     return neighbours;
+}
+
+function checkWinOrLose() {    
+    if(died) {
+        console.log("YOU LOSE!!")
+        return;
+    }
+
+    if(totalBombs < totalNotVisited){
+        return;
+    }
+    
+    if(totalBombs === totalNotVisited) {
+        console.log("You WIN!")
+    }
+}
+
+function placeBombs(exceptX, exceptY) {
+    for(var x = 0; x< N; x++) {
+        for(var y = 0; y<N; y++) {
+            if(x === exceptX && y === exceptY){
+                continue;
+            }
+            var isBomb = random() <= odds;
+            tiles[x][y].isBomb = isBomb
+            if(isBomb) {
+                totalBombs ++;
+            }
+        }
+    }
+    bombsPlaced = true;   
 }

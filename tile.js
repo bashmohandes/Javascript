@@ -29,7 +29,7 @@ function Tile(x, y, isBomb, tileSize){
         }
 
         if(this.nearBombs > 0) {
-            textSize(60)
+            textSize(this.tileSize / 2)
             stroke('White')
             fill('White')
             text(this.nearBombs, this.x * this.tileSize + this.tileSize / 2, this.y * this.tileSize + this.tileSize / 2);
