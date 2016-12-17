@@ -1,9 +1,9 @@
 "use strict";
 
-var N = 10;
+var N = 15;
 var tiles = [];
 var tileSize = 50;
-var odds = 0.1;
+var odds = 0.2;
 var totalBombs = 0;
 var totalNotVisited = N * N;
 var died = false;
