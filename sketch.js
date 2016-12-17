@@ -1,8 +1,8 @@
 "use strict";
 
-var N = 5;
+var N = 10;
 var tiles = [];
-var tileSize = 100;
+var tileSize = 50;
 var odds = 0.1;
 var totalBombs = 0;
 var totalNotVisited = N * N;
@@ -146,7 +146,9 @@ function placeBombs(exceptX, exceptY) {
     bombsPlaced = true;   
 }
 
-function visit(x, y) {    
-    tiles[x][y].visited = true;
-    totalNotVisited--;
+function visit(x, y) {
+    if(!tiles[x][y].visited) {    
+        totalNotVisited--;
+        tiles[x][y].visited = true;
+    }    
 }

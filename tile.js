@@ -21,9 +21,6 @@ function Tile(x, y, tileSize){
             fill('Yellow')
         }
 
-        if(this.markedSafe) {
-            fill('Green')
-        }
         rect(this.x * this.tileSize, this.y * this.tileSize, this.tileSize, this.tileSize)
 
         if(this.isBomb && this.visited) {
@@ -51,16 +48,7 @@ function Tile(x, y, tileSize){
             this.clicked = true;
             print("clicked at ", this.x, this.y)
         }
-        /*
-        if((mouseX > this.x * this.tileSize && mouseX < this.x * this.tileSize + this.tileSize) && 
-           (mouseY > this.y * this.tileSize && mouseY < this.y * this.tileSize + this.tileSize)) {
-               this.clicked = true;               
-           } else {
-               console.log(this.x * this.tileSize, this.y * this.tileSize)
-               console.log(mouseX, mouseY)
-               console.log(this.x * this.tileSize + this.tileSize, this.y * this.tileSize + this.tileSize)               
-           }
-        */
+
         return this.clicked;
     };
 }
