@@ -1,8 +1,8 @@
 "use strict";
 
-var N = 10;
+var N = 5;
 var tiles = [];
-var tileSize = 50;
+var tileSize = 100;
 var odds = 0.1;
 var totalBombs = 0;
 var totalNotVisited = N * N;
@@ -12,7 +12,7 @@ function setup() {
     for(var x = 0; x< N; x++) {
         tiles[x] = [];
         for(var y = 0; y<N; y++) {
-            tiles[x].push(new Tile(x, y, false, tileSize));
+            tiles[x].push(new Tile(x, y, tileSize));
         }
     }
 
@@ -36,18 +36,18 @@ function drawTiles() {
 function mouseClicked() {
     for(var x = 0; x < N; x++) {
         for(var y = 0; y < N; y++) {
-            if(!tiles[x][y].clicked && tiles[x][y].pressed()) {
+            if(tiles[x][y].pressed()) {
                 check(x, y);
-                break;
             }
         }
     }
+
+    return false;
 }
 
 function check(x, y) {
-    print(x,y)
-    tiles[x][y].visited = true;
-    totalNotVisited--;
+    visit(x, y)
+    
     if(!bombsPlaced) {
         placeBombs(x, y)
     }
@@ -56,14 +56,14 @@ function check(x, y) {
         died = true;
         return;
     }
+
     var neighbours = getNeighbours(x, y)
-    print(neighbours.length)
+    
     var nearbyBombs = checkNearbyBombs(neighbours);
-    tiles[x][y].discoveredNearBombs(nearbyBombs)
+    tiles[x][y].nearBombs = nearbyBombs
     if(nearbyBombs === 0) {
         for(var i = 0; i < neighbours.length; i++) {
-            //neighbours[i].highlight();
-            print(neighbours[i].x, neighbours[i].y)
+            //neighbours[i].highlight = true;
             if(!neighbours[i].isBomb && !neighbours[i].visited) {
                 check(neighbours[i].x, neighbours[i].y)
             }
@@ -144,4 +144,9 @@ function placeBombs(exceptX, exceptY) {
         }
     }
     bombsPlaced = true;   
+}
+
+function visit(x, y) {    
+    tiles[x][y].visited = true;
+    totalNotVisited--;
 }
