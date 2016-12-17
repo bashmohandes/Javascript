@@ -43,10 +43,8 @@ function Tile(x, y, tileSize){
     };
 
     this.pressed = function(){        
-            print("pressed at ", floor(mouseX / this.tileSize), floor(mouseY / this.tileSize))        
         if(floor(mouseX / this.tileSize) === this.x && floor(mouseY / this.tileSize) === this.y){
             this.clicked = true;
-            print("clicked at ", this.x, this.y)
         }
 
         return this.clicked;
