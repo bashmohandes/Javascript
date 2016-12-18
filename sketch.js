@@ -8,6 +8,7 @@ var totalBombs = 0;
 var totalNotVisited = N * N;
 var died = false;
 var bombsPlaced = false;
+
 function setup() {
     for(var x = 0; x< N; x++) {
         tiles[x] = [];
@@ -64,7 +65,6 @@ function check(x, y) {
     tiles[x][y].nearBombs = nearbyBombs
     if(nearbyBombs === 0) {
         for(var i = 0; i < neighbours.length; i++) {
-            //neighbours[i].highlight = true;
             if(!neighbours[i].isBomb && !neighbours[i].visited) {
                 check(neighbours[i].x, neighbours[i].y)
             }
@@ -117,13 +117,8 @@ function getNeighbours(x, y) {
 }
 
 function checkWinOrLose() {    
-    push();
     if(died) {
-        textSize(100)
-        stroke("RED")
-        fill("RED")
-        textAlign(CENTER)
-        text("YOU LOSE :(", N / 2 * tileSize, N / 2 * tileSize)
+        announce("You LOSE :(", "RED")
         return;
     }
 
@@ -132,13 +127,8 @@ function checkWinOrLose() {
     }
     
     if(totalBombs === totalNotVisited) {
-        textSize(100)
-        stroke("GREEN")
-        fill("GREEN")
-        textAlign(CENTER)
-        text("YOU WIN :)", N / 2 * tileSize, N / 2 * tileSize)
+        announce("You WIN :)", "Green")
     }
-    pop();
 }
 
 function placeBombs(exceptX, exceptY) {
@@ -162,4 +152,14 @@ function visit(x, y) {
         totalNotVisited--;
         tiles[x][y].visited = true;
     }    
+}
+
+function announce(text, color) {
+    push()
+    textSize(100)
+    stroke(color)
+    fill(color)
+    textAlign(CENTER)
+    text(text, N / 2 * tileSize, N / 2 * tileSize)
+    pop();
 }

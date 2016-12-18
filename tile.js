@@ -16,11 +16,7 @@ function Tile(x, y, tileSize){
         } else {
             fill('Grey')
         }
-
-        if(this.highlighted) {
-            fill('Yellow')
-        }
-
+        
         rect(this.x * this.tileSize, this.y * this.tileSize, this.tileSize, this.tileSize)
 
         if(this.isBomb && this.visited) {
