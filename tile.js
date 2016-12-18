@@ -14,33 +14,33 @@ function Tile(x, y, tileSize){
         if(!this.visited) {
             noFill();
         } else {
-            fill('Grey')
+            fill('LightGrey')
         }
-        
+
         rect(this.x * this.tileSize, this.y * this.tileSize, this.tileSize, this.tileSize)
 
         if(this.isBomb && this.visited) {
             stroke('Red')
             fill('Red');
-            ellipse(this.x * this.tileSize  + this.tileSize / 2, this.y * this.tileSize + this.tileSize / 2, this.tileSize / 2, this.tileSize / 2);
+            ellipse(this.x * this.tileSize  + this.tileSize / 2, 
+                    this.y * this.tileSize + this.tileSize / 2, 
+                    this.tileSize * 0.8, 
+                    this.tileSize * 0.8);
         }
-/*
-        textSize(this.tileSize / 4)
-        stroke('White')
-        fill('White')
-        text(this.x + "," + this.y, this.x * this.tileSize, this.y * this.tileSize+ this.tileSize);
-*/
+
         if(this.nearBombs > 0) {
             textAlign(CENTER)
             textSize(this.tileSize / 2)
             var textColor = this.getTextColor(this.nearBombs)
             stroke(textColor)
             fill(textColor)
-            text(this.nearBombs, this.x * this.tileSize + this.tileSize / 2, this.y * this.tileSize + 3 * this.tileSize / 4);
+            text(this.nearBombs, 
+                 this.x * this.tileSize + this.tileSize / 2, 
+                 this.y * this.tileSize + 3 * this.tileSize / 4);
         }
     };
 
-    this.pressed = function(){        
+    this.pressed = function() {        
         if(floor(mouseX / this.tileSize) === this.x && floor(mouseY / this.tileSize) === this.y){
             this.clicked = true;
         }
@@ -63,7 +63,5 @@ function Tile(x, y, tileSize){
             default:
                 return "White"
         }
-
-
     }
 }

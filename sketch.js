@@ -137,6 +137,7 @@ function placeBombs(exceptX, exceptY) {
             if(x === exceptX && y === exceptY){
                 continue;
             }
+            
             var isBomb = random() <= odds;
             tiles[x][y].isBomb = isBomb
             if(isBomb) {
@@ -144,6 +145,7 @@ function placeBombs(exceptX, exceptY) {
             }
         }
     }
+
     bombsPlaced = true;   
 }
 
