@@ -154,12 +154,12 @@ function visit(x, y) {
     }    
 }
 
-function announce(text, color) {
+function announce(t, color) {
     push()
     textSize(100)
     stroke(color)
     fill(color)
     textAlign(CENTER)
-    text(text, N / 2 * tileSize, N / 2 * tileSize)
+    text(t, N / 2 * tileSize, N / 2 * tileSize)
     pop();
 }
