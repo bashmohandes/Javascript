@@ -1,9 +1,9 @@
 "use strict";
 
-var N = 15;
+var N = 10;
 var tiles = [];
-var tileSize = 50;
-var odds = 0.2;
+var tileSize = 80;
+var odds = 0.15;
 var totalBombs = 0;
 var totalNotVisited = N * N;
 var died = false;
@@ -16,7 +16,8 @@ function setup() {
         }
     }
 
-    createCanvas(N * tileSize, N * tileSize)
+    var c = createCanvas(N * tileSize, N * tileSize)
+    c.parent("canvas")
     background(0)
 }
 
