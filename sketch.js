@@ -36,6 +36,10 @@ function drawTiles() {
 }
 
 function mouseClicked() {
+    if(gameEnded()){
+        return false;
+    }
+
     for(var x = 0; x < N; x++) {
         for(var y = 0; y < N; y++) {
             if(tiles[x][y].pressed()) {
@@ -118,7 +122,7 @@ function getNeighbours(x, y) {
 
 function checkWinOrLose() {    
     if(died) {
-        announce("You LOSE :(", "RED")
+        announce("GAME OVER :(", "RED")
         return;
     }
 
@@ -126,9 +130,17 @@ function checkWinOrLose() {
         return;
     }
     
-    if(totalBombs === totalNotVisited) {
+    if(won()) {
         announce("You WIN :)", "Green")
     }
+}
+
+function won() {
+    return totalBombs === totalNotVisited;
+}
+
+function gameEnded() {
+    return won() || died;
 }
 
 function placeBombs(exceptX, exceptY) {
@@ -137,7 +149,7 @@ function placeBombs(exceptX, exceptY) {
             if(x === exceptX && y === exceptY){
                 continue;
             }
-            
+
             var isBomb = random() <= odds;
             tiles[x][y].isBomb = isBomb
             if(isBomb) {
