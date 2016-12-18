@@ -117,8 +117,13 @@ function getNeighbours(x, y) {
 }
 
 function checkWinOrLose() {    
+    push();
     if(died) {
-        console.log("YOU LOSE!!")
+        textSize(100)
+        stroke("RED")
+        fill("RED")
+        textAlign(CENTER)
+        text("YOU LOSE :(", N / 2 * tileSize, N / 2 * tileSize)
         return;
     }
 
@@ -127,8 +132,13 @@ function checkWinOrLose() {
     }
     
     if(totalBombs === totalNotVisited) {
-        console.log("You WIN!")
+        textSize(100)
+        stroke("GREEN")
+        fill("GREEN")
+        textAlign(CENTER)
+        text("YOU WIN :)", N / 2 * tileSize, N / 2 * tileSize)
     }
+    pop();
 }
 
 function placeBombs(exceptX, exceptY) {

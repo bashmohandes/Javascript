@@ -35,10 +35,12 @@ function Tile(x, y, tileSize){
         text(this.x + "," + this.y, this.x * this.tileSize, this.y * this.tileSize+ this.tileSize);
 */
         if(this.nearBombs > 0) {
+            textAlign(CENTER)
             textSize(this.tileSize / 2)
-            stroke('White')
-            fill('White')
-            text(this.nearBombs, this.x * this.tileSize + this.tileSize / 2, this.y * this.tileSize + this.tileSize / 2);
+            var textColor = this.getTextColor(this.nearBombs)
+            stroke(textColor)
+            fill(textColor)
+            text(this.nearBombs, this.x * this.tileSize + this.tileSize / 2, this.y * this.tileSize + 3 * this.tileSize / 4);
         }
     };
 
@@ -49,4 +51,23 @@ function Tile(x, y, tileSize){
 
         return this.clicked;
     };
+
+    this.getTextColor = function(bombs) {
+        switch(bombs){            
+            case 1:
+                return "Blue"
+            case 2:
+                return "Green"
+            case 3:
+                return "Red"
+            case 4:
+                return "Navy"
+            case 5:
+                return "Darkblue"
+            default:
+                return "White"
+        }
+
+
+    }
 }
