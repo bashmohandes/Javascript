@@ -170,6 +170,8 @@ function visit(x, y) {
 
 function announce(t, color) {
     push()
+    fill("Lavender")
+    rect(0, N / 2 * tileSize - 2 * tileSize, tileSize * N, N / 2 * tileSize - 2 * tileSize)
     textSize(100)
     stroke(color)
     fill(color)
