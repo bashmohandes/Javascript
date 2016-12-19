@@ -60,6 +60,8 @@ function Tile(x, y, tileSize){
                 return "Navy"
             case 5:
                 return "Darkblue"
+            case 6:
+                return "DarkGrey"
             default:
                 return "White"
         }
