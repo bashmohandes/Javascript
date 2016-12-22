@@ -5,11 +5,12 @@
  */
 var searchRange = function(nums, target) {
     var start = 0
-    var end = nums.length - 1
-    var med = Math.floor(end / 2)
+    var end = nums.length - 1    
     var startIndex = 0
     var endIndex = 0
-    while(med >= start && med <= end) {                
+    
+    while(start <= end) {                
+        var med = start + Math.floor((end - start) / 2)
         if(nums[med] === target) {
             // find start and end indices
             startIndex = med
@@ -26,8 +27,7 @@ var searchRange = function(nums, target) {
             end = med - 1
         } else {
             start = med + 1
-        }        
-        med = start + Math.floor((end - start) / 2)
+        }                
     }
     
     return [-1, -1]
