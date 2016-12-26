@@ -1,28 +1,38 @@
 "use strict";
 
 function Board(pos) {
-    this.pos = pos.copy()
+    this.pos = createVector(pos.x, pos.y)
     this.vel = createVector(0, 0)    
     this.height = 200;
     this.width = 40;
+    this.vel.mult(10)
 
     this.draw = function() {        
+        push()
+        stroke(0)
         fill("WHITE")
-        rect(this.pos.x, this.pos.y - this.height / 2, this.width, this.height)        
+        translate(this.pos.x, this.pos.y)
+        rect(0,- this.height / 2, this.width, this.height)
+        pop()
     }
 
-    this.update = function(dir) {        
-        this.pos.add(this.vel)        
+    this.update = function(dir) {
+        this.pos.add(this.vel)
+        if(this.pos.y >= height - this.height / 2) {
+            this.pos.y = height - this.height / 2
+        }
+
+        if(this.pos.y <= this.height / 2) {
+            this.pos.y = this.height / 2
+        }
     }
 
-    this.moveUp = function() {
-        var force = createVector(0, -1)
-        this.vel.add(force)
+    this.moveUp = function() {        
+        this.vel.y = -4
     }
     
-    this.moveDown = function() {
-        var force = createVector(0, 1)
-        this.vel.add(force)
+    this.moveDown = function() {        
+        this.vel.y = 4
     }
 
     this.stopMoving = function() {
