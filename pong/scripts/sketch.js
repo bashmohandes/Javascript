@@ -34,6 +34,9 @@ function keyPressed() {
     } else if(key === "S") {
         player2.moveDown();
     }
+    if(key === "X") {
+        ball.hit();
+    }
 }
 
 function keyReleased() {
