@@ -1,28 +1,31 @@
-function Ball() {    
+function Ball() {        
+    this.r = 20
     this.vel = p5.Vector.random2D()
-    this.vel.mult(5)
-    console.log(this.heading)    
     this.pos = createVector(width / 2, height / 2)
-    this.r = 50
-
+    this.vel.mult(10)
     this.draw = function () {
         push()
         fill('WHITE')
         stroke('BLACK')
-        ellipse(this.pos.x, this.pos.y, this.r, this.r)
+        rect(this.pos.x, this.pos.y, this.r, this.r)
         pop()
     }
 
-    this.update = function () {        
+    this.update = function (player1, player2) {        
         this.pos.add(this.vel)
 
         if((this.pos.y >= height - this.r / 2) || (this.pos.y <= this.r / 2)) {
             this.hit("Y")
         }
 
-        if((this.pos.x >= width - this.r / 2) || (this.pos.x <= this.r / 2)) {            
-            this.hit("X")
-        }        
+        if(this.pos.x >= width - this.r / 2) {            
+            player2.score ++;
+            this.reset()
+        } else if (this.pos.x <= this.r / 2) {
+            player1.score ++;
+            this.reset()
+        }
+        
     }
 
     this.hit = function(axis) {
@@ -32,4 +35,10 @@ function Ball() {
             this.vel.x *= -1
         }
     }
+
+    this.reset = function() {
+        this.vel = p5.Vector.random2D()
+        this.pos = createVector(width / 2, height / 2)
+        this.vel.mult(10)
+    }    
 }
