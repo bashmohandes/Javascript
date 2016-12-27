@@ -10,7 +10,7 @@ function Board(pos) {
 
     this.draw = function() {        
         push()
-        stroke(0)
+        noStroke()
         fill("WHITE")
         translate(this.pos.x, this.pos.y)
         rect(0,- this.height / 2, this.width, this.height)

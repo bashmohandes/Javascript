@@ -6,7 +6,7 @@ function Ball() {
     this.draw = function () {
         push()
         fill('WHITE')
-        stroke('BLACK')
+        noStroke()
         rect(this.pos.x, this.pos.y, this.r, this.r)
         pop()
     }
@@ -18,13 +18,30 @@ function Ball() {
             this.hit("Y")
         }
 
-        if(this.pos.x >= width - this.r / 2) {            
+        if(
+            ((this.pos.x - this.r / 2) <= (player2.pos.x + player2.width / 2))
+            &&
+            (this.pos.y >= player2.pos.y - player2.height / 2) && (this.pos.y <= player2.pos.y + player2.height / 2)
+        ) {
+            this.hit("X")
+            console.log("HIT")
+        }
+        
+        if(((this.pos.x + this.r / 2) >= (player1.pos.x - player1.width / 2))
+            &&
+          (this.pos.y >= player1.pos.y - player1.height / 2) && (this.pos.y <= player1.pos.y + player1.height / 2)
+        ) {
+            this.hit("X")
+            console.log("HIT")
+        }
+
+        if(this.pos.x >= width) {            
             player2.score ++;
             this.reset()
-        } else if (this.pos.x <= this.r / 2) {
+        } else if (this.pos.x <= 0) {
             player1.score ++;
             this.reset()
-        }
+        }        
         
     }
 
