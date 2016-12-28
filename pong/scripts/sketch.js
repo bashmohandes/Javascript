@@ -3,7 +3,7 @@
 var player1, player2, ball
 
 function setup() {
-    var canvas = createCanvas(800, 800)    
+    var canvas = createCanvas(1080, 800)    
 
     player1 = new Board(createVector(width - 40, height / 2))
     player2 = new Board(createVector(20, height / 2))    
