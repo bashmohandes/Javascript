@@ -34,10 +34,10 @@ function Ball() {
         }
 
         if(this.pos.x >= width) {            
-            player2.score ++;
+            player1.score ++;
             this.reset()
         } else if (this.pos.x <= 0) {
-            player1.score ++;
+            player2.score ++;
             this.reset()
         }        
         
