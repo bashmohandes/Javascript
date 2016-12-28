@@ -51,8 +51,7 @@ function Ball() {
         }
 
         if(player) {
-            this.vel.add(player.vel)
-            console.log(this.vel)
+            this.vel.add(player.vel)            
         }
     }
 
