@@ -57,10 +57,10 @@ function Ball() {
     }
 
     this.reset = function() {
-        this.vel.x = random(-1, 1)
-        this.vel.y = random(-1, 1)
+        var sign = random() >= .5
+        this.vel.x = (sign ? -1 : 1) * random(5, 10)        
+        this.vel.y = random(0, 0.75)
         this.pos.x = width / 2
         this.pos.y = height / 2
-        this.vel.mult(10)
     }    
 }
