@@ -7,7 +7,7 @@ function Ball() {
         push()
         fill('WHITE')
         noStroke()
-        rect(this.pos.x, this.pos.y, this.r, this.r)
+        ellipse(this.pos.x, this.pos.y, this.r, this.r)
         pop()
     }
 
@@ -52,12 +52,15 @@ function Ball() {
 
         if(player) {
             this.vel.add(player.vel)
+            console.log(this.vel)
         }
     }
 
     this.reset = function() {
-        this.vel = p5.Vector.random2D()
-        this.pos = createVector(width / 2, height / 2)
+        this.vel.x = random(-1, 1)
+        this.vel.y = random(-1, 1)
+        this.pos.x = width / 2
+        this.pos.y = height / 2
         this.vel.mult(10)
     }    
 }
