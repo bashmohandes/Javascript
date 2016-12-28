@@ -26,7 +26,7 @@ function Ball() {
             this.hit("X", player2)            
         }
         
-        if(((this.pos.x + this.r / 2) >= (player1.pos.x - player1.width / 2))
+        if(((this.pos.x - this.r / 2) >= (player1.pos.x - player1.width / 2))
             &&
           (this.pos.y >= player1.pos.y - player1.height / 2) && (this.pos.y <= player1.pos.y + player1.height / 2)
         ) {
