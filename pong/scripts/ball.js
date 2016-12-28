@@ -14,7 +14,7 @@ function Ball() {
     this.update = function (player1, player2) {        
         this.pos.add(this.vel)
 
-        if((this.pos.y >= height - this.r / 2) || (this.pos.y <= this.r / 2)) {
+        if((this.pos.y >= height - this.r) || (this.pos.y <= this.r)) {
             this.hit("Y")
         }
 
