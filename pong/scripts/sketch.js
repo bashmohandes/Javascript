@@ -14,6 +14,7 @@ function setup() {
 function draw() {        
     push()
     background("BLACK")
+    drawBackground()
     player1.draw()
     player2.draw()
     ball.draw()
@@ -51,7 +52,7 @@ function displayScore() {
     textAlign(CENTER)
     textSize(60)
     fill("WHITE")    
-    text(player1.score + " | " + player2.score, width /2, 50)
+    text(player1.score + "  " + player2.score, width /2, 50)
     pop()
 }
 
@@ -61,5 +62,15 @@ function showFramerate() {
     textSize(10)
     fill("WHITE")    
     text(round(frameRate(), 0), width - 10, 10)
+    pop()
+}
+
+function drawBackground() {
+    push()
+    stroke("WHITE")
+    strokeWeight(5)
+    for(var y = 0; y<height; y+= 25) {
+        line(width / 2, y, width / 2, y + 10)
+    }
     pop()
 }
