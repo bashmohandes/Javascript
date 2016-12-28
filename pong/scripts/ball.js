@@ -23,16 +23,14 @@ function Ball() {
             &&
             (this.pos.y >= player2.pos.y - player2.height / 2) && (this.pos.y <= player2.pos.y + player2.height / 2)
         ) {
-            this.hit("X")
-            console.log("HIT")
+            this.hit("X", player2)            
         }
         
         if(((this.pos.x + this.r / 2) >= (player1.pos.x - player1.width / 2))
             &&
           (this.pos.y >= player1.pos.y - player1.height / 2) && (this.pos.y <= player1.pos.y + player1.height / 2)
         ) {
-            this.hit("X")
-            console.log("HIT")
+            this.hit("X", player1)            
         }
 
         if(this.pos.x >= width) {            
@@ -45,11 +43,15 @@ function Ball() {
         
     }
 
-    this.hit = function(axis) {
+    this.hit = function(axis, player) {
         if(axis === "Y") {
             this.vel.y *= -1
         } else if(axis === "X") {
             this.vel.x *= -1
+        }
+
+        if(player) {
+            this.vel.add(player.vel)
         }
     }
 

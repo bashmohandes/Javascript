@@ -30,4 +30,4 @@ function doPermute(nums, dict, level, result) {
     }
 }
 
-permute(['A', 'B', 'C', 'C', 'X'])
+permute([1, 3, 2])
