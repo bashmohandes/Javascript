@@ -21,6 +21,7 @@ function draw() {
     player1.update()
     player2.update()
     displayScore()
+    showFramerate()
     pop()
 }
 
@@ -51,5 +52,14 @@ function displayScore() {
     textSize(60)
     fill("WHITE")    
     text(player1.score + " | " + player2.score, width /2, 50)
+    pop()
+}
+
+function showFramerate() {
+    push()    
+    textAlign(LEFT)
+    textSize(10)
+    fill("WHITE")    
+    text(round(frameRate(), 0), width - 10, 10)
     pop()
 }
