@@ -1,8 +1,8 @@
 "use strict";
 
-var N = 10;
+var N = 15;
 var tiles = [];
-var tileSize = 80;
+var tileSize = 55;
 var odds = 0.15;
 var totalBombs = 0;
 var totalNotVisited = N * N;
@@ -171,7 +171,7 @@ function visit(x, y) {
 function announce(t, color) {
     push()
     fill("Lavender")
-    rect(0, N / 2 * tileSize - 2 * tileSize, tileSize * N, N / 2 * tileSize - 2 * tileSize)
+    rect(0, N / 2 * tileSize - 2 * tileSize, tileSize * N, 150)
     textSize(100)
     stroke(color)
     fill(color)
