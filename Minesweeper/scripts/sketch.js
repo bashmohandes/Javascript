@@ -3,7 +3,7 @@
 var N = 15;
 var tiles = [];
 var tileSize = 55;
-var odds = 0.15;
+var odds = 0.2;
 var totalBombs = 0;
 var totalNotVisited = N * N;
 var died = false;
