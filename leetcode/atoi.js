@@ -9,17 +9,20 @@ var myAtoi = function(str) {
     
     var result = 0;
     var sign;
-    var input = str.trim();
-    if(input[0] === "+") {
+    var i = 0
+    var input = str
+    while(input[i] === " "){ i++ };
+
+    if(input[i] === "+") {
         sign = 1
-    } else if(input[0] === "-") {
+    } else if(input[i] === "-") {
         sign = -1
     }
-    
+
     if(sign) {
-        input = input.substring(1)
+        i++
     }
-    var i = 0
+    
     while(input[i] >= "0" && input[i] <= "9") {        
         result = 10 * result + (input[i++] - "0")
     }
