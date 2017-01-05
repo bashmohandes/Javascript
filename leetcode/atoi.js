@@ -19,14 +19,9 @@ var myAtoi = function(str) {
     if(sign) {
         input = input.substring(1)
     }
-    
-    for(var i = 0; i<input.length; i++) {
-        if(input[i] >= "0" && input[i] <= "9") {
-            result += Math.pow(10, input.length - i - 1) * Number(input[i])
-        } else {
-            result /= Math.pow(10, input.length - i)
-            break;
-        }
+    var i = 0
+    while(input[i] >= "0" && input[i] <= "9") {        
+        result = 10 * result + (input[i++] - "0")
     }
         
     result = sign ? sign * result : result
