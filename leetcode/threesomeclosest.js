@@ -4,17 +4,31 @@
  * @return {number}
  */
 var threeSumClosest = function(nums, target) {
+    if(!nums) {
+        return 0
+    }
+    if(nums.length < 3) {
+        return Math.sum(nums)
+    }
     var minDelta = Number.MAX_VALUE
-    var result
+    var result = nums[0] + nums[1] + nums[2]
     nums.sort(function(a, b){return a - b})
     for(var i = 0; i<nums.length - 2; i++) {
-        for(var j = i + 1; j<nums.length - 1; j++) {
-            for(var k = j + 1; k<nums.length; k++) {
-                var delta = Math.abs(target - (nums[i] + nums[j] + nums[k]))
-                if(delta < minDelta) {
-                    minDelta = delta
-                    result = nums[i] + nums[j] + nums[k]
-                }
+        var lo = i + 1
+        var hi = nums.length - 1        
+        while(lo < hi) {
+            var sum = nums[i] + nums[lo] + nums[hi]
+            if(sum === target) {
+                return sum
+            }
+            
+            if(Math.abs(target - result) > Math.abs(target - sum)) {                
+                result = sum  
+            }
+            if(sum > target){
+                hi --
+            } else {
+                lo ++
             }
         }
     }
