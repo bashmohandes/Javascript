@@ -117,7 +117,8 @@ function Board() {
             for(var y = 0; y<9; y++) {
                 if(this.cells[x][y].selected) {
                     if(key >= '1' && key <= '9') {
-                        this.cells[x][y].val = key
+                        this.cells[x][y].val = Number(key)
+                        this.cells[x][y].valid = this.isValid(x, y)
                     }
                 }
             }

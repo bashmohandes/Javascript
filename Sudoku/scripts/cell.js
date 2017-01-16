@@ -4,6 +4,7 @@ function Cell(x, y) {
     this.val = undefined
     this.fixed = true
     this.selected = false
+    this.valid = true
     
 
     this.draw = function() {
@@ -21,8 +22,8 @@ function Cell(x, y) {
         if(this.val) {
             if(this.fixed) {
                 fill(0)
-            } else {
-                fill('BLUE')
+            } else {                
+                fill(this.valid ? 'BLUE' : 'RED')
             }
             text(this.val, CELL_SIZE / 2, CELL_SIZE / 2 + (this.fixed ? 10 : 15))
         }        
