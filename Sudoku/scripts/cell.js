@@ -8,11 +8,11 @@ function Cell(x, y, val, fixed) {
     this.draw = function() {
         push()
         translate(this.x * CELL_SIZE, this.y * CELL_SIZE)        
-        stroke(255)
+        stroke(0)
         textAlign(CENTER)
         textSize(20)
         if(this.val) {
-            fill(255)
+            fill(0)
             text(this.val, CELL_SIZE / 2, CELL_SIZE / 2 + 10)
         }
         noFill()

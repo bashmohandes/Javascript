@@ -17,8 +17,8 @@ function Board() {
         }   
         push()
         strokeWeight(4)        
-        stroke(255)
-        for(var i = 1; i<3; i++) {
+        stroke(0)
+        for(var i = 0; i<=3; i++) {
             line(3 * CELL_SIZE * i, 0, 3 * CELL_SIZE * i, height)
             line(0, 3 * CELL_SIZE * i, width, 3 * CELL_SIZE * i)
         }
@@ -31,6 +31,13 @@ function Board() {
         this.cells[startX][startY].val = Math.floor(random(1, 9))
         var n = this.next(startX, startY)
         this.buildRec(n[0], n[1], startX, startY)
+        for(var x = 0; x<9; x++) {
+            for(var y = 0; y<9; y++) {
+                if(random() <= 0.1) {
+                    this.cells[x][y].val = undefined
+                }
+            }
+        }
     }
 
     this.buildRec = function(x, y, startX, startY) {        
