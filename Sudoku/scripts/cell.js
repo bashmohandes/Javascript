@@ -12,7 +12,7 @@ function Cell(x, y) {
         translate(this.x * CELL_SIZE, this.y * CELL_SIZE)        
         stroke(0)
         if(this.selected) {
-            fill('GREY')
+            fill('LightGrey')
         } else {
             noFill()
         }
