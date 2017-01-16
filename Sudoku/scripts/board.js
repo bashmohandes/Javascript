@@ -18,19 +18,22 @@ function Board() {
     }
 
     this.build = function() {
-        this.cells[0][0].val = random([1, 2, 3, 4, 5, 6, 7, 8, 9])
-        this.buildRec(1, 0)
+        var startX = Math.floor(random(0, 9))
+        var startY = Math.floor(random(0, 9))
+        this.cells[startX][startY].val = Math.floor(random(1, 9))
+        var n = this.next(startX, startY)
+        this.buildRec(n[0], n[1], startX, startY)
     }
 
-    this.buildRec = function(x, y) {        
+    this.buildRec = function(x, y, startX, startY) {        
         for(var i = 1; i<= 9; i++) {
             this.cells[x][y].val = i            
             if(this.isValid(x, y)) {
                 var n = this.next(x, y)
-                if(n[0] === 0 && n[1] === 0) {
+                if(n[0] === startX && n[1] === startY) {
                     return true
                 }
-                if(this.buildRec(n[0], n[1])) {
+                if(this.buildRec(n[0], n[1], startX, startY)) {
                     return true
                 }
             }                    
