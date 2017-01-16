@@ -15,6 +15,14 @@ function Board() {
                 this.cells[x][y].draw()
             }
         }   
+        push()
+        strokeWeight(4)        
+        stroke(255)
+        for(var i = 1; i<3; i++) {
+            line(3 * CELL_SIZE * i, 0, 3 * CELL_SIZE * i, height)
+            line(0, 3 * CELL_SIZE * i, width, 3 * CELL_SIZE * i)
+        }
+        pop()
     }
 
     this.build = function() {
