@@ -43,8 +43,8 @@ function Board() {
     }
 
     this.buildRec = function(x, y, startX, startY) {        
-        for(var i = 1; i<= 9; i++) {
-            this.cells[x][y].val = i            
+        for(var i = 1, r = Math.floor(random(1, 10)); i<= 9; i++) {
+            this.cells[x][y].val = (r + i) % 9 + 1
             if(this.isValid(x, y)) {
                 var n = this.next(x, y)
                 if(n[0] === startX && n[1] === startY) {
