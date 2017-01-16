@@ -12,6 +12,7 @@ function Board() {
     this.draw = function() {
         for(var x = 0; x<9; x++) {            
             for(var y = 0; y<9; y++) {
+                this.cells[x][y].valid = this.isValid(x, y)
                 this.cells[x][y].draw()
             }
         }   
@@ -119,8 +120,7 @@ function Board() {
                     if(key >= '1' && key <= '9') {
                         this.cells[x][y].val = Number(key)                        
                     }
-                }
-                this.cells[x][y].valid = this.isValid(x, y)
+                }                
             }
         }
     }
