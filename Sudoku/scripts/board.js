@@ -35,6 +35,7 @@ function Board() {
             for(var y = 0; y<9; y++) {
                 if(random() <= 0.3) {
                     this.cells[x][y].val = undefined
+                    this.cells[x][y].fixed = false
                 }
             }
         }
@@ -99,5 +100,27 @@ function Board() {
         }
 
         return true
+    }
+
+    this.click = function() {
+        for(var x = 0; x<9; x++) {
+            for(var y = 0; y<9; y++) {
+                if(!this.cells[x][y].fixed) {
+                    this.cells[x][y].click()
+                }
+            }
+        }
+    }
+
+    this.keyTyped = function() {
+        for(var x = 0; x<9; x++) {
+            for(var y = 0; y<9; y++) {
+                if(this.cells[x][y].selected) {
+                    if(key >= '1' && key <= '9') {
+                        this.cells[x][y].val = key
+                    }
+                }
+            }
+        }
     }
 }

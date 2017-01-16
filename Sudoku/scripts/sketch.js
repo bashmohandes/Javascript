@@ -13,3 +13,11 @@ function draw() {
     background(255)    
     board.draw()
 }
+
+function mouseClicked() {
+    board.click()
+}
+
+function keyTyped() {
+    board.keyTyped()
+}
