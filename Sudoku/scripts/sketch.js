@@ -4,9 +4,15 @@ var CELL_SIZE = 80
 var DIFFICULTY = 0.4
 
 function setup() {    
-    createCanvas(CELL_SIZE * 9, CELL_SIZE * 9)
+    var canvas = createCanvas(CELL_SIZE * 9, CELL_SIZE * 9)
+    canvas.parent("canvas")
     board = new Board()
     board.build()
+    var btn = select("#btnGenerate")
+    btn.mousePressed(function(){
+        board.clear()
+        board.build()
+    })
 }
 
 

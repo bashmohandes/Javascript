@@ -1,13 +1,17 @@
 function Board() {
 
-    this.cells = []
+    this.cells = []    
 
-    for(var x = 0; x<9; x++) {
-        this.cells[x] = []
-        for(var y = 0; y<9; y++) {
-            this.cells[x][y] = new Cell(x, y)
+    this.clear = function() {
+        for(var x = 0; x<9; x++) {
+            this.cells[x] = []
+            for(var y = 0; y<9; y++) {
+                this.cells[x][y] = new Cell(x, y)
+            }
         }
     }
+
+    this.clear()
 
     this.draw = function() {
         for(var x = 0; x<9; x++) {            
@@ -43,8 +47,9 @@ function Board() {
     }
 
     this.buildRec = function(x, y, startX, startY) {        
-        for(var i = 1, r = Math.floor(random(1, 10)); i<= 9; i++) {
-            this.cells[x][y].val = (r + i) % 9 + 1
+        for(var i = 1; i<= 9; i++) {
+            this.cells[x][y].val = i
+            this.cells[x][y].fixed = true
             if(this.isValid(x, y)) {
                 var n = this.next(x, y)
                 if(n[0] === startX && n[1] === startY) {
