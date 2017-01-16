@@ -5,7 +5,7 @@ function Board() {
     for(var x = 0; x<9; x++) {
         this.cells[x] = []
         for(var y = 0; y<9; y++) {
-            this.cells[x][y] = new Cell(x, y, undefined, false)
+            this.cells[x][y] = new Cell(x, y)
         }
     }
 
