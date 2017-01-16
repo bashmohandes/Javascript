@@ -33,7 +33,7 @@ function Board() {
         this.buildRec(n[0], n[1], startX, startY)
         for(var x = 0; x<9; x++) {
             for(var y = 0; y<9; y++) {
-                if(random() <= 0.3) {
+                if(random() <= DIFFICULTY) {
                     this.cells[x][y].val = undefined
                     this.cells[x][y].fixed = false
                 }
