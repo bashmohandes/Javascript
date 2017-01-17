@@ -28,7 +28,7 @@ function keyTyped() {
 
 function createMenu() {
     createSpan("Difficulty")
-    slider = createSlider(0.1, 0.8, 0.4, 0.1)
+    slider = createSlider(0.1, 0.6, 0.4, 0.1)
     var btn = createButton("Generate")
     btn.mousePressed(function(){        
         btn.attribute("disabled", "")
