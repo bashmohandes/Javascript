@@ -1,8 +1,12 @@
 function Board() {
 
-    this.cells = []    
+    this.cells = []   
+    this.solutionMode = false 
+    this.solver = new Solver(this)
 
     this.clear = function() {
+        this.solutionMode = false
+        this.solver = new Solver(this)
         for(var x = 0; x<9; x++) {
             this.cells[x] = []
             for(var y = 0; y<9; y++) {
@@ -14,6 +18,10 @@ function Board() {
     this.clear()
 
     this.draw = function() {
+        if(this.solutionMode && !this.solver.finished) {
+            this.solver.progress()
+        }
+
         for(var x = 0; x<9; x++) {            
             for(var y = 0; y<9; y++) {
                 this.cells[x][y].valid = this.isValid(x, y)
@@ -128,5 +136,9 @@ function Board() {
                 }                
             }
         }
+    }
+
+    this.solve = function() {
+        this.solutionMode = true
     }
 }

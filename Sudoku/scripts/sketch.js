@@ -9,17 +9,8 @@ function setup() {
     board = new Board()
     board.build()    
 
-    createSpan("Difficulty")
-    slider = createSlider(0.1, 0.8, 0.4, 0.1)
-    var btn = createButton("Generate")
-    btn.mousePressed(function(){        
-        btn.attribute("disabled", "")
-        board.clear()
-        board.build()
-        btn.removeAttribute("disabled")
-    })
+    createMenu()
 }
-
 
 function draw() {
     background(255)    
@@ -33,4 +24,21 @@ function mouseClicked() {
 
 function keyTyped() {
     board.keyTyped()
+}
+
+function createMenu() {
+    createSpan("Difficulty")
+    slider = createSlider(0.1, 0.8, 0.4, 0.1)
+    var btn = createButton("Generate")
+    btn.mousePressed(function(){        
+        btn.attribute("disabled", "")
+        board.clear()
+        board.build()
+        btn.removeAttribute("disabled")
+    })
+
+    var btnSolve = createButton("Solve")
+    btnSolve.mousePressed(function(){
+        board.solve()
+    })
 }
