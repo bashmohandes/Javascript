@@ -32,7 +32,7 @@ function createMenu() {
     var btn = createButton("Generate")
     btn.mousePressed(function(){        
         btn.attribute("disabled", "")
-        board.clear()
+        board = new Board()        
         board.build()
         btn.removeAttribute("disabled")
     })

@@ -5,19 +5,13 @@ function Board() {
     this.solver = new Solver(this)
     this.builder = new Builder(this)
 
-    this.clear = function() {
-        this.solutionMode = false
-        this.solver = new Solver(this)
-        this.builder = new Builder(this)
-        for(var x = 0; x<9; x++) {
-            this.cells[x] = []
-            for(var y = 0; y<9; y++) {
-                this.cells[x][y] = new Cell(x, y)
-            }
+    for(var x = 0; x<9; x++) {
+        this.cells[x] = []
+        for(var y = 0; y<9; y++) {
+            this.cells[x][y] = new Cell(x, y)
         }
-    }
+    }            
 
-    this.clear()
 
     this.draw = function() {
         if(this.solutionMode && !this.solver.finished) {
@@ -38,10 +32,6 @@ function Board() {
             line(0, 3 * CELL_SIZE * i, width, 3 * CELL_SIZE * i)
         }
         pop()
-    }    
-
-    this.build = function() {
-        this.builder.build()
     }
 
     this.next = function(x, y) {
@@ -111,5 +101,9 @@ function Board() {
 
     this.solve = function() {
         this.solutionMode = true
+    }
+
+    this.build = function() {
+        this.builder.build()
     }
 }
