@@ -4,7 +4,7 @@ function Builder(board) {
     this.build = function() {
         var startX = Math.floor(random(0, 9))
         var startY = Math.floor(random(0, 9))
-        this.board.cells[startX][startY].val = Math.floor(random(1, 9))
+        this.board.cells[startX][startY].val = Math.floor(random(1, 10))
         var n = this.board.next(startX, startY)
         this.buildRec(n[0], n[1], startX, startY)
         for(var x = 0; x<9; x++) {
