@@ -1,6 +1,6 @@
 
 var board
-var CELL_SIZE = 80
+var CELL_SIZE = 70
 var DIFFICULTY = 0.4
 var slider 
 function setup() {    
@@ -27,17 +27,24 @@ function keyTyped() {
 }
 
 function createMenu() {
-    createSpan("Difficulty")
+    var d = createDiv("")
+    var label = createSpan("Difficulty: ")
+    label.parent(d)
+    var easy = createSpan("Easy")
+    easy.parent(d)
     slider = createSlider(0.1, 0.6, 0.4, 0.1)
+    slider.parent(d)
+    var hard = createSpan("Hard ")
+    hard.parent(d)
     var btn = createButton("Generate")
+    btn.parent(d)
     btn.mousePressed(function(){        
-        btn.attribute("disabled", "")
         board = new Board()        
-        board.build()
-        btn.removeAttribute("disabled")
+        board.build()        
     })
 
-    var btnSolve = createButton("Solve")
+    var btnSolve = createButton("Auto Solve")
+    btnSolve.parent(d)
     btnSolve.mousePressed(function(){
         board.solve()
     })
