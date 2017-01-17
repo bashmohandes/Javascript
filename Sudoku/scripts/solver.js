@@ -28,7 +28,7 @@ function Solver(board) {
                     return
                 } else {
                     this.board.cells[this.x][this.y].val = undefined
-                    while(stack.length > 0) {
+                    if(stack.length > 0) {
                         var prevState = stack.pop()
                         this.x = prevState.x
                         this.y = prevState.y
