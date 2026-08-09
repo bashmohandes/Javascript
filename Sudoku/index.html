@@ -39,10 +39,22 @@
 
             <aside class="controls" aria-label="Game controls">
                 <div class="tool-row">
-                    <button class="tool" id="erase" type="button"><span aria-hidden="true">⌫</span>Erase</button>
-                    <button class="tool" id="notes" type="button" aria-pressed="false"><span aria-hidden="true">✎</span>Notes <small>Off</small></button>
-                    <button class="tool" id="hint" type="button"><span aria-hidden="true">◇</span>Hint</button>
-                    <button class="tool" id="auto-solve" type="button" aria-pressed="false"><span aria-hidden="true">▻</span>Auto solve</button>
+                    <button class="tool" id="erase" type="button">
+                        <svg class="tool-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="m3 15 7.6-9.1a2 2 0 0 1 3-.1l6 6a2 2 0 0 1 0 2.8L15.2 19H6.8L3 15Z"/><path d="m8 19 8.4-8.4M14 19h7"/></svg>
+                        Erase
+                    </button>
+                    <button class="tool" id="notes" type="button" aria-pressed="false">
+                        <svg class="tool-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg>
+                        Notes <small>Off</small>
+                    </button>
+                    <button class="tool" id="hint" type="button">
+                        <svg class="tool-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M8.2 14.7a7 7 0 1 1 7.6 0c-.5.4-.8 1-.8 1.6V17H9v-.7c0-.6-.3-1.2-.8-1.6Z"/></svg>
+                        Hint
+                    </button>
+                    <button class="tool" id="auto-solve" type="button" aria-pressed="false">
+                        <svg class="tool-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path class="tool-icon-fill" d="m8 5 11 7-11 7Z"/></svg>
+                        Auto solve
+                    </button>
                 </div>
                 <div id="number-pad" class="number-pad" aria-label="Number pad"></div>
                 <button class="primary-button" id="new-game" type="button">New game</button>

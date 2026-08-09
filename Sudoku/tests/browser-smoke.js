@@ -5,6 +5,10 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 
+const html = fs.readFileSync('Sudoku/index.html', 'utf8');
+assert.equal((html.match(/class="tool-icon"/g) || []).length, 4, 'uses one font-independent SVG icon for each game tool');
+assert(!/[⌫✎◇▻■]/u.test(html), 'does not use platform-dependent glyphs for game tool icons');
+
 class ClassList {
     constructor(element) { this.element = element; }
     add(...names) {

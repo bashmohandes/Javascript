@@ -60,8 +60,9 @@ h1 { font-size: clamp(42px, 6vw, 66px); line-height: .98; }
 .notes-grid { position: absolute; inset: 4px; display: grid; grid-template-columns: repeat(3, 1fr); align-items: center; color: var(--accent-dark); font-size: clamp(7px, 1.3vw, 11px); font-weight: 600; }
 .controls { max-width: 390px; }
 .tool-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 28px; }
-.tool { display: grid; place-items: center; gap: 5px; min-height: 78px; border: 1px solid var(--line); border-radius: 8px; background: rgba(255,255,255,.4); font-size: 12px; font-weight: 600; cursor: pointer; transition: .18s; }
-.tool > span { font-size: 23px; line-height: 1; }
+.tool { -webkit-appearance: none; appearance: none; display: grid; grid-template-rows: 24px 16px 12px; place-items: center; align-content: center; gap: 3px; min-height: 78px; border: 1px solid var(--line); border-radius: 8px; background: rgba(255,255,255,.4); font-size: 12px; font-weight: 600; line-height: 1; cursor: pointer; transition: .18s; }
+.tool-icon { display: block; width: 24px; height: 24px; overflow: visible; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
+.tool-icon-fill { fill: currentColor; stroke: none; }
 .tool small { color: var(--muted); font-size: 10px; }
 .tool:hover, .tool[aria-pressed="true"] { border-color: var(--accent); color: var(--accent-dark); background: #fff8f1; transform: translateY(-2px); }
 .tool.is-stopping { color: white; border-color: var(--error); background: var(--error); }

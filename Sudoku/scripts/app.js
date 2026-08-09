@@ -11,6 +11,11 @@
     const notesButton = document.querySelector('#notes');
     const autoSolveButton = document.querySelector('#auto-solve');
     const modal = document.querySelector('#finish-modal');
+    const CONTROL_ICONS = {
+        hint: '<svg class="tool-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M8.2 14.7a7 7 0 1 1 7.6 0c-.5.4-.8 1-.8 1.6V17H9v-.7c0-.6-.3-1.2-.8-1.6Z"/></svg>',
+        play: '<svg class="tool-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path class="tool-icon-fill" d="m8 5 11 7-11 7Z"/></svg>',
+        stop: '<svg class="tool-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><rect class="tool-icon-fill" x="6" y="6" width="12" height="12" rx="1"/></svg>'
+    };
 
     let solution = [];
     let puzzle = [];
@@ -75,7 +80,7 @@
         notesButton.querySelector('small').textContent = 'Off';
         mistakesElement.textContent = '0';
         difficultyLabel.textContent = difficulty[0].toUpperCase() + difficulty.slice(1);
-        document.querySelector('#hint').innerHTML = '<span aria-hidden="true">◇</span>Hint <small>3 left</small>';
+        document.querySelector('#hint').innerHTML = `${CONTROL_ICONS.hint}Hint <small>3 left</small>`;
         statusElement.setAttribute('aria-live', 'polite');
         statusElement.textContent = 'Select an empty square to begin.';
         modal.hidden = true;
@@ -198,7 +203,7 @@
         notes[row][column].clear();
         removePeerNotes(row, column, solution[row][column]);
         hints -= 1;
-        document.querySelector('#hint').innerHTML = `<span aria-hidden="true">◇</span>Hint <small>${hints} left</small>`;
+        document.querySelector('#hint').innerHTML = `${CONTROL_ICONS.hint}Hint <small>${hints} left</small>`;
         statusElement.textContent = 'A little nudge in the right direction.';
         render();
     }
@@ -328,8 +333,8 @@
     function updateAutoSolveButton(isSolving) {
         autoSolveButton.setAttribute('aria-pressed', String(isSolving));
         autoSolveButton.innerHTML = isSolving
-            ? '<span aria-hidden="true">■</span>Stop solve'
-            : '<span aria-hidden="true">▻</span>Auto solve';
+            ? `${CONTROL_ICONS.stop}Stop solve`
+            : `${CONTROL_ICONS.play}Auto solve`;
         autoSolveButton.classList.toggle('is-stopping', isSolving);
     }
 
