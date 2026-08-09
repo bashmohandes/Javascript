@@ -10,6 +10,11 @@ const status = document.querySelector('#status');
 const overlay = document.querySelector('#arena-message');
 const overlayTitle = overlay.querySelector('strong');
 const overlayHint = overlay.querySelector('span');
+const onlinePanel = document.querySelector('#online-panel');
+const onlineLobby = document.querySelector('#online-lobby');
+const onlineRoom = document.querySelector('#online-room');
+const connectionState = document.querySelector('#connection-state');
+const readyOnlineButton = document.querySelector('#ready-online');
 
 const game = {
     width: 960, height: 600, running: false, paused: false, over: false, mode: 'solo',
@@ -30,6 +35,57 @@ const powerUpTypes = {
     split: { name: 'Split Ball', icon: '●●', color: '#cc8290', collection: 'ball' }
 };
 let balls = [];
+const online = { socket: null, roomCode: '', token: '', side: 0, connected: false, lastSequence: 0, reconnectTimer: null, intentionalClose: false };
+
+function setConnection(label, state = 'offline') { connectionState.textContent = label; connectionState.dataset.state = state; }
+function sendOnline(message) { if (online.socket?.readyState === WebSocket.OPEN) online.socket.send(JSON.stringify(message)); }
+function saveSession() { sessionStorage.setItem('pong-online-session', JSON.stringify({ roomCode: online.roomCode, token: online.token })); }
+function clearSession() { sessionStorage.removeItem('pong-online-session'); online.roomCode = ''; online.token = ''; }
+function showOnlineRoom(code) { onlineLobby.hidden = true; onlineRoom.hidden = false; document.querySelector('#room-code-display').textContent = code; }
+function applyOnlineState(state) {
+    game.running = state.running; game.paused = state.paused; game.over = state.over; game.elapsed = state.elapsed; game.score = state.score;
+    setScore(0, state.score[0]); setScore(1, state.score[1]);
+    state.paddles.forEach((paddle, side) => Object.assign(paddles[side], paddle));
+    balls = state.balls.map(ball => ({ ...ball })); game.powerUps = state.powerUps.map(powerUp => ({ ...powerUp }));
+    if (state.over) { const won = state.winner === online.side; status.textContent = won ? 'You won the online match!' : 'Your opponent won the online match.'; showOverlay(won ? 'You win!' : 'Opponent wins', 'Choose rematch when you are ready'); readyOnlineButton.textContent = 'Ready for rematch'; }
+    else if (state.running && !state.paused) overlay.hidden = true;
+}
+function handleOnlineMessage(message) {
+    if (message.type === 'session') {
+        online.roomCode = message.roomCode; online.token = message.playerToken; online.side = message.side; saveSession(); showOnlineRoom(message.roomCode); setConnection('Connected', 'online');
+        const url = new URL(location.href); url.searchParams.set('room', message.roomCode); history.replaceState(null, '', url); status.textContent = message.side === 0 ? 'Room created. Share the invite and wait for your opponent.' : 'Joined room. Press “I’m ready” when set.';
+    } else if (message.type === 'room-status') {
+        const opponentConnected = message.players[1 - online.side];
+        status.textContent = opponentConnected ? 'Opponent connected. Both players can ready up.' : 'Waiting for your opponent to join…';
+    } else if (message.type === 'match-started') { readyOnlineButton.disabled = false; readyOnlineButton.textContent = 'Ready for rematch'; status.textContent = 'First to 7. The match is live!'; }
+    else if (message.type === 'waiting-ready') { readyOnlineButton.disabled = true; readyOnlineButton.textContent = 'Waiting…'; status.textContent = 'Ready. Waiting for your opponent.'; }
+    else if (message.type === 'state' && message.sequence > online.lastSequence) { online.lastSequence = message.sequence; applyOnlineState(message.state); }
+    else if (message.type === 'peer-left') { setConnection('Reconnecting…', 'connecting'); status.textContent = `Opponent disconnected. Holding the match for ${Math.round(message.reconnectMs / 1000)} seconds.`; showOverlay('Opponent disconnected', 'The match will resume if they reconnect'); }
+    else if (message.type === 'peer-reconnected') { setConnection('Connected', 'online'); status.textContent = 'Opponent reconnected. Match resumed.'; overlay.hidden = true; }
+    else if (message.type === 'room-closed') { status.textContent = message.reason; leaveOnline(false); }
+    else if (message.type === 'error') { status.textContent = message.message; setConnection('Error', 'offline'); }
+}
+function connectOnline(action) {
+    if (online.socket && online.socket.readyState < WebSocket.CLOSING) online.socket.close();
+    online.intentionalClose = false; setConnection('Connecting…', 'connecting');
+    const scheme = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const socket = new WebSocket(`${scheme}//${location.host}/ws`); online.socket = socket;
+    socket.addEventListener('open', () => { online.connected = true; sendOnline(action); });
+    socket.addEventListener('message', event => { try { handleOnlineMessage(JSON.parse(event.data)); } catch { status.textContent = 'Received an invalid server update.'; } });
+    socket.addEventListener('close', () => {
+        if (socket !== online.socket) return;
+        online.connected = false;
+        if (online.intentionalClose || game.mode !== 'online') { setConnection('Offline'); return; }
+        setConnection('Reconnecting…', 'connecting');
+        if (online.roomCode && online.token) online.reconnectTimer = setTimeout(() => connectOnline({ type: 'resume', roomCode: online.roomCode, playerToken: online.token }), 1000);
+        else setConnection('Offline');
+    });
+}
+function leaveOnline(notify = true) {
+    clearTimeout(online.reconnectTimer); if (notify) sendOnline({ type: 'leave' }); online.intentionalClose = true; online.socket?.close(); clearSession();
+    onlineLobby.hidden = false; onlineRoom.hidden = true; setConnection('Offline'); const url = new URL(location.href); url.searchParams.delete('room'); history.replaceState(null, '', url);
+}
+function onlineInput() { sendOnline({ type: 'input', up: game.keys.has('KeyW') || game.keys.has('ArrowUp'), down: game.keys.has('KeyS') || game.keys.has('ArrowDown'), targetY: null }); }
 
 function makeBall(x = game.width / 2, y = game.height / 2, vx = 0, vy = 0) { return { x, y, r: 10, vx, vy }; }
 function resize() { const ratio = Math.min(window.devicePixelRatio || 1, 2); canvas.width = game.width * ratio; canvas.height = game.height * ratio; ctx.setTransform(ratio, 0, 0, ratio, 0, 0); draw(); }
@@ -46,7 +102,7 @@ function newGame() {
     setTimeout(() => { if (game.running && !game.paused && balls[0].vx === 0) launch(); }, 500);
 }
 function showOverlay(title, hint) { overlayTitle.textContent = title; overlayHint.textContent = hint; overlay.hidden = false; }
-function togglePause() { if (game.over || !game.running) { newGame(); return; } game.paused = !game.paused; game.paused ? showOverlay('Game paused', 'Click or press Space to continue') : overlay.hidden = true; }
+function togglePause() { if (game.mode === 'online') return; if (game.over || !game.running) { newGame(); return; } game.paused = !game.paused; game.paused ? showOverlay('Game paused', 'Click or press Space to continue') : overlay.hidden = true; }
 function point(side) {
     game.score[side]++; setScore(side, game.score[side]); clearPowerUps();
     if (game.score[side] === 7) { game.over = true; game.running = false; const name = side === 0 ? (game.mode === 'solo' ? 'You' : 'Left player') : (game.mode === 'solo' ? 'Computer' : 'Right player'); status.textContent = `${name} won ${game.score[side]}–${game.score[1 - side]}.`; showOverlay(`${name} wins!`, 'Click to play another match'); return; }
@@ -105,13 +161,15 @@ function movePaddleToPointer(side, event) {
     const paddle = paddles[side];
     const rect = canvas.getBoundingClientRect();
     const pointerY = (event.clientY - rect.top) * game.height / rect.height;
+    if (game.mode === 'online') { sendOnline({ type: 'input', up: false, down: false, targetY: pointerY }); return; }
     paddle.y = Math.max(12, Math.min(game.height - paddle.h - 12, pointerY - paddle.h / 2));
 }
 canvas.addEventListener('pointerdown', event => {
     if (event.pointerType === 'mouse' && event.button !== 0) return;
     const rect = canvas.getBoundingClientRect();
     const side = event.clientX - rect.left < rect.width / 2 ? 0 : 1;
-    if (side === 1 && game.mode !== 'duo') return;
+    if (game.mode === 'online' && side !== online.side) return;
+    if (side === 1 && game.mode !== 'duo' && game.mode !== 'online') return;
     if (game.pointerControls.has(side)) return;
     event.preventDefault();
     game.pointerControls.set(side, event.pointerId);
@@ -144,18 +202,38 @@ function draw() {
     game.powerUps.forEach(drawPowerUp); paddles.forEach(paddle => { ctx.fillStyle = paddle.color; roundedRect(paddle.x, paddle.y, paddle.w, paddle.h, 7); });
     ctx.fillStyle = '#fffdf8'; balls.forEach(ball => { ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2); ctx.fill(); });
 }
-function frame(time) { const dt = Math.min((time - game.last) / 1000, .025) || 0; game.last = time; if (game.running && !game.paused) update(dt); draw(); requestAnimationFrame(frame); }
+function frame(time) { const dt = Math.min((time - game.last) / 1000, .025) || 0; game.last = time; if (game.mode !== 'online' && game.running && !game.paused) update(dt); draw(); requestAnimationFrame(frame); }
 
-document.querySelectorAll('[data-mode]').forEach(button => button.addEventListener('click', () => { game.mode = button.dataset.mode; document.querySelectorAll('[data-mode]').forEach(item => item.setAttribute('aria-pressed', item === button)); newGame(); }));
+document.querySelectorAll('[data-mode]').forEach(button => button.addEventListener('click', () => { if (game.mode === 'online' && button.dataset.mode !== 'online') leaveOnline(); game.mode = button.dataset.mode; document.querySelectorAll('[data-mode]').forEach(item => item.setAttribute('aria-pressed', item === button)); onlinePanel.hidden = game.mode !== 'online'; document.querySelectorAll('.local-control').forEach(item => item.hidden = game.mode === 'online'); document.querySelector('#pause').hidden = game.mode === 'online'; if (game.mode === 'online') { game.running = false; game.paused = true; resetBall(); showOverlay('Online match', 'Create a room or join a friend'); } else newGame(); }));
 document.querySelector('#new-game').addEventListener('click', newGame); document.querySelector('#pause').addEventListener('click', togglePause); overlay.addEventListener('click', togglePause);
+document.querySelector('#create-room').addEventListener('click', () => connectOnline({ type: 'create-room' }));
+document.querySelector('#join-room').addEventListener('click', () => { const roomCode = document.querySelector('#room-code').value.trim().toUpperCase(); if (roomCode.length !== 5) { status.textContent = 'Enter the five-character room code.'; return; } connectOnline({ type: 'join-room', roomCode }); });
+document.querySelector('#room-code').addEventListener('input', event => { event.target.value = event.target.value.toUpperCase().replace(/[^A-Z2-9]/g, '').slice(0, 5); });
+readyOnlineButton.addEventListener('click', () => { readyOnlineButton.disabled = true; sendOnline({ type: game.over ? 'rematch' : 'ready' }); });
+document.querySelector('#leave-room').addEventListener('click', () => leaveOnline());
+document.querySelector('#copy-invite').addEventListener('click', async () => { const url = new URL(location.href); url.searchParams.set('room', online.roomCode); await navigator.clipboard.writeText(url.href); status.textContent = 'Invite link copied.'; });
 document.querySelectorAll('.player-color').forEach((picker, index) => {
     const trigger = picker.querySelector('.color-trigger'); const menu = picker.querySelector('.color-menu'); const palette = picker.querySelector('.swatches');
     trigger.addEventListener('click', () => { const opening = menu.hidden; document.querySelectorAll('.color-menu').forEach(item => item.hidden = true); document.querySelectorAll('.color-trigger').forEach(item => item.setAttribute('aria-expanded', false)); menu.hidden = !opening; trigger.setAttribute('aria-expanded', opening); });
-    paddleColors.forEach(color => { const swatch = document.createElement('button'); swatch.type = 'button'; swatch.className = 'swatch'; swatch.style.setProperty('--swatch', color.value); swatch.setAttribute('aria-label', `${color.name} ${index ? 'right' : 'left'} paddle`); swatch.setAttribute('aria-pressed', paddles[index].color === color.value); swatch.addEventListener('click', () => { paddles[index].color = color.value; trigger.style.setProperty('--selected-color', color.value); palette.querySelectorAll('.swatch').forEach(button => button.setAttribute('aria-pressed', button === swatch)); menu.hidden = true; trigger.setAttribute('aria-expanded', false); trigger.focus(); draw(); }); palette.append(swatch); });
+    paddleColors.forEach(color => { const swatch = document.createElement('button'); swatch.type = 'button'; swatch.className = 'swatch'; swatch.style.setProperty('--swatch', color.value); swatch.setAttribute('aria-label', `${color.name} ${index ? 'right' : 'left'} paddle`); swatch.setAttribute('aria-pressed', paddles[index].color === color.value); swatch.addEventListener('click', () => { if (game.mode === 'online' && index !== online.side) return; paddles[index].color = color.value; if (game.mode === 'online') sendOnline({ type: 'color', color: color.value }); trigger.style.setProperty('--selected-color', color.value); palette.querySelectorAll('.swatch').forEach(button => button.setAttribute('aria-pressed', button === swatch)); menu.hidden = true; trigger.setAttribute('aria-expanded', false); trigger.focus(); draw(); }); palette.append(swatch); });
 });
 document.addEventListener('click', event => { if (!event.target.closest('.player-color')) { document.querySelectorAll('.color-menu').forEach(menu => menu.hidden = true); document.querySelectorAll('.color-trigger').forEach(trigger => trigger.setAttribute('aria-expanded', false)); } });
 fullscreenButton.addEventListener('click', async () => { if (document.fullscreenElement) await document.exitFullscreen(); else await arena.requestFullscreen(); });
 document.addEventListener('fullscreenchange', () => { const active = document.fullscreenElement === arena; fullscreenButton.textContent = active ? 'Exit full screen' : 'Enter full screen'; fullscreenButton.setAttribute('aria-pressed', active); });
-addEventListener('keydown', event => { if (event.code === 'Escape') { document.querySelectorAll('.color-menu').forEach(menu => menu.hidden = true); document.querySelectorAll('.color-trigger').forEach(trigger => trigger.setAttribute('aria-expanded', false)); return; } if (['ArrowUp', 'ArrowDown', 'Space'].includes(event.code)) event.preventDefault(); if (event.code === 'Space') { togglePause(); return; } game.keys.add(event.code); }); addEventListener('keyup', event => game.keys.delete(event.code));
-document.querySelectorAll('[data-key]').forEach(button => { const key = button.dataset.key; const on = event => { event.preventDefault(); game.keys.add(key); }; const off = event => { event.preventDefault(); game.keys.delete(key); }; button.addEventListener('pointerdown', on); button.addEventListener('pointerup', off); button.addEventListener('pointercancel', off); button.addEventListener('pointerleave', off); });
+addEventListener('keydown', event => { if (event.code === 'Escape') { document.querySelectorAll('.color-menu').forEach(menu => menu.hidden = true); document.querySelectorAll('.color-trigger').forEach(trigger => trigger.setAttribute('aria-expanded', false)); return; } if (['ArrowUp', 'ArrowDown', 'Space'].includes(event.code)) event.preventDefault(); if (event.code === 'Space') { togglePause(); return; } game.keys.add(event.code); if (game.mode === 'online') onlineInput(); }); addEventListener('keyup', event => { game.keys.delete(event.code); if (game.mode === 'online') onlineInput(); });
+document.querySelectorAll('[data-key]').forEach(button => { const key = button.dataset.key; const on = event => { event.preventDefault(); game.keys.add(key); if (game.mode === 'online') onlineInput(); }; const off = event => { event.preventDefault(); game.keys.delete(key); if (game.mode === 'online') onlineInput(); }; button.addEventListener('pointerdown', on); button.addEventListener('pointerup', off); button.addEventListener('pointercancel', off); button.addEventListener('pointerleave', off); });
 addEventListener('resize', resize); resize(); requestAnimationFrame(frame);
+const invitedRoom = new URLSearchParams(location.search).get('room');
+let savedOnlineSession = null;
+try { savedOnlineSession = JSON.parse(sessionStorage.getItem('pong-online-session')); } catch { clearSession(); }
+if (invitedRoom) {
+    document.querySelector('[data-mode="online"]').click();
+    const normalizedRoom = invitedRoom.toUpperCase().slice(0, 5);
+    if (savedOnlineSession?.roomCode === normalizedRoom && savedOnlineSession.token) {
+        online.roomCode = savedOnlineSession.roomCode; online.token = savedOnlineSession.token;
+        connectOnline({ type: 'resume', roomCode: online.roomCode, playerToken: online.token });
+    } else {
+        document.querySelector('#room-code').value = normalizedRoom;
+        status.textContent = 'Invitation loaded. Join when you are ready.';
+    }
+}
