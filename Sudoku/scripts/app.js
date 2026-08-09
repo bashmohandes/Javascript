@@ -74,6 +74,7 @@
         mistakesElement.textContent = '0';
         difficultyLabel.textContent = difficulty[0].toUpperCase() + difficulty.slice(1);
         document.querySelector('#hint').innerHTML = '<span aria-hidden="true">◇</span>Hint <small>3 left</small>';
+        statusElement.setAttribute('aria-live', 'polite');
         statusElement.textContent = 'Select an empty square to begin.';
         modal.hidden = true;
         clearInterval(timerId);
@@ -109,7 +110,9 @@
                 else if (selected.row === rowIndex || selected.column === columnIndex || sameBox(selected.row, selected.column, rowIndex, columnIndex)) cell.classList.add('related');
                 if (value && value === selectedValue) cell.classList.add('same');
             }
-            if (solvingCell?.row === rowIndex && solvingCell?.column === columnIndex) cell.classList.add('solving');
+            if (solvingCell?.row === rowIndex && solvingCell?.column === columnIndex) {
+                cell.classList.add('solving', `solving-${solvingCell.state}`);
+            }
             if (value) {
                 cell.textContent = value;
                 cell.setAttribute('aria-label', `Row ${rowIndex + 1}, column ${columnIndex + 1}, ${value}${isGiven ? ', given' : ''}`);
@@ -220,30 +223,92 @@
         autoSolveButton.disabled = true;
         clearInterval(timerId);
 
-        const remaining = [];
-        values.forEach((row, rowIndex) => row.forEach((value, columnIndex) => {
-            if (value !== solution[rowIndex][columnIndex]) remaining.push({ row: rowIndex, column: columnIndex });
+        const solverGrid = puzzle.map(row => [...row]);
+        const emptyCells = [];
+        solverGrid.forEach((row, rowIndex) => row.forEach((value, columnIndex) => {
+            if (!value) emptyCells.push({ row: rowIndex, column: columnIndex });
         }));
+        const nextCandidates = Array(emptyCells.length).fill(1);
+        let cellIndex = 0;
+        let attempts = 0;
+        let backtracks = 0;
 
-        statusElement.textContent = 'Solving the puzzle… watch the pattern unfold.';
+        values = solverGrid.map(row => [...row]);
+        notes.forEach(row => row.forEach(cellNotes => cellNotes.clear()));
+
+        statusElement.setAttribute('aria-live', 'off');
+        statusElement.textContent = 'Searching for a solution with backtracking…';
         const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
         solveTimerId = setInterval(() => {
-            const nextCell = remaining.shift();
-            if (!nextCell) {
+            if (cellIndex === emptyCells.length) {
                 clearInterval(solveTimerId);
                 solvingCell = null;
                 autoSolving = false;
                 gameOver = true;
-                statusElement.textContent = 'Puzzle solved automatically.';
+                statusElement.setAttribute('aria-live', 'polite');
+                statusElement.textContent = `Solved with ${attempts} tries and ${backtracks} backtrack${backtracks === 1 ? '' : 's'}.`;
                 render();
                 return;
             }
-            values[nextCell.row][nextCell.column] = solution[nextCell.row][nextCell.column];
-            notes[nextCell.row][nextCell.column].clear();
-            solvingCell = nextCell;
-            statusElement.textContent = `${remaining.length} square${remaining.length === 1 ? '' : 's'} left to solve…`;
+
+            if (cellIndex < 0) {
+                clearInterval(solveTimerId);
+                autoSolving = false;
+                gameOver = true;
+                statusElement.setAttribute('aria-live', 'polite');
+                statusElement.textContent = 'No solution exists for this puzzle.';
+                return;
+            }
+
+            const cell = emptyCells[cellIndex];
+            const candidate = nextCandidates[cellIndex];
+            if (candidate > 9) {
+                solverGrid[cell.row][cell.column] = 0;
+                values[cell.row][cell.column] = 0;
+                nextCandidates[cellIndex] = 1;
+                cellIndex -= 1;
+                backtracks += 1;
+                if (cellIndex >= 0) {
+                    const previous = emptyCells[cellIndex];
+                    solverGrid[previous.row][previous.column] = 0;
+                    values[previous.row][previous.column] = 0;
+                    solvingCell = { ...previous, state: 'backtrack' };
+                    statusElement.textContent = `Dead end at row ${cell.row + 1}, column ${cell.column + 1} — backtracking.`;
+                }
+                render();
+                return;
+            }
+
+            attempts += 1;
+            nextCandidates[cellIndex] = candidate + 1;
+            solverGrid[cell.row][cell.column] = candidate;
+            values[cell.row][cell.column] = candidate;
+            if (isSolverCandidateValid(solverGrid, cell.row, cell.column)) {
+                solvingCell = { ...cell, state: 'accepted' };
+                statusElement.textContent = `${candidate} fits at row ${cell.row + 1}, column ${cell.column + 1}.`;
+                cellIndex += 1;
+            } else {
+                solvingCell = { ...cell, state: 'rejected' };
+                statusElement.textContent = `Trying ${candidate} at row ${cell.row + 1}, column ${cell.column + 1}…`;
+            }
             render();
-        }, reduceMotion ? 1 : 55);
+        }, reduceMotion ? 1 : 45);
+    }
+
+    function isSolverCandidateValid(grid, row, column) {
+        const value = grid[row][column];
+        for (let index = 0; index < 9; index++) {
+            if (index !== column && grid[row][index] === value) return false;
+            if (index !== row && grid[index][column] === value) return false;
+        }
+        const boxRow = Math.floor(row / 3) * 3;
+        const boxColumn = Math.floor(column / 3) * 3;
+        for (let rowIndex = boxRow; rowIndex < boxRow + 3; rowIndex++) {
+            for (let columnIndex = boxColumn; columnIndex < boxColumn + 3; columnIndex++) {
+                if ((rowIndex !== row || columnIndex !== column) && grid[rowIndex][columnIndex] === value) return false;
+            }
+        }
+        return true;
     }
 
     function moveSelection(rowChange, columnChange) {

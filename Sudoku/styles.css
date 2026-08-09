@@ -54,7 +54,9 @@ h1 { font-size: clamp(42px, 6vw, 66px); line-height: .98; }
 .cell.same { background: var(--sage); }
 .cell.selected { background: var(--selected); box-shadow: inset 0 0 0 2px var(--accent); }
 .cell.error { color: var(--error); background: #f8dcda; animation: shake .25s; }
-.cell.solving { color: white; background: var(--accent); box-shadow: inset 0 0 0 3px var(--accent-dark); animation: solve-pulse .45s ease-out; }
+.cell.solving { color: white; background: var(--accent); box-shadow: inset 0 0 0 3px var(--accent-dark); animation: solve-pulse .4s ease-out; }
+.cell.solving-rejected { background: var(--error); box-shadow: inset 0 0 0 3px #872b28; }
+.cell.solving-backtrack { color: var(--error); background: #f8dcda; box-shadow: inset 0 0 0 3px var(--error); }
 .notes-grid { position: absolute; inset: 4px; display: grid; grid-template-columns: repeat(3, 1fr); align-items: center; color: var(--accent-dark); font-size: clamp(7px, 1.3vw, 11px); font-weight: 600; }
 .controls { max-width: 390px; }
 .tool-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 28px; }

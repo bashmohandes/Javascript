@@ -86,7 +86,7 @@ global.document = {
     addEventListener(type, listener) { this.listeners ||= {}; (this.listeners[type] ||= []).push(listener); },
     dispatchEvent(event) { (this.listeners?.[event.type] || []).forEach(listener => listener(event)); }
 };
-global.window = {};
+global.window = { matchMedia: () => ({ matches: true }) };
 const intervalCallbacks = new Map();
 let nextIntervalId = 1;
 global.setInterval = callback => {
@@ -120,10 +120,15 @@ assert(document.activeElement?.classList.contains('cell'), 'arrow navigation ret
 
 autoSolve.click();
 assert.equal(autoSolve.disabled, true, 'locks the auto-solve control while its animation is running');
-assert.equal(elements.get('#status').textContent, 'Solving the puzzle… watch the pattern unfold.', 'announces the animated solver');
+assert.equal(elements.get('#status').textContent, 'Searching for a solution with backtracking…', 'announces the backtracking solver');
 const solveTick = intervalCallbacks.get(Math.max(...intervalCallbacks.keys()));
-for (let tick = 0; tick < 82 && !elements.get('#status').textContent.includes('automatically'); tick++) solveTick();
+let solverTicks = 0;
+while (!elements.get('#status').textContent.startsWith('Solved with') && solverTicks < 250000) {
+    solveTick();
+    solverTicks += 1;
+}
 assert.equal(board.children.filter(cell => cell.getAttribute('aria-label').endsWith('empty')).length, 0, 'auto-solve fills every empty cell');
-assert.equal(elements.get('#status').textContent, 'Puzzle solved automatically.', 'announces auto-solve completion');
+assert.match(elements.get('#status').textContent, /^Solved with \d+ tries and \d+ backtracks?\.$/, 'reports solver attempts and backtracks');
+assert(solverTicks < 250000, 'backtracking solver completes within the safety limit');
 
 console.log('Sudoku DOM smoke test passed');
