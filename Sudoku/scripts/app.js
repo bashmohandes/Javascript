@@ -9,6 +9,7 @@
     const difficultySelect = document.querySelector('#difficulty');
     const difficultyLabel = document.querySelector('#difficulty-label');
     const notesButton = document.querySelector('#notes');
+    const autoSolveButton = document.querySelector('#auto-solve');
     const modal = document.querySelector('#finish-modal');
 
     let solution = [];
@@ -21,7 +22,10 @@
     let notesMode = false;
     let elapsed = 0;
     let timerId;
+    let solveTimerId;
     let gameOver = false;
+    let autoSolving = false;
+    let solvingCell = null;
 
     const shuffle = items => {
         const result = [...items];
@@ -62,6 +66,8 @@
         hints = 3;
         elapsed = 0;
         gameOver = false;
+        autoSolving = false;
+        solvingCell = null;
         notesMode = false;
         notesButton.setAttribute('aria-pressed', 'false');
         notesButton.querySelector('small').textContent = 'Off';
@@ -71,6 +77,8 @@
         statusElement.textContent = 'Select an empty square to begin.';
         modal.hidden = true;
         clearInterval(timerId);
+        clearInterval(solveTimerId);
+        autoSolveButton.disabled = false;
         timerId = setInterval(() => { elapsed += 1; renderTimer(); }, 1000);
         renderTimer();
         render();
@@ -101,6 +109,7 @@
                 else if (selected.row === rowIndex || selected.column === columnIndex || sameBox(selected.row, selected.column, rowIndex, columnIndex)) cell.classList.add('related');
                 if (value && value === selectedValue) cell.classList.add('same');
             }
+            if (solvingCell?.row === rowIndex && solvingCell?.column === columnIndex) cell.classList.add('solving');
             if (value) {
                 cell.textContent = value;
                 cell.setAttribute('aria-label', `Row ${rowIndex + 1}, column ${columnIndex + 1}, ${value}${isGiven ? ', given' : ''}`);
@@ -125,14 +134,14 @@
         Math.floor(rowA / 3) === Math.floor(rowB / 3) && Math.floor(columnA / 3) === Math.floor(columnB / 3);
 
     function selectCell(row, column) {
-        if (gameOver) return;
+        if (gameOver || autoSolving) return;
         selected = { row, column };
         statusElement.textContent = puzzle[row][column] ? 'This number is part of the puzzle.' : 'Choose a number, or switch on notes.';
         render();
     }
 
     function enterNumber(number) {
-        if (!selected || gameOver) return;
+        if (!selected || gameOver || autoSolving) return;
         const { row, column } = selected;
         if (puzzle[row][column]) return;
         if (notesMode && !values[row][column]) {
@@ -165,7 +174,7 @@
     }
 
     function erase() {
-        if (!selected || puzzle[selected.row][selected.column] || gameOver) return;
+        if (!selected || puzzle[selected.row][selected.column] || gameOver || autoSolving) return;
         values[selected.row][selected.column] = 0;
         notes[selected.row][selected.column].clear();
         statusElement.textContent = 'Square cleared.';
@@ -173,7 +182,7 @@
     }
 
     function giveHint() {
-        if (!selected || puzzle[selected.row][selected.column] || gameOver) {
+        if (!selected || puzzle[selected.row][selected.column] || gameOver || autoSolving) {
             statusElement.textContent = 'Select an empty square to use a hint.';
             return;
         }
@@ -204,7 +213,41 @@
         document.querySelector('#play-again').focus();
     }
 
+    function autoSolve() {
+        if (gameOver || autoSolving) return;
+        autoSolving = true;
+        selected = null;
+        autoSolveButton.disabled = true;
+        clearInterval(timerId);
+
+        const remaining = [];
+        values.forEach((row, rowIndex) => row.forEach((value, columnIndex) => {
+            if (value !== solution[rowIndex][columnIndex]) remaining.push({ row: rowIndex, column: columnIndex });
+        }));
+
+        statusElement.textContent = 'Solving the puzzle… watch the pattern unfold.';
+        const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+        solveTimerId = setInterval(() => {
+            const nextCell = remaining.shift();
+            if (!nextCell) {
+                clearInterval(solveTimerId);
+                solvingCell = null;
+                autoSolving = false;
+                gameOver = true;
+                statusElement.textContent = 'Puzzle solved automatically.';
+                render();
+                return;
+            }
+            values[nextCell.row][nextCell.column] = solution[nextCell.row][nextCell.column];
+            notes[nextCell.row][nextCell.column].clear();
+            solvingCell = nextCell;
+            statusElement.textContent = `${remaining.length} square${remaining.length === 1 ? '' : 's'} left to solve…`;
+            render();
+        }, reduceMotion ? 1 : 55);
+    }
+
     function moveSelection(rowChange, columnChange) {
+        if (gameOver || autoSolving) return;
         if (!selected) selected = { row: 0, column: 0 };
         else selected = { row: Math.max(0, Math.min(8, selected.row + rowChange)), column: Math.max(0, Math.min(8, selected.column + columnChange)) };
         render();
@@ -225,7 +268,9 @@
 
     document.querySelector('#erase').addEventListener('click', erase);
     document.querySelector('#hint').addEventListener('click', giveHint);
+    autoSolveButton.addEventListener('click', autoSolve);
     notesButton.addEventListener('click', () => {
+        if (gameOver || autoSolving) return;
         notesMode = !notesMode;
         notesButton.setAttribute('aria-pressed', notesMode);
         notesButton.querySelector('small').textContent = notesMode ? 'On' : 'Off';

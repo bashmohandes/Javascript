@@ -68,6 +68,7 @@ notes.append(new Element('span'), Object.assign(new Element('small'), { textCont
 register('finish-modal');
 register('erase', 'button');
 register('hint', 'button');
+const autoSolve = register('auto-solve', 'button');
 register('new-game', 'button');
 register('new-game-top', 'button');
 register('play-again', 'button');
@@ -85,8 +86,15 @@ global.document = {
     addEventListener(type, listener) { this.listeners ||= {}; (this.listeners[type] ||= []).push(listener); },
     dispatchEvent(event) { (this.listeners?.[event.type] || []).forEach(listener => listener(event)); }
 };
-global.setInterval = () => 1;
-global.clearInterval = () => {};
+global.window = {};
+const intervalCallbacks = new Map();
+let nextIntervalId = 1;
+global.setInterval = callback => {
+    const id = nextIntervalId++;
+    intervalCallbacks.set(id, callback);
+    return id;
+};
+global.clearInterval = id => intervalCallbacks.delete(id);
 
 vm.runInThisContext(fs.readFileSync('Sudoku/scripts/app.js', 'utf8'), { filename: 'Sudoku/scripts/app.js' });
 
@@ -109,5 +117,13 @@ assert.equal(board.children.filter(cell => cell.classList.contains('given')).len
 
 document.dispatchEvent({ type: 'keydown', key: 'ArrowRight' });
 assert(document.activeElement?.classList.contains('cell'), 'arrow navigation returns focus to a grid cell');
+
+autoSolve.click();
+assert.equal(autoSolve.disabled, true, 'locks the auto-solve control while its animation is running');
+assert.equal(elements.get('#status').textContent, 'Solving the puzzle… watch the pattern unfold.', 'announces the animated solver');
+const solveTick = intervalCallbacks.get(Math.max(...intervalCallbacks.keys()));
+for (let tick = 0; tick < 82 && !elements.get('#status').textContent.includes('automatically'); tick++) solveTick();
+assert.equal(board.children.filter(cell => cell.getAttribute('aria-label').endsWith('empty')).length, 0, 'auto-solve fills every empty cell');
+assert.equal(elements.get('#status').textContent, 'Puzzle solved automatically.', 'announces auto-solve completion');
 
 console.log('Sudoku DOM smoke test passed');

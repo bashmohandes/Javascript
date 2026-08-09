@@ -54,13 +54,15 @@ h1 { font-size: clamp(42px, 6vw, 66px); line-height: .98; }
 .cell.same { background: var(--sage); }
 .cell.selected { background: var(--selected); box-shadow: inset 0 0 0 2px var(--accent); }
 .cell.error { color: var(--error); background: #f8dcda; animation: shake .25s; }
+.cell.solving { color: white; background: var(--accent); box-shadow: inset 0 0 0 3px var(--accent-dark); animation: solve-pulse .45s ease-out; }
 .notes-grid { position: absolute; inset: 4px; display: grid; grid-template-columns: repeat(3, 1fr); align-items: center; color: var(--accent-dark); font-size: clamp(7px, 1.3vw, 11px); font-weight: 600; }
 .controls { max-width: 390px; }
-.tool-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 28px; }
+.tool-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 28px; }
 .tool { display: grid; place-items: center; gap: 5px; min-height: 78px; border: 1px solid var(--line); border-radius: 8px; background: rgba(255,255,255,.4); font-size: 12px; font-weight: 600; cursor: pointer; transition: .18s; }
 .tool > span { font-size: 23px; line-height: 1; }
 .tool small { color: var(--muted); font-size: 10px; }
 .tool:hover, .tool[aria-pressed="true"] { border-color: var(--accent); color: var(--accent-dark); background: #fff8f1; transform: translateY(-2px); }
+.tool:disabled { opacity: .45; cursor: default; transform: none; }
 .number-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 22px; }
 .number { aspect-ratio: 1.35; border: 0; border-radius: 7px; background: var(--sage); font-family: "DM Serif Display", serif; font-size: 27px; cursor: pointer; transition: .15s; }
 .number:hover { color: white; background: var(--ink); transform: translateY(-2px); }
@@ -78,6 +80,7 @@ kbd { padding: 1px 4px; border: 1px solid var(--line); border-radius: 3px; backg
 .modal-card p:not(.eyebrow) { margin: 15px 0 27px; color: var(--muted); }
 .celebration { margin-bottom: 16px; color: var(--accent); font-size: 48px; }
 @keyframes shake { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+@keyframes solve-pulse { from { transform: scale(.72); } to { transform: scale(1); } }
 
 @media (max-width: 800px) {
     .intro { align-items: start; padding: 34px 0 28px; }
@@ -97,6 +100,7 @@ kbd { padding: 1px 4px; border: 1px solid var(--line); border-radius: 3px; backg
     .stats div { display: grid; }
     .cell { font-size: 21px; }
     .status { font-size: 12px; }
+    .tool-row { grid-template-columns: repeat(2, 1fr); }
     .keyboard-tip { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; } }
