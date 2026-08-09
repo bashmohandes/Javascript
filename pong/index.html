@@ -10,8 +10,21 @@
     <header class="topbar"><a class="brand" href="../index.html" aria-label="Back to games"><span class="brand-mark" aria-hidden="true">P</span><span>Pong</span></a><a class="version-link" href="classic/index.html">Play classic</a></header>
     <section class="intro" aria-labelledby="page-title"><div><p class="eyebrow">The original rally</p><h1 id="page-title">Keep it moving.</h1><p class="intro-copy">Meet the ball, hold your line and outlast your opponent. First to seven takes the match.</p></div><div class="scoreboard" aria-label="Score"><div class="score"><span>Left</span><strong id="score-left">0</strong></div><span class="score-divider">—</span><div class="score"><span>Right</span><strong id="score-right">0</strong></div></div></section>
     <section class="game-layout">
-        <div class="arena-wrap"><canvas id="game" width="960" height="600" aria-label="Pong game arena"></canvas><button class="arena-message" id="arena-message" type="button"><strong>Ready to rally?</strong><span>Click or press Space to serve</span></button></div>
-        <aside class="controls" aria-label="Game controls"><div id="status" class="status" role="status" aria-live="polite">Choose your match and start the rally.</div><div class="mode-switch" aria-label="Game mode"><button type="button" data-mode="solo" aria-pressed="true">Solo</button><button type="button" data-mode="duo" aria-pressed="false">Two players</button></div><button class="primary-button" id="new-game" type="button">New match</button><button class="secondary-button" id="pause" type="button">Pause / resume</button><div class="touch-controls" aria-label="Touch paddle controls"><button type="button" data-key="KeyW" aria-label="Move left paddle up">↑</button><button type="button" data-key="KeyS" aria-label="Move left paddle down">↓</button></div><p class="instructions"><strong>Left paddle</strong> <kbd>W</kbd> <kbd>S</kbd><br><strong>Right paddle</strong> <kbd>↑</kbd> <kbd>↓</kbd> in two-player mode<br><kbd>Space</kbd> pauses and resumes</p></aside>
+        <div class="arena-wrap" id="arena">
+            <canvas id="game" width="960" height="600" aria-label="Pong game arena"></canvas>
+            <div class="arena-score" aria-hidden="true"><span id="arena-score-left">0</span><i>—</i><span id="arena-score-right">0</span></div>
+            <button class="arena-message" id="arena-message" type="button"><strong>Ready to rally?</strong><span>Click or press Space to serve</span></button>
+        </div>
+        <aside class="controls" aria-label="Game controls">
+            <div id="status" class="status" role="status" aria-live="polite">Choose your match and start the rally.</div>
+            <div class="mode-switch" aria-label="Game mode"><button type="button" data-mode="solo" aria-pressed="true">Solo</button><button type="button" data-mode="duo" aria-pressed="false">Two players</button></div>
+            <fieldset class="color-controls"><legend>Paddle colors</legend><label>Left <input id="color-left" type="color" value="#fffdf8" aria-label="Left paddle color"></label><label>Right <input id="color-right" type="color" value="#d76b45" aria-label="Right paddle color"></label></fieldset>
+            <button class="primary-button" id="new-game" type="button">New match</button>
+            <button class="secondary-button" id="pause" type="button">Pause / resume</button>
+            <button class="secondary-button" id="fullscreen" type="button" aria-pressed="false">Enter full screen</button>
+            <div class="touch-controls" aria-label="Touch paddle controls"><button type="button" data-key="KeyW" aria-label="Move left paddle up">↑</button><button type="button" data-key="KeyS" aria-label="Move left paddle down">↓</button></div>
+            <p class="instructions"><strong>Left paddle</strong> <kbd>W</kbd> <kbd>S</kbd><br><strong>Right paddle</strong> <kbd>↑</kbd> <kbd>↓</kbd> in two-player mode<br><kbd>Space</kbd> pauses and resumes</p>
+        </aside>
     </section>
 </main><script src="scripts/app.js"></script>
 </body></html>
