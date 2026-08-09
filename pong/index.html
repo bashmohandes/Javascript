@@ -18,11 +18,13 @@
         <aside class="controls" aria-label="Game controls">
             <div id="status" class="status" role="status" aria-live="polite">Choose your match and start the rally.</div>
             <div class="mode-switch" aria-label="Game mode"><button type="button" data-mode="solo" aria-pressed="true">Solo</button><button type="button" data-mode="duo" aria-pressed="false">Two players</button></div>
-            <details class="color-controls">
-                <summary>Paddle colors</summary>
-                <div class="palette"><span>Left</span><div class="swatches" data-paddle="0" role="group" aria-label="Left paddle color"></div></div>
-                <div class="palette"><span>Right</span><div class="swatches" data-paddle="1" role="group" aria-label="Right paddle color"></div></div>
-            </details>
+            <fieldset class="color-controls">
+                <legend>Paddle colors</legend>
+                <div class="color-choices">
+                    <div class="player-color"><span>Left</span><button class="color-trigger" type="button" data-paddle="0" aria-label="Choose left paddle color" aria-expanded="false" style="--selected-color:#fffdf8"></button><div class="color-menu" hidden><div class="swatches" role="group" aria-label="Left paddle color"></div></div></div>
+                    <div class="player-color"><span>Right</span><button class="color-trigger" type="button" data-paddle="1" aria-label="Choose right paddle color" aria-expanded="false" style="--selected-color:#d76b45"></button><div class="color-menu" hidden><div class="swatches" role="group" aria-label="Right paddle color"></div></div></div>
+                </div>
+            </fieldset>
             <details class="power-guide">
                 <summary>Power-up guide</summary>
                 <ul><li><b>↕</b> Long Reach</li><li><b>»</b> Quick Step</li><li><b>↝</b> Curve Shot</li><li><b>◷</b> Slow Field</li><li><b>✦</b> Velocity Burst</li><li><b>●●</b> Split Ball</li></ul>
