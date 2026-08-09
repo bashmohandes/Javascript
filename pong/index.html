@@ -18,11 +18,11 @@
         <aside class="controls" aria-label="Game controls">
             <div id="status" class="status" role="status" aria-live="polite">Choose your match and start the rally.</div>
             <div class="mode-switch" aria-label="Game mode"><button type="button" data-mode="solo" aria-pressed="true">Solo</button><button type="button" data-mode="duo" aria-pressed="false">Two players</button></div>
-            <fieldset class="color-controls">
-                <legend>Paddle colors</legend>
+            <details class="color-controls">
+                <summary>Paddle colors</summary>
                 <div class="palette"><span>Left</span><div class="swatches" data-paddle="0" role="group" aria-label="Left paddle color"></div></div>
                 <div class="palette"><span>Right</span><div class="swatches" data-paddle="1" role="group" aria-label="Right paddle color"></div></div>
-            </fieldset>
+            </details>
             <button class="primary-button" id="new-game" type="button">New match</button>
             <button class="secondary-button" id="pause" type="button">Pause / resume</button>
             <button class="secondary-button" id="fullscreen" type="button" aria-pressed="false">Enter full screen</button>
