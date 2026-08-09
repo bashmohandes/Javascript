@@ -1,12 +1,13 @@
 {
     "name": "JavaScript games preview",
     "image": "mcr.microsoft.com/devcontainers/javascript-node:1-22-bookworm",
-    "forwardPorts": [8000],
+    "forwardPorts": [8080],
     "portsAttributes": {
-        "8000": {
-            "label": "Game preview",
+        "8080": {
+            "label": "Game preview (online Pong)",
             "onAutoForward": "openPreview"
         }
     },
-    "postStartCommand": "nohup python3 -m http.server 8000 --bind 0.0.0.0 > /tmp/javascript-games-preview.log 2>&1 &"
+    "postCreateCommand": "npm ci",
+    "postStartCommand": "curl -fsS http://127.0.0.1:8080/healthz >/dev/null 2>&1 || nohup npm start > /tmp/javascript-games-preview.log 2>&1 &"
 }

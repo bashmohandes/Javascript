@@ -95,8 +95,16 @@ request without publishing it to the production GitHub Pages site:
 
 1. Open the pull request on GitHub.
 2. Select **Code → Codespaces → Create codespace on this branch**.
-3. Wait for the forwarded **Game preview** port to open.
-4. Open `/Sudoku/` for the new game or `/Sudoku/classic/` for the original.
+3. Wait for forwarded port **8080**, labeled **Game preview (online Pong)**, to open.
+4. Open `/pong/` for Pong, `/Sudoku/` for modern Sudoku, or
+   `/Sudoku/classic/` for the original Sudoku.
+
+The development container installs dependencies once and starts the Node server
+automatically. Do not also run `python3 -m http.server`: the static Python server
+does not provide Pong's `/ws` WebSocket endpoint. If the codespace was created
+before online Pong was added, run **Codespaces: Rebuild Container** from the
+command palette so the new port and startup lifecycle are applied. The server
+log is available at `/tmp/javascript-games-preview.log`.
 
 ### Local preview
 
