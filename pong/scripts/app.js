@@ -14,7 +14,7 @@ const overlayHint = overlay.querySelector('span');
 const game = {
     width: 960, height: 600, running: false, paused: false, over: false, mode: 'solo',
     last: 0, serve: 1, score: [0, 0], keys: new Set(), nextPowerUp: 5, elapsed: 0,
-    lastTouch: 0, powerUps: [], effects: [{}, {}]
+    lastTouch: 0, powerUps: [], effects: [{}, {}], pointerControls: new Map()
 };
 const paddles = [
     { x: 34, y: 240, w: 14, h: 120, baseH: 120, vy: 0, color: '#fffdf8' },
@@ -88,8 +88,8 @@ function update(dt) {
     game.elapsed += dt; updatePowerUps();
     paddles.forEach((paddle, side) => { const tall = (game.effects[side].reachUntil || 0) > game.elapsed; const center = paddle.y + paddle.h / 2; paddle.h = tall ? 162 : paddle.baseH; paddle.y = center - paddle.h / 2; });
     const leftSpeed = (game.effects[0].quickUntil || 0) > game.elapsed ? 625 : 500;
-    paddles[0].vy = (game.keys.has('KeyS') ? leftSpeed : 0) - (game.keys.has('KeyW') ? leftSpeed : 0);
-    if (game.mode === 'duo') { const rightSpeed = (game.effects[1].quickUntil || 0) > game.elapsed ? 625 : 500; paddles[1].vy = (game.keys.has('ArrowDown') ? rightSpeed : 0) - (game.keys.has('ArrowUp') ? rightSpeed : 0); }
+    paddles[0].vy = game.pointerControls.has(0) ? 0 : (game.keys.has('KeyS') ? leftSpeed : 0) - (game.keys.has('KeyW') ? leftSpeed : 0);
+    if (game.mode === 'duo') { const rightSpeed = (game.effects[1].quickUntil || 0) > game.elapsed ? 625 : 500; paddles[1].vy = game.pointerControls.has(1) ? 0 : (game.keys.has('ArrowDown') ? rightSpeed : 0) - (game.keys.has('ArrowUp') ? rightSpeed : 0); }
     else { const target = game.powerUps.find(item => item.side === 1 && powerUpTypes[item.type].collection === 'paddle')?.y ?? balls[0].y; paddles[1].vy = Math.max(-370, Math.min(370, (target - paddles[1].h / 2 - paddles[1].y) * 5)); }
     paddles.forEach(paddle => paddle.y = Math.max(12, Math.min(game.height - paddle.h - 12, paddle.y + paddle.vy * dt)));
     for (const ball of balls) {
@@ -100,6 +100,36 @@ function update(dt) {
         if (ball.x < -30) { point(1); return; } if (ball.x > game.width + 30) { point(0); return; }
     }
 }
+
+function movePaddleToPointer(side, event) {
+    const paddle = paddles[side];
+    const rect = canvas.getBoundingClientRect();
+    const pointerY = (event.clientY - rect.top) * game.height / rect.height;
+    paddle.y = Math.max(12, Math.min(game.height - paddle.h - 12, pointerY - paddle.h / 2));
+}
+canvas.addEventListener('pointerdown', event => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    const rect = canvas.getBoundingClientRect();
+    const side = event.clientX - rect.left < rect.width / 2 ? 0 : 1;
+    if (side === 1 && game.mode !== 'duo') return;
+    if (game.pointerControls.has(side)) return;
+    event.preventDefault();
+    game.pointerControls.set(side, event.pointerId);
+    canvas.setPointerCapture(event.pointerId);
+    movePaddleToPointer(side, event);
+});
+canvas.addEventListener('pointermove', event => {
+    const side = [0, 1].find(index => game.pointerControls.get(index) === event.pointerId);
+    if (side === undefined) return;
+    event.preventDefault();
+    movePaddleToPointer(side, event);
+});
+function releasePointer(event) {
+    const side = [0, 1].find(index => game.pointerControls.get(index) === event.pointerId);
+    if (side !== undefined) game.pointerControls.delete(side);
+}
+canvas.addEventListener('pointerup', releasePointer);
+canvas.addEventListener('pointercancel', releasePointer);
 function roundedRect(x, y, width, height, radius) { ctx.beginPath(); ctx.roundRect(x, y, width, height, radius); ctx.fill(); }
 function drawPowerUp(powerUp) {
     const type = powerUpTypes[powerUp.type]; const remaining = powerUp.expires - game.elapsed; const pulse = 1 + Math.sin(game.elapsed * 7) * .06;
