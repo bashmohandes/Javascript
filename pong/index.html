@@ -1,18 +1,44 @@
-<!DOCTYPE html>
-
-<html>
-    <head>
-        <title>PONG!</title>
-        <script src="//cdnjs.cloudflare.com/ajax/libs/p5.js/0.5.5/p5.min.js" type="text/javascript"></script>
-        <script src="scripts/sketch.js" type="text/javascript"></script>
-        <script src="scripts/board.js" type="text/javascript"></script>
-        <script src="scripts/ball.js" type="text/javascript"></script>
-        <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
-        <link rel="icon" href="/favicon.ico" type="image/x-icon">
-    </head>
-
-    <body>
-        <div id="canvas">
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#f5f1e8">
+    <meta name="description" content="A polished, responsive take on the original arcade Pong."><title>Pong · Keep the rally alive</title>
+    <link rel="shortcut icon" href="../favicon.ico" type="image/x-icon"><link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<main class="app-shell">
+    <header class="topbar"><a class="brand" href="../index.html" aria-label="Back to games"><span class="brand-mark" aria-hidden="true">P</span><span>Pong</span></a><a class="version-link" href="classic/index.html">Play classic</a></header>
+    <section class="intro" aria-labelledby="page-title"><div><p class="eyebrow">The original rally</p><h1 id="page-title">Keep it moving.</h1><p class="intro-copy">Meet the ball, hold your line and outlast your opponent. First to seven takes the match.</p></div><div class="scoreboard" aria-label="Score"><div class="score"><span>Left</span><strong id="score-left">0</strong></div><span class="score-divider">—</span><div class="score"><span>Right</span><strong id="score-right">0</strong></div></div></section>
+    <section class="game-layout">
+        <div class="arena-wrap" id="arena">
+            <canvas id="game" width="960" height="600" aria-label="Pong game arena"></canvas>
+            <div class="arena-score" aria-hidden="true"><span id="arena-score-left">0</span><i>—</i><span id="arena-score-right">0</span></div>
+            <button class="arena-message" id="arena-message" type="button"><strong>Ready to rally?</strong><span>Click or press Space to serve</span></button>
         </div>
-    </body>
-</html>
+        <aside class="controls" aria-label="Game controls">
+            <div id="status" class="status" role="status" aria-live="polite">Choose your match and start the rally.</div>
+            <div class="mode-switch" aria-label="Game mode"><button type="button" data-mode="solo" aria-pressed="true">Solo</button><button type="button" data-mode="duo" aria-pressed="false">Two players</button></div>
+            <fieldset class="color-controls">
+                <legend>Paddle colors</legend>
+                <div class="color-choices">
+                    <div class="player-color"><span>Left</span><button class="color-trigger" type="button" data-paddle="0" aria-label="Choose left paddle color" aria-expanded="false" style="--selected-color:#fffdf8"></button><div class="color-menu" hidden><div class="swatches" role="group" aria-label="Left paddle color"></div></div></div>
+                    <div class="player-color"><span>Right</span><button class="color-trigger" type="button" data-paddle="1" aria-label="Choose right paddle color" aria-expanded="false" style="--selected-color:#d76b45"></button><div class="color-menu" hidden><div class="swatches" role="group" aria-label="Right paddle color"></div></div></div>
+                </div>
+            </fieldset>
+            <details class="power-guide">
+                <summary>Power-up guide</summary>
+                <ul><li><b>↕</b> Long Reach</li><li><b>»</b> Quick Step</li><li><b>↝</b> Curve Shot</li><li><b>◷</b> Slow Field</li><li><b>✦</b> Velocity Burst</li><li><b>●●</b> Split Ball</li></ul>
+                <p>Circles are collected with your paddle. Target diamonds with the ball.</p>
+            </details>
+            <button class="primary-button" id="new-game" type="button">New match</button>
+            <button class="secondary-button" id="pause" type="button">Pause / resume</button>
+            <button class="secondary-button" id="fullscreen" type="button" aria-pressed="false">Enter full screen</button>
+            <div class="touch-controls" aria-label="Touch paddle controls">
+                <div class="touch-player"><span>Left</span><button type="button" data-key="KeyW" aria-label="Move left paddle up">↑</button><button type="button" data-key="KeyS" aria-label="Move left paddle down">↓</button></div>
+                <div class="touch-player"><span>Right</span><button type="button" data-key="ArrowUp" aria-label="Move right paddle up">↑</button><button type="button" data-key="ArrowDown" aria-label="Move right paddle down">↓</button></div>
+            </div>
+            <p class="instructions"><span class="touch-tip"><strong>Touch</strong> Drag vertically on either half of the pitch to move that paddle.<br></span><span class="keyboard-tip"><strong>Left paddle</strong> <kbd>W</kbd> <kbd>S</kbd><br><strong>Right paddle</strong> <kbd>↑</kbd> <kbd>↓</kbd> in two-player mode<br></span><kbd>Space</kbd> pauses and resumes</p>
+        </aside>
+    </section>
+</main><script src="scripts/app.js"></script>
+</body></html>
