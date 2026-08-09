@@ -79,6 +79,7 @@ Node.js 22 or newer is required:
 
 ```sh
 npm install
+npm run audit
 npm start
 ```
 
