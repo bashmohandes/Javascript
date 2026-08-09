@@ -13,6 +13,12 @@ class ClassList {
         this.element.className = [...classes].join(' ');
     }
     contains(name) { return this.element.className.split(/\s+/).includes(name); }
+    toggle(name, force) {
+        const enabled = force === undefined ? !this.contains(name) : force;
+        if (enabled) this.add(name);
+        else this.element.className = this.element.className.split(/\s+/).filter(item => item && item !== name).join(' ');
+        return enabled;
+    }
 }
 
 class Element {
@@ -119,12 +125,19 @@ document.dispatchEvent({ type: 'keydown', key: 'ArrowRight' });
 assert(document.activeElement?.classList.contains('cell'), 'arrow navigation returns focus to a grid cell');
 
 autoSolve.click();
-assert.equal(autoSolve.disabled, true, 'locks the auto-solve control while its animation is running');
+assert.equal(autoSolve.getAttribute('aria-pressed'), 'true', 'turns the auto-solve control into a stop control');
 assert.equal(elements.get('#status').textContent, 'Searching for a solution with backtracking…', 'announces the backtracking solver');
 const solveTick = intervalCallbacks.get(Math.max(...intervalCallbacks.keys()));
+for (let tick = 0; tick < 10; tick++) solveTick();
+autoSolve.click();
+assert.equal(elements.get('#status').textContent, 'Auto solve stopped. Your board has been restored.', 'stops solving and restores the playable board');
+assert.equal(board.children.filter(cell => cell.getAttribute('aria-label').endsWith('empty')).length, 36, 'removes tentative solver values after stopping');
+
+autoSolve.click();
+const restartedSolveTick = intervalCallbacks.get(Math.max(...intervalCallbacks.keys()));
 let solverTicks = 0;
 while (!elements.get('#status').textContent.startsWith('Solved with') && solverTicks < 250000) {
-    solveTick();
+    restartedSolveTick();
     solverTicks += 1;
 }
 assert.equal(board.children.filter(cell => cell.getAttribute('aria-label').endsWith('empty')).length, 0, 'auto-solve fills every empty cell');

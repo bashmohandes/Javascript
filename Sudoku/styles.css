@@ -64,6 +64,7 @@ h1 { font-size: clamp(42px, 6vw, 66px); line-height: .98; }
 .tool > span { font-size: 23px; line-height: 1; }
 .tool small { color: var(--muted); font-size: 10px; }
 .tool:hover, .tool[aria-pressed="true"] { border-color: var(--accent); color: var(--accent-dark); background: #fff8f1; transform: translateY(-2px); }
+.tool.is-stopping { color: white; border-color: var(--error); background: var(--error); }
 .tool:disabled { opacity: .45; cursor: default; transform: none; }
 .number-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 22px; }
 .number { aspect-ratio: 1.35; border: 0; border-radius: 7px; background: var(--sage); font-family: "DM Serif Display", serif; font-size: 27px; cursor: pointer; transition: .15s; }
@@ -82,7 +83,7 @@ kbd { padding: 1px 4px; border: 1px solid var(--line); border-radius: 3px; backg
 .modal-card p:not(.eyebrow) { margin: 15px 0 27px; color: var(--muted); }
 .celebration { margin-bottom: 16px; color: var(--accent); font-size: 48px; }
 @keyframes shake { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
-@keyframes solve-pulse { from { transform: scale(.72); } to { transform: scale(1); } }
+@keyframes solve-pulse { from { filter: brightness(1.45); } to { filter: brightness(1); } }
 
 @media (max-width: 800px) {
     .intro { align-items: start; padding: 34px 0 28px; }

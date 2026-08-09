@@ -26,6 +26,7 @@
     let gameOver = false;
     let autoSolving = false;
     let solvingCell = null;
+    let solveSnapshot = null;
 
     const shuffle = items => {
         const result = [...items];
@@ -68,6 +69,7 @@
         gameOver = false;
         autoSolving = false;
         solvingCell = null;
+        solveSnapshot = null;
         notesMode = false;
         notesButton.setAttribute('aria-pressed', 'false');
         notesButton.querySelector('small').textContent = 'Off';
@@ -80,6 +82,7 @@
         clearInterval(timerId);
         clearInterval(solveTimerId);
         autoSolveButton.disabled = false;
+        updateAutoSolveButton(false);
         timerId = setInterval(() => { elapsed += 1; renderTimer(); }, 1000);
         renderTimer();
         render();
@@ -218,9 +221,14 @@
 
     function autoSolve() {
         if (gameOver || autoSolving) return;
+        solveSnapshot = {
+            values: values.map(row => [...row]),
+            notes: notes.map(row => row.map(cellNotes => new Set(cellNotes))),
+            selected: selected ? { ...selected } : null
+        };
         autoSolving = true;
         selected = null;
-        autoSolveButton.disabled = true;
+        updateAutoSolveButton(true);
         clearInterval(timerId);
 
         const solverGrid = puzzle.map(row => [...row]);
@@ -245,6 +253,9 @@
                 solvingCell = null;
                 autoSolving = false;
                 gameOver = true;
+                solveSnapshot = null;
+                updateAutoSolveButton(false);
+                autoSolveButton.disabled = true;
                 statusElement.setAttribute('aria-live', 'polite');
                 statusElement.textContent = `Solved with ${attempts} tries and ${backtracks} backtrack${backtracks === 1 ? '' : 's'}.`;
                 render();
@@ -255,6 +266,9 @@
                 clearInterval(solveTimerId);
                 autoSolving = false;
                 gameOver = true;
+                solveSnapshot = null;
+                updateAutoSolveButton(false);
+                autoSolveButton.disabled = true;
                 statusElement.setAttribute('aria-live', 'polite');
                 statusElement.textContent = 'No solution exists for this puzzle.';
                 return;
@@ -295,6 +309,30 @@
         }, reduceMotion ? 1 : 45);
     }
 
+    function stopAutoSolve() {
+        if (!autoSolving || !solveSnapshot) return;
+        clearInterval(solveTimerId);
+        values = solveSnapshot.values;
+        notes = solveSnapshot.notes;
+        selected = solveSnapshot.selected;
+        solveSnapshot = null;
+        solvingCell = null;
+        autoSolving = false;
+        updateAutoSolveButton(false);
+        statusElement.setAttribute('aria-live', 'polite');
+        statusElement.textContent = 'Auto solve stopped. Your board has been restored.';
+        timerId = setInterval(() => { elapsed += 1; renderTimer(); }, 1000);
+        render();
+    }
+
+    function updateAutoSolveButton(isSolving) {
+        autoSolveButton.setAttribute('aria-pressed', String(isSolving));
+        autoSolveButton.innerHTML = isSolving
+            ? '<span aria-hidden="true">■</span>Stop solve'
+            : '<span aria-hidden="true">▻</span>Auto solve';
+        autoSolveButton.classList.toggle('is-stopping', isSolving);
+    }
+
     function isSolverCandidateValid(grid, row, column) {
         const value = grid[row][column];
         for (let index = 0; index < 9; index++) {
@@ -333,7 +371,7 @@
 
     document.querySelector('#erase').addEventListener('click', erase);
     document.querySelector('#hint').addEventListener('click', giveHint);
-    autoSolveButton.addEventListener('click', autoSolve);
+    autoSolveButton.addEventListener('click', () => autoSolving ? stopAutoSolve() : autoSolve());
     notesButton.addEventListener('click', () => {
         if (gameOver || autoSolving) return;
         notesMode = !notesMode;
