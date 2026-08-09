@@ -1,0 +1,12 @@
+{
+    "name": "JavaScript games preview",
+    "image": "mcr.microsoft.com/devcontainers/javascript-node:1-22-bookworm",
+    "forwardPorts": [8000],
+    "portsAttributes": {
+        "8000": {
+            "label": "Game preview",
+            "onAutoForward": "openPreview"
+        }
+    },
+    "postStartCommand": "nohup python3 -m http.server 8000 --bind 0.0.0.0 > /tmp/javascript-games-preview.log 2>&1 &"
+}
