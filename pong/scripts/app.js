@@ -13,6 +13,7 @@ const overlayHint = overlay.querySelector('span');
 
 const game = { width:960, height:600, running:false, paused:false, over:false, mode:'solo', last:0, serve:1, score:[0,0], keys:new Set() };
 const paddles = [{x:34,y:240,w:14,h:120,vy:0,color:'#fffdf8'},{x:912,y:240,w:14,h:120,vy:0,color:'#d76b45'}];
+const paddleColors = [{name:'Cream',value:'#fffdf8'},{name:'Terracotta',value:'#d76b45'},{name:'Apricot',value:'#e8a15b'},{name:'Goldenrod',value:'#e7ca67'},{name:'Sage',value:'#a9c181'},{name:'Eucalyptus',value:'#70ad98'},{name:'Sea glass',value:'#71a7a0'},{name:'Dusty blue',value:'#75a4c7'},{name:'Periwinkle',value:'#8f91bd'},{name:'Mauve',value:'#b58ab4'},{name:'Rose',value:'#cc8290'},{name:'Walnut',value:'#9b7865'}];
 const ball = {x:480,y:300,r:10,vx:0,vy:0};
 
 function resize(){ const ratio=Math.min(window.devicePixelRatio||1,2); canvas.width=game.width*ratio; canvas.height=game.height*ratio; ctx.setTransform(ratio,0,0,ratio,0,0); draw(); }
@@ -37,7 +38,7 @@ function draw(){ ctx.clearRect(0,0,game.width,game.height); ctx.fillStyle='#2035
 function frame(time){ const dt=Math.min((time-game.last)/1000,.025)||0;game.last=time;if(game.running&&!game.paused)update(dt);draw();requestAnimationFrame(frame); }
 document.querySelectorAll('[data-mode]').forEach(button=>button.addEventListener('click',()=>{game.mode=button.dataset.mode;document.querySelectorAll('[data-mode]').forEach(b=>b.setAttribute('aria-pressed',b===button));newGame()}));
 document.querySelector('#new-game').addEventListener('click',newGame);document.querySelector('#pause').addEventListener('click',togglePause);overlay.addEventListener('click',togglePause);
-document.querySelectorAll('input[type="color"]').forEach((input,index)=>input.addEventListener('input',()=>{paddles[index].color=input.value;draw()}));
+document.querySelectorAll('.swatches').forEach((palette,index)=>paddleColors.forEach(color=>{ const swatch=document.createElement('button'); swatch.type='button'; swatch.className='swatch'; swatch.style.setProperty('--swatch',color.value); swatch.setAttribute('aria-label',`${color.name} ${index?'right':'left'} paddle`); swatch.setAttribute('aria-pressed',paddles[index].color===color.value); swatch.addEventListener('click',()=>{paddles[index].color=color.value;palette.querySelectorAll('.swatch').forEach(button=>button.setAttribute('aria-pressed',button===swatch));draw()}); palette.append(swatch) }));
 fullscreenButton.addEventListener('click',async()=>{ if(document.fullscreenElement) await document.exitFullscreen(); else await arena.requestFullscreen(); });
 document.addEventListener('fullscreenchange',()=>{ const active=document.fullscreenElement===arena; fullscreenButton.textContent=active?'Exit full screen':'Enter full screen'; fullscreenButton.setAttribute('aria-pressed',active); });
 addEventListener('keydown',e=>{if(['ArrowUp','ArrowDown','Space'].includes(e.code))e.preventDefault();if(e.code==='Space'){togglePause();return}game.keys.add(e.code)});addEventListener('keyup',e=>game.keys.delete(e.code));
