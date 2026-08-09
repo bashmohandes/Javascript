@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sudoku Classic</title>
+    <link rel="shortcut icon" href="../../favicon.ico" type="image/x-icon">
+    <style>
+        body { margin: 0; padding: 24px; color: #222; background: #f4f4f4; font-family: Arial, sans-serif; }
+        header { display: flex; align-items: center; justify-content: space-between; width: 630px; max-width: 100%; margin-bottom: 16px; }
+        h1 { margin: 0; font-size: 22px; }
+        header a { padding: 9px 13px; color: white; background: #245bdb; border-radius: 4px; text-decoration: none; }
+        #canvas { width: 630px; max-width: 100%; overflow: auto; background: white; }
+        .note { width: 630px; max-width: 100%; color: #666; font-size: 13px; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.5.5/p5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.5.6/addons/p5.dom.min.js"></script>
+    <script src="scripts/sketch.js"></script>
+    <script src="scripts/board.js"></script>
+    <script src="scripts/cell.js"></script>
+    <script src="scripts/solver.js"></script>
+    <script src="scripts/builder.js"></script>
+</head>
+<body>
+    <header>
+        <h1>Sudoku Classic</h1>
+        <a href="../index.html">Try the new version →</a>
+    </header>
+    <p class="note">The original p5.js experiment, preserved as it was built.</p>
+    <div id="canvas"></div>
+</body>
+</html>

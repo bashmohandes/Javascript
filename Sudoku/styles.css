@@ -30,6 +30,9 @@ button { color: inherit; }
 .topbar { height: 82px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(32, 53, 47, .12); }
 .brand { display: flex; align-items: center; gap: 10px; color: var(--ink); font-weight: 700; text-decoration: none; letter-spacing: -.02em; }
 .brand-mark { display: grid; place-items: center; width: 32px; height: 32px; color: var(--card); background: var(--ink); border-radius: 50%; font-family: "DM Serif Display", serif; font-size: 19px; }
+.topbar-actions { display: flex; align-items: center; gap: 16px; }
+.version-link { color: var(--muted); font-size: 12px; font-weight: 700; letter-spacing: .04em; text-decoration: none; text-transform: uppercase; }
+.version-link:hover { color: var(--accent); }
 .icon-button { width: 42px; height: 42px; border: 1px solid var(--line); border-radius: 50%; background: transparent; font-size: 23px; cursor: pointer; transition: .2s; }
 .icon-button:hover { border-color: var(--accent); color: var(--accent); transform: rotate(-20deg); }
 .intro { display: flex; justify-content: space-between; align-items: end; gap: 40px; padding: 50px 0 38px; }
