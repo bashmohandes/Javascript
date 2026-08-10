@@ -2,7 +2,9 @@
 
 :root { --ink:#20352f; --muted:#6d7d76; --paper:#f7f3eb; --card:#fffdf8; --line:#c9d0c9; --accent:#d76b45; --accent-dark:#b84f2c; --sage:#dce5dc; }
 * { box-sizing:border-box; }
-body { margin:0; min-height:100vh; color:var(--ink); background:radial-gradient(circle at 12% 8%,rgba(215,107,69,.08),transparent 30rem),var(--paper); font-family:"DM Sans",sans-serif; }
+html,body { min-height:100%; }
+body { margin:0; min-height:100vh; min-height:100dvh; color:var(--ink); background:radial-gradient(circle at 12% 8%,rgba(215,107,69,.08),transparent 30rem),var(--paper); font-family:"DM Sans",sans-serif; }
+body.arena-fullscreen { overflow:hidden; }
 button { color:inherit; font:inherit; }
 .app-shell { width:min(1120px,calc(100% - 40px)); margin:0 auto; padding-bottom:56px; }
 .topbar { height:82px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid rgba(32,53,47,.12); }
@@ -70,6 +72,10 @@ canvas { display:block; width:100%; aspect-ratio:16/10; touch-action:none; }
 .arena-wrap:fullscreen canvas { width:min(100vw,160vh); height:auto; }
 .arena-wrap:fullscreen .arena-score { display:block; width:min(100vw,160vh); height:min(100vh,62.5vw); top:50%; left:50%; transform:translate(-50%,-50%); }
 .arena-wrap:fullscreen .arena-message { z-index:3; }
+.arena-wrap.is-fullscreen { position:fixed; z-index:100; inset:0; display:grid; width:100vw; height:100vh; height:100dvh; padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); place-items:center; border:0; border-radius:0; background:#14251f; }
+.arena-wrap.is-fullscreen canvas { width:min(100vw,160vh); width:min(100vw,160dvh); height:auto; }
+.arena-wrap.is-fullscreen .arena-score { display:block; width:min(100vw,160vh); width:min(100vw,160dvh); height:min(100vh,62.5vw); height:min(100dvh,62.5vw); top:50%; left:50%; transform:translate(-50%,-50%); }
+.arena-wrap.is-fullscreen .arena-message { z-index:3; }
 .instructions { padding-top:17px; border-top:1px solid var(--line); color:var(--muted); font-size:12px; line-height:1.8; }
 .instructions strong { color:var(--ink); }
 kbd { padding:2px 5px; border:1px solid var(--line); border-radius:3px; background:var(--card); font-family:inherit; }
@@ -114,4 +120,28 @@ kbd { padding:2px 5px; border:1px solid var(--line); border-radius:3px; backgrou
 .text-button { margin:10px auto 0; padding:4px; border:0; color:var(--muted); background:none; font-size:11px; text-decoration:underline; cursor:pointer; }
 @media(max-width:850px){ .intro{align-items:start}.game-layout{grid-template-columns:1fr}.controls{grid-template-columns:1fr 1fr}.status,.instructions{grid-column:1/-1}.touch-controls{display:grid}.scoreboard{padding:10px 14px} }
 @media(max-width:520px){ .app-shell{width:min(100% - 20px,480px)}.topbar{height:64px}.intro{display:block;padding:34px 0 28px}.scoreboard{margin-top:24px;justify-content:center}.game-layout{gap:20px}.controls{grid-template-columns:1fr}.status,.instructions{grid-column:auto} }
+@media (min-width:851px) and (max-width:1180px), (min-width:851px) and (max-height:900px) {
+    .app-shell { width:min(1180px,calc(100% - 32px)); height:100vh; height:100dvh; padding-bottom:16px; overflow:hidden; }
+    .topbar { height:62px; }
+    .intro { align-items:center; gap:24px; padding:20px 0; }
+    .eyebrow { margin-bottom:5px; }
+    h1 { font-size:clamp(38px,5vw,54px); }
+    .intro-copy { max-width:500px; margin-top:8px; line-height:1.4; }
+    .scoreboard { flex:none; padding:8px 14px; }
+    .score strong { font-size:28px; }
+    .game-layout { height:calc(100dvh - 204px); min-height:0; grid-template-columns:minmax(0,1fr) minmax(230px,300px); gap:clamp(18px,3vw,36px); align-items:start; }
+    .arena-wrap { width:min(100%,calc((100dvh - 204px) * 1.6)); align-self:start; }
+    .controls { max-height:100%; gap:12px; padding-right:4px; overflow-y:auto; overscroll-behavior:contain; }
+    .status { min-height:18px; }
+    .primary-button,.secondary-button { padding:11px 14px; }
+    .instructions { margin:0; padding-top:10px; line-height:1.5; }
+}
+@media (min-width:521px) and (max-width:850px) {
+    .app-shell { width:min(100% - 28px,800px); }
+    .topbar { height:64px; }
+    .intro { padding:22px 0 20px; }
+    h1 { font-size:clamp(40px,7vw,54px); }
+    .intro-copy { margin-top:8px; line-height:1.4; }
+    .game-layout { gap:22px; }
+}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
