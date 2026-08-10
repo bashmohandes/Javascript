@@ -15,6 +15,7 @@ const onlineLobby = document.querySelector('#online-lobby');
 const onlineRoom = document.querySelector('#online-room');
 const connectionState = document.querySelector('#connection-state');
 const readyOnlineButton = document.querySelector('#ready-online');
+const roomList = document.querySelector('#room-list');
 
 const game = {
     width: 960, height: 600, running: false, paused: false, over: false, mode: 'solo',
@@ -42,6 +43,43 @@ function sendOnline(message) { if (online.socket?.readyState === WebSocket.OPEN)
 function saveSession() { sessionStorage.setItem('pong-online-session', JSON.stringify({ roomCode: online.roomCode, token: online.token })); }
 function clearSession() { sessionStorage.removeItem('pong-online-session'); online.roomCode = ''; online.token = ''; }
 function showOnlineRoom(code) { onlineLobby.hidden = true; onlineRoom.hidden = false; document.querySelector('#room-code-display').textContent = code; }
+function updateOnlineIdentity() {
+    const sideName = online.side === 0 ? 'Left' : 'Right';
+    const sideCard = document.querySelector('#player-side');
+    sideCard.dataset.side = sideName.toLowerCase();
+    sideCard.querySelector('strong').textContent = `${sideName} side`;
+    document.querySelectorAll('.player-color').forEach((picker, side) => {
+        const ownPaddle = side === online.side;
+        picker.querySelector('span').textContent = ownPaddle ? `You (${sideName})` : `Opponent (${side ? 'Right' : 'Left'})`;
+        picker.toggleAttribute('aria-disabled', !ownPaddle);
+        picker.querySelector('.color-trigger').disabled = !ownPaddle;
+    });
+}
+function resetColorControls() {
+    document.querySelectorAll('.player-color').forEach((picker, side) => {
+        picker.querySelector('span').textContent = side ? 'Right' : 'Left';
+        picker.removeAttribute('aria-disabled');
+        picker.querySelector('.color-trigger').disabled = false;
+    });
+}
+async function refreshRooms() {
+    roomList.innerHTML = '<p>Loading available rooms…</p>';
+    try {
+        const response = await fetch('/api/rooms', { cache: 'no-store' });
+        if (!response.ok) throw new Error('Unable to load rooms.');
+        const { rooms } = await response.json();
+        roomList.replaceChildren();
+        if (!rooms.length) { roomList.innerHTML = '<p>No public rooms yet. Create one and be the first to play.</p>'; return; }
+        rooms.forEach(room => {
+            const item = document.createElement('div'); item.className = 'public-room';
+            const details = document.createElement('div'); const code = document.createElement('strong'); code.textContent = room.code;
+            const players = document.createElement('span'); players.textContent = `${room.players}/2 players · Waiting`;
+            const join = document.createElement('button'); join.type = 'button'; join.className = 'secondary-button'; join.textContent = 'Join';
+            join.addEventListener('click', () => connectOnline({ type: 'join-room', roomCode: room.code }));
+            details.append(code, players); item.append(details, join); roomList.append(item);
+        });
+    } catch (error) { roomList.innerHTML = `<p>${error.message}</p>`; }
+}
 function applyOnlineState(state) {
     game.running = state.running; game.paused = state.paused; game.over = state.over; game.elapsed = state.elapsed; game.score = state.score;
     setScore(0, state.score[0]); setScore(1, state.score[1]);
@@ -52,7 +90,8 @@ function applyOnlineState(state) {
 }
 function handleOnlineMessage(message) {
     if (message.type === 'session') {
-        online.roomCode = message.roomCode; online.token = message.playerToken; online.side = message.side; saveSession(); showOnlineRoom(message.roomCode); setConnection('Connected', 'online');
+        online.roomCode = message.roomCode; online.token = message.playerToken; online.side = message.side; saveSession(); showOnlineRoom(message.roomCode); updateOnlineIdentity(); setConnection('Connected', 'online');
+        document.querySelector('#room-visibility-display').textContent = message.visibility === 'public' ? 'Public room' : 'Private room';
         const url = new URL(location.href); url.searchParams.set('room', message.roomCode); history.replaceState(null, '', url); status.textContent = message.side === 0 ? 'Room created. Share the invite and wait for your opponent.' : 'Joined room. Press “I’m ready” when set.';
     } else if (message.type === 'room-status') {
         const opponentConnected = message.players[1 - online.side];
@@ -83,7 +122,7 @@ function connectOnline(action) {
 }
 function leaveOnline(notify = true) {
     clearTimeout(online.reconnectTimer); if (notify) sendOnline({ type: 'leave' }); online.intentionalClose = true; online.socket?.close(); clearSession();
-    onlineLobby.hidden = false; onlineRoom.hidden = true; setConnection('Offline'); const url = new URL(location.href); url.searchParams.delete('room'); history.replaceState(null, '', url);
+    onlineLobby.hidden = false; onlineRoom.hidden = true; resetColorControls(); setConnection('Offline'); refreshRooms(); const url = new URL(location.href); url.searchParams.delete('room'); history.replaceState(null, '', url);
 }
 function onlineInput() { sendOnline({ type: 'input', up: game.keys.has('KeyW') || game.keys.has('ArrowUp'), down: game.keys.has('KeyS') || game.keys.has('ArrowDown'), targetY: null }); }
 
@@ -204,10 +243,12 @@ function draw() {
 }
 function frame(time) { const dt = Math.min((time - game.last) / 1000, .025) || 0; game.last = time; if (game.mode !== 'online' && game.running && !game.paused) update(dt); draw(); requestAnimationFrame(frame); }
 
-document.querySelectorAll('[data-mode]').forEach(button => button.addEventListener('click', () => { if (game.mode === 'online' && button.dataset.mode !== 'online') leaveOnline(); game.mode = button.dataset.mode; document.querySelectorAll('[data-mode]').forEach(item => item.setAttribute('aria-pressed', item === button)); onlinePanel.hidden = game.mode !== 'online'; document.querySelectorAll('.local-control').forEach(item => item.hidden = game.mode === 'online'); document.querySelector('#pause').hidden = game.mode === 'online'; if (game.mode === 'online') { game.running = false; game.paused = true; resetBall(); showOverlay('Online match', 'Create a room or join a friend'); } else newGame(); }));
+document.querySelectorAll('[data-mode]').forEach(button => button.addEventListener('click', () => { if (game.mode === 'online' && button.dataset.mode !== 'online') leaveOnline(); game.mode = button.dataset.mode; document.querySelectorAll('[data-mode]').forEach(item => item.setAttribute('aria-pressed', item === button)); onlinePanel.hidden = game.mode !== 'online'; document.querySelectorAll('.local-control').forEach(item => item.hidden = game.mode === 'online'); document.querySelector('#pause').hidden = game.mode === 'online'; if (game.mode === 'online') { game.running = false; game.paused = true; resetBall(); refreshRooms(); showOverlay('Online match', 'Choose a public room or create your own'); } else { resetColorControls(); newGame(); } }));
 document.querySelector('#new-game').addEventListener('click', newGame); document.querySelector('#pause').addEventListener('click', togglePause); overlay.addEventListener('click', togglePause);
-document.querySelector('#create-room').addEventListener('click', () => connectOnline({ type: 'create-room' }));
-document.querySelector('#join-room').addEventListener('click', () => { const roomCode = document.querySelector('#room-code').value.trim().toUpperCase(); if (roomCode.length !== 5) { status.textContent = 'Enter the five-character room code.'; return; } connectOnline({ type: 'join-room', roomCode }); });
+document.querySelector('#room-visibility').addEventListener('change', event => { document.querySelector('#create-passcode').hidden = event.target.value !== 'private'; });
+document.querySelector('#create-room').addEventListener('click', () => { const visibility = document.querySelector('#room-visibility').value; const passcode = document.querySelector('#create-passcode').value.trim(); if (visibility === 'private' && (passcode.length < 4 || passcode.length > 32)) { status.textContent = 'Choose a private room passcode between 4 and 32 characters.'; return; } connectOnline({ type: 'create-room', visibility, passcode }); });
+document.querySelector('#join-room').addEventListener('click', () => { const roomCode = document.querySelector('#room-code').value.trim().toUpperCase(); if (roomCode.length !== 5) { status.textContent = 'Enter the five-character room code.'; return; } connectOnline({ type: 'join-room', roomCode, passcode: document.querySelector('#join-passcode').value.trim() }); });
+document.querySelector('#refresh-rooms').addEventListener('click', refreshRooms);
 document.querySelector('#room-code').addEventListener('input', event => { event.target.value = event.target.value.toUpperCase().replace(/[^A-Z2-9]/g, '').slice(0, 5); });
 readyOnlineButton.addEventListener('click', () => { readyOnlineButton.disabled = true; sendOnline({ type: game.over ? 'rematch' : 'ready' }); });
 document.querySelector('#leave-room').addEventListener('click', () => leaveOnline());
