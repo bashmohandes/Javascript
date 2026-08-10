@@ -1,3 +1,10 @@
 .DS_Store
 bin
 obj
+
+# Generated from icon.svg by scripts/generate-icons.js. Keeping these build
+# artifacts out of Git allows source-only pull requests while still providing
+# the raster formats required by iOS and installable web apps.
+apple-touch-icon.png
+icon-192.png
+icon-512.png
