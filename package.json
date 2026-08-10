@@ -1,0 +1,20 @@
+{
+  "name": "javascript-playground",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Browser games with an authoritative online Pong server",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "test": "node --test",
+    "check": "node --check server/index.js && node --check server/game.js && node --check server/rooms.js && node --check pong/scripts/app.js",
+    "audit": "npm audit --omit=dev"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "ws": "8.21.3"
+  }
+}
