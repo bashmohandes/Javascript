@@ -14,15 +14,28 @@ const rooms = new RoomManager({
     roomTimeoutMs: Number(process.env.ROOM_TIMEOUT_MS) || 1800000
 });
 const mime = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.ico': 'image/x-icon', '.json': 'application/json; charset=utf-8' };
+const publicDirectories = new Set(['Minesweeper', 'Sudoku', 'pong']);
+
+function requestPath(request, response) {
+    try {
+        return decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
+    } catch {
+        response.writeHead(400, { 'content-type': 'text/plain; charset=utf-8' }).end('Bad request');
+        return null;
+    }
+}
 
 const server = http.createServer((request, response) => {
-    const pathname = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
+    const pathname = requestPath(request, response);
+    if (pathname === null) return;
     if (pathname === '/healthz') {
         response.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
         response.end(JSON.stringify({ status: 'ok', rooms: rooms.rooms.size }));
         return;
     }
-    if (/^\/(?:server|tests|node_modules)(?:\/|$)/.test(pathname) || /^\/(?:package(?:-lock)?\.json|compose\.yaml|Dockerfile|project(?:\.lock)?\.json)$/.test(pathname)) {
+    const segments = pathname.split('/').filter(Boolean);
+    const isPublicPath = pathname === '/' || pathname === '/index.html' || pathname === '/favicon.ico' || publicDirectories.has(segments[0]);
+    if (!isPublicPath || segments.some(segment => segment.startsWith('.') || /[\0-\x1f]/.test(segment))) {
         response.writeHead(404).end('Not found');
         return;
     }
