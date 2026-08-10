@@ -10,7 +10,8 @@ required.
 | --- | --- | --- |
 | **Sudoku** | The refreshed, responsive version with notes, hints, keyboard controls, and an animated backtracking solver. | [Play modern Sudoku](https://bashmohandes.github.io/Javascript/Sudoku/) |
 | **Sudoku Classic** | The original p5.js experiment, preserved alongside the new game. | [Play Sudoku Classic](https://bashmohandes.github.io/Javascript/Sudoku/classic/) |
-| **Minesweeper** | A canvas-based take on the classic mine-clearing puzzle. | [Play Minesweeper](https://bashmohandes.github.io/Javascript/Minesweeper/) |
+| **Minesweeper** | A responsive mine-clearing puzzle with three field sizes, flags, keyboard controls, and saved best times. | [Play modern Minesweeper](https://bashmohandes.github.io/Javascript/Minesweeper/) |
+| **Minesweeper Classic** | The original p5.js experiment, preserved alongside the new game. | [Play Minesweeper Classic](https://bashmohandes.github.io/Javascript/Minesweeper/classic/) |
 | **Pong** | Responsive solo, couch co-op, and public or private online multiplayer Pong. | [Play Pong](https://bashmohandes.github.io/Javascript/pong/) |
 
 The repository also contains solutions and experiments from LeetCode,
@@ -141,8 +142,8 @@ request without publishing it to the production GitHub Pages site:
 1. Open the pull request on GitHub.
 2. Select **Code → Codespaces → Create codespace on this branch**.
 3. Wait for forwarded port **8080**, labeled **Game preview (online Pong)**, to open.
-4. Open `/pong/` for Pong, `/Sudoku/` for modern Sudoku, or
-   `/Sudoku/classic/` for the original Sudoku.
+4. Open `/pong/` for Pong, `/Sudoku/` for modern Sudoku, or `/Minesweeper/`
+   for modern Minesweeper. The original games remain in their `classic/` folders.
 
 The development container installs dependencies once and starts the Node server
 automatically. Do not also run `python3 -m http.server`: the static Python server
@@ -163,6 +164,8 @@ Then open one of these URLs:
 
 - Modern Sudoku: <http://localhost:8000/Sudoku/>
 - Classic Sudoku: <http://localhost:8000/Sudoku/classic/>
+- Modern Minesweeper: <http://localhost:8000/Minesweeper/>
+- Classic Minesweeper: <http://localhost:8000/Minesweeper/classic/>
 
 ## Sudoku controls
 
@@ -170,6 +173,13 @@ Then open one of these URLs:
 - Press `N` to toggle notes and use arrow keys to move around the board.
 - Use **Hint** for a nudge or **Auto solve** to watch the backtracking solver.
 - During auto-solve, select **Stop solve** to return to your board.
+
+## Minesweeper controls
+
+- Click or tap a tile to reveal it. The first tile and its neighbours are safe.
+- Right-click or press and hold to place a flag; touch players can also enable
+  **Flag mode**.
+- Use the arrow keys to move, <kbd>Enter</kbd> to reveal, and <kbd>F</kbd> to flag.
 
 ## License
 

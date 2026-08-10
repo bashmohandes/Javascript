@@ -1,22 +1,71 @@
-<!DOCTYPE html>
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#17231f">
+    <meta name="description" content="A calm, responsive take on the classic Minesweeper puzzle.">
+    <title>Minesweeper · Clear the field</title>
+    <link rel="icon" href="../icon.svg" type="image/svg+xml">
+    <link rel="icon" href="../favicon.ico" sizes="any">
+    <link rel="apple-touch-icon" href="../apple-touch-icon.png" sizes="180x180">
+    <link rel="manifest" href="../manifest.webmanifest">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <main class="app-shell">
+        <header class="topbar">
+            <a class="brand" href="../index.html" aria-label="Back to games"><span class="brand-mark" aria-hidden="true">✦</span> Minesweeper</a>
+            <div class="topbar-actions">
+                <a class="classic-link" href="classic/index.html">Play classic</a>
+                <button class="icon-button" id="new-game-top" type="button" aria-label="Start a new game" title="New game">↻</button>
+            </div>
+        </header>
 
-<html>
-    <head>
-        <title>Minesweeper!</title>
-        <script src="//cdnjs.cloudflare.com/ajax/libs/p5.js/0.5.5/p5.min.js" type="text/javascript"></script>
-        <script src="scripts/sketch.js" type="text/javascript"></script>
-        <script src="scripts/tile.js" type="text/javascript"></script>
-        <link rel="icon" href="../icon.svg" type="image/svg+xml">
-        <link rel="icon" href="../favicon.ico" sizes="any">
-        <link rel="apple-touch-icon" href="../apple-touch-icon.png" sizes="180x180">
-        <link rel="manifest" href="../manifest.webmanifest">
-        <meta name="apple-mobile-web-app-capable" content="yes">
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-        <meta name="apple-mobile-web-app-title" content="JS Arcade">
-    </head>
+        <section class="intro" aria-labelledby="page-title">
+            <div>
+                <p class="eyebrow">Tread carefully</p>
+                <h1 id="page-title">Clear the field.</h1>
+                <p>Reveal every safe tile. Mark the mines. Trust the numbers.</p>
+            </div>
+            <div class="stats" aria-label="Game status">
+                <div><span>Mines</span><strong id="mines-left">10</strong></div>
+                <div><span>Time</span><strong id="timer">00:00</strong></div>
+                <div><span>Best</span><strong id="best-time">—</strong></div>
+            </div>
+        </section>
 
-    <body>
-        <div id="canvas">
+        <section class="game-card">
+            <div class="game-toolbar">
+                <div id="status" class="status" role="status" aria-live="polite">Choose any tile to begin. Your first move is always safe.</div>
+                <button class="flag-toggle" id="flag-mode" type="button" aria-pressed="false"><span aria-hidden="true">⚑</span> Flag mode <small>Off</small></button>
+            </div>
+            <div class="board-wrap">
+                <div id="board" class="board" role="grid" aria-label="Minesweeper board"></div>
+            </div>
+            <div class="controls">
+                <label for="difficulty"><span>Field size</span>
+                    <select id="difficulty">
+                        <option value="easy">Easy · 9 × 9 · 10 mines</option>
+                        <option value="medium">Medium · 16 × 16 · 40 mines</option>
+                        <option value="hard">Hard · 16 × 30 · 99 mines</option>
+                    </select>
+                </label>
+                <button class="primary-button" id="new-game" type="button">New game</button>
+            </div>
+            <p class="tip"><span class="desktop-tip">Click to reveal · Right-click to flag · Arrow keys to move</span><span class="touch-tip">Tap to reveal · Press and hold to flag</span></p>
+        </section>
+    </main>
+
+    <div class="modal" id="finish-modal" hidden>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="finish-title">
+            <div class="result-icon" id="result-icon" aria-hidden="true">✦</div>
+            <p class="eyebrow" id="finish-label">Field cleared</p>
+            <h2 id="finish-title">Beautifully done.</h2>
+            <p id="finish-summary">You found every safe tile.</p>
+            <button class="primary-button" id="play-again" type="button">Play another</button>
         </div>
-    </body>
+    </div>
+    <script src="scripts/app.js"></script>
+</body>
 </html>
