@@ -11,7 +11,7 @@ required.
 | **Sudoku** | The refreshed, responsive version with notes, hints, keyboard controls, and an animated backtracking solver. | [Play modern Sudoku](https://bashmohandes.github.io/Javascript/Sudoku/) |
 | **Sudoku Classic** | The original p5.js experiment, preserved alongside the new game. | [Play Sudoku Classic](https://bashmohandes.github.io/Javascript/Sudoku/classic/) |
 | **Minesweeper** | A canvas-based take on the classic mine-clearing puzzle. | [Play Minesweeper](https://bashmohandes.github.io/Javascript/Minesweeper/) |
-| **Pong** | Responsive solo, couch co-op, and private online multiplayer Pong. | [Play Pong](https://bashmohandes.github.io/Javascript/pong/) |
+| **Pong** | Responsive solo, couch co-op, and public or private online multiplayer Pong. | [Play Pong](https://bashmohandes.github.io/Javascript/pong/) |
 
 The repository also contains solutions and experiments from LeetCode,
 Codeforces, and Codewars.
@@ -20,8 +20,9 @@ Codeforces, and Codewars.
 
 Online Pong uses a small authoritative Node.js WebSocket server. The server owns
 the ball, paddles, power-ups, and score so both players always receive the same
-match state. Rooms are private, in memory, and disappear after all players leave
-or the inactivity timeout expires.
+match state. Public rooms appear in the in-game room browser, while private rooms
+require a 4–32 character passcode. All rooms live in memory and disappear after
+all players leave or the inactivity timeout expires.
 
 ### Docker Compose (recommended)
 
@@ -31,8 +32,10 @@ From the repository root:
 docker compose up -d --build
 ```
 
-Open `http://YOUR_NAS_IP:8080/pong/`, select **Online**, and create a room. The
-host can copy the invitation link or give the five-character code to a friend.
+Open `http://YOUR_NAS_IP:8080/pong/`, select **Online**, and join an available
+public room or create a new one. A host can list a public room for anyone to join,
+or create a passcode-protected private room and share its invitation link or
+five-character code with a friend.
 Set a different host port in a `.env` file if port 8080 is occupied:
 
 ```dotenv

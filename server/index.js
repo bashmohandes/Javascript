@@ -22,6 +22,11 @@ const server = http.createServer((request, response) => {
         response.end(JSON.stringify({ status: 'ok', rooms: rooms.rooms.size }));
         return;
     }
+    if (pathname === '/api/rooms' && request.method === 'GET') {
+        response.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
+        response.end(JSON.stringify({ rooms: rooms.publicRooms() }));
+        return;
+    }
     if (/^\/(?:server|tests|node_modules)(?:\/|$)/.test(pathname) || /^\/(?:package(?:-lock)?\.json|compose\.yaml|Dockerfile|project(?:\.lock)?\.json)$/.test(pathname)) {
         response.writeHead(404).end('Not found');
         return;
@@ -58,8 +63,8 @@ websocketServer.on('connection', socket => {
         let message;
         try { message = JSON.parse(raw.toString()); } catch { send(socket, { type: 'error', message: 'Invalid message.' }); return; }
         try {
-            if (!membership && message.type === 'create-room') membership = rooms.create(socket);
-            else if (!membership && message.type === 'join-room') membership = rooms.join(message.roomCode, socket);
+            if (!membership && message.type === 'create-room') membership = rooms.create(socket, { visibility: message.visibility, passcode: message.passcode });
+            else if (!membership && message.type === 'join-room') membership = rooms.join(message.roomCode, socket, message.passcode);
             else if (!membership && message.type === 'resume') membership = rooms.resume(message.roomCode, message.playerToken, socket);
             else if (!membership) throw new Error('Create or join a room first.');
             else if (message.type === 'ready' || message.type === 'rematch') {
@@ -71,7 +76,7 @@ websocketServer.on('connection', socket => {
             else throw new Error('Unsupported message type.');
 
             if (membership && ['create-room', 'join-room', 'resume'].includes(message.type)) {
-                send(socket, credentials(membership.room, membership.player));
+                send(socket, { ...credentials(membership.room, membership.player), visibility: membership.room.visibility });
                 rooms.broadcast(membership.room, { type: 'room-status', players: membership.room.players.map(player => Boolean(player?.connected)) });
                 if (message.type === 'resume') rooms.broadcast(membership.room, { type: 'peer-reconnected' });
             }

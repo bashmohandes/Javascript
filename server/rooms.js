@@ -5,6 +5,7 @@ const { createGame, startGame, update, setInput, setColor, snapshot } = require(
 
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const token = () => crypto.randomBytes(24).toString('base64url');
+const normalizePasscode = value => String(value || '').trim();
 
 class RoomManager {
     constructor({ reconnectMs = 15000, roomTimeoutMs = 30 * 60 * 1000, random = Math.random } = {}) {
@@ -21,22 +22,33 @@ class RoomManager {
         return code;
     }
 
-    create(socket) {
+    create(socket, { visibility = 'private', passcode = '' } = {}) {
+        const isPublic = visibility === 'public';
+        const normalizedPasscode = normalizePasscode(passcode);
+        if (!isPublic && (normalizedPasscode.length < 4 || normalizedPasscode.length > 32)) throw new Error('Private room passcodes must be 4–32 characters.');
         const code = this.makeCode();
         const player = { id: token(), token: token(), side: 0, socket, connected: true, ready: false, disconnectedAt: null };
-        const room = { code, players: [player, null], game: createGame(this.random), createdAt: Date.now(), touchedAt: Date.now(), countdownUntil: null };
+        const room = { code, visibility: isPublic ? 'public' : 'private', passcode: isPublic ? '' : normalizedPasscode, players: [player, null], game: createGame(this.random), createdAt: Date.now(), touchedAt: Date.now(), countdownUntil: null };
         this.rooms.set(code, room);
         return { room, player };
     }
 
-    join(code, socket) {
+    join(code, socket, passcode = '') {
         const room = this.rooms.get(String(code || '').toUpperCase());
         if (!room) throw new Error('Room not found. Check the code and try again.');
         if (room.players[1]) throw new Error('That room is already full.');
+        if (room.visibility === 'private' && normalizePasscode(passcode) !== room.passcode) throw new Error('That passcode is incorrect.');
         const player = { id: token(), token: token(), side: 1, socket, connected: true, ready: false, disconnectedAt: null };
         room.players[1] = player;
         room.touchedAt = Date.now();
         return { room, player };
+    }
+
+    publicRooms() {
+        return Array.from(this.rooms.values())
+            .filter(room => room.visibility === 'public' && !room.players[1])
+            .sort((left, right) => right.createdAt - left.createdAt)
+            .map(room => ({ code: room.code, players: room.players.filter(player => player?.connected).length, createdAt: room.createdAt }));
     }
 
     resume(code, playerToken, socket) {
