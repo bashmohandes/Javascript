@@ -145,6 +145,24 @@ numberPad.children[trialCell.candidates[1] - 1].click();
 assert.equal(elements.get('#mistakes').textContent, '0', 'does not penalize alternate candidates that obey Sudoku constraints');
 assert.equal(board.children[trialCell.row * 9 + trialCell.column].textContent, trialCell.candidates[1], 'allows a player to revise a valid trial entry');
 
+const trialValue = trialCell.candidates[1];
+const emptyPeer = board.children.find(cell => {
+    const row = Number(cell.dataset.row);
+    const column = Number(cell.dataset.column);
+    const sharesBox = Math.floor(row / 3) === Math.floor(trialCell.row / 3)
+        && Math.floor(column / 3) === Math.floor(trialCell.column / 3);
+    return cell.getAttribute('aria-label').endsWith('empty')
+        && (row === trialCell.row || column === trialCell.column || sharesBox);
+});
+assert(emptyPeer, 'alternate candidate has an empty peer where a hint can be requested');
+emptyPeer.click();
+elements.get('#hint').click();
+const hintedValue = boardValue(Number(emptyPeer.dataset.row), Number(emptyPeer.dataset.column));
+assert(hintedValue === 0 || hintedValue !== trialValue, 'hint never duplicates an existing value in its row, column or box');
+if (!hintedValue) {
+    assert.equal(elements.get('#status').textContent, 'No hint fits the current board. Try revising one of your entries.', 'explains when valid-looking entries leave no consistent hint');
+}
+
 const emptyCell = board.children.find(cell => cell.getAttribute('aria-label').endsWith('empty'));
 emptyCell.click();
 notes.click();
