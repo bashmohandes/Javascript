@@ -161,10 +161,10 @@
             render();
             return;
         }
-        if (solution[row][column] !== number) {
+        if (!isPlacementValid(values, row, column, number)) {
             mistakes += 1;
             mistakesElement.textContent = mistakes;
-            statusElement.textContent = mistakes >= 3 ? 'Three mistakes — start a fresh puzzle when you’re ready.' : 'Not quite. Check the row, column and box.';
+            statusElement.textContent = mistakes >= 3 ? 'Three mistakes — start a fresh puzzle when you’re ready.' : 'That number already appears in the row, column or box.';
             const cell = boardElement.querySelector(`[data-row="${row}"][data-column="${column}"]`);
             cell.classList.add('error');
             if (mistakes >= 3) endGame(false);
@@ -175,7 +175,7 @@
         removePeerNotes(row, column, number);
         statusElement.textContent = 'Nice. Keep going.';
         render();
-        if (values.every((boardRow, rowIndex) => boardRow.every((value, columnIndex) => value === solution[rowIndex][columnIndex]))) endGame(true);
+        if (values.every(boardRow => boardRow.every(Boolean))) endGame(true);
     }
 
     function removePeerNotes(row, column, number) {
@@ -339,7 +339,10 @@
     }
 
     function isSolverCandidateValid(grid, row, column) {
-        const value = grid[row][column];
+        return isPlacementValid(grid, row, column, grid[row][column]);
+    }
+
+    function isPlacementValid(grid, row, column, value) {
         for (let index = 0; index < 9; index++) {
             if (index !== column && grid[row][index] === value) return false;
             if (index !== row && grid[index][column] === value) return false;
