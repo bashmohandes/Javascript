@@ -1,4 +1,6 @@
 .git
+.env
+.env.*
 .github
 .devcontainer
 node_modules
