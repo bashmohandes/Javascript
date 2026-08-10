@@ -6,9 +6,11 @@
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",
+    "prestart": "npm run generate:icons",
     "dev": "node --watch server/index.js",
+    "generate:icons": "node scripts/generate-icons.js",
     "test": "node --test",
-    "check": "node --check server/index.js && node --check server/game.js && node --check server/rooms.js && node --check pong/scripts/app.js",
+    "check": "node --check server/index.js && node --check server/game.js && node --check server/rooms.js && node --check pong/scripts/app.js && node --check scripts/generate-icons.js",
     "audit": "npm audit --omit=dev"
   },
   "engines": {

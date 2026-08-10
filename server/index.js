@@ -13,7 +13,16 @@ const rooms = new RoomManager({
     reconnectMs: Number(process.env.RECONNECT_GRACE_MS) || 15000,
     roomTimeoutMs: Number(process.env.ROOM_TIMEOUT_MS) || 1800000
 });
-const mime = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.ico': 'image/x-icon', '.json': 'application/json; charset=utf-8' };
+const mime = {
+    '.html': 'text/html; charset=utf-8',
+    '.js': 'text/javascript; charset=utf-8',
+    '.css': 'text/css; charset=utf-8',
+    '.ico': 'image/x-icon',
+    '.png': 'image/png',
+    '.svg': 'image/svg+xml',
+    '.webmanifest': 'application/manifest+json; charset=utf-8',
+    '.json': 'application/json; charset=utf-8'
+};
 
 const server = http.createServer((request, response) => {
     const pathname = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
