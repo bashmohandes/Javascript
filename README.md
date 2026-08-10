@@ -52,6 +52,48 @@ docker compose down
 The container exposes `GET /healthz` and runs as an unprivileged user. Game
 rooms are intentionally ephemeral, so no volume is required.
 
+### Publish the image with GitHub Actions
+
+The `Test and publish container` workflow tests the application and builds the
+container for every pull request. Pushes to `main` or `master` publish `latest`
+and immutable `sha-...` tags to Docker Hub. Tags such as `v1.2.3` additionally
+publish `1.2.3` and `1.2`. Published images support both AMD64 and ARM64 NAS
+devices and include provenance and an SBOM.
+
+Set up Docker Hub once:
+
+1. Create a public or private Docker Hub repository named `javascript-pong`.
+2. In Docker Hub, create a personal access token with **Read & Write** access.
+3. In the GitHub repository, open **Settings → Secrets and variables → Actions**.
+4. Add `DOCKERHUB_USERNAME` with your Docker Hub username.
+5. Add `DOCKERHUB_TOKEN` with the access token—not your Docker Hub password.
+6. Open **Actions → Test and publish container → Run workflow**, or merge a
+   change into the default branch.
+
+Pulls and deployments should use an immutable version tag where possible. On
+the NAS, save the following as `.env` beside `compose.nas.yaml`:
+
+```dotenv
+PONG_IMAGE=YOUR_DOCKERHUB_USERNAME/javascript-pong:1.0.0
+PONG_PORT=8080
+```
+
+Then deploy or update without cloning the source repository:
+
+```sh
+docker compose -f compose.nas.yaml pull
+docker compose -f compose.nas.yaml up -d
+docker compose -f compose.nas.yaml ps
+```
+
+For a private Docker Hub repository, first run `docker login` on the NAS. To
+publish a version, create and push a matching Git tag:
+
+```sh
+git tag v1.0.0
+git push origin v1.0.0
+```
+
 ### Reverse proxy and HTTPS
 
 For play outside your LAN, put the container behind your NAS reverse proxy and
