@@ -112,6 +112,39 @@ assert.equal(board.children.length, 81, 'renders all 81 grid cells');
 assert.equal(numberPad.children.length, 9, 'renders all nine number controls');
 assert.equal(board.children.filter(cell => cell.classList.contains('given')).length, 36, 'medium puzzle has 36 given cells');
 
+const boardValue = (row, column) => {
+    const label = board.children[row * 9 + column].getAttribute('aria-label');
+    return label.endsWith('empty') ? 0 : Number(label.match(/, (\d)/)[1]);
+};
+const candidatesFor = (row, column) => Array.from({ length: 9 }, (_, index) => index + 1).filter(number => {
+    for (let index = 0; index < 9; index++) {
+        if (boardValue(row, index) === number || boardValue(index, column) === number) return false;
+    }
+    const boxRow = Math.floor(row / 3) * 3;
+    const boxColumn = Math.floor(column / 3) * 3;
+    for (let rowIndex = boxRow; rowIndex < boxRow + 3; rowIndex++) {
+        for (let columnIndex = boxColumn; columnIndex < boxColumn + 3; columnIndex++) {
+            if (boardValue(rowIndex, columnIndex) === number) return false;
+        }
+    }
+    return true;
+});
+let trialCell;
+for (let row = 0; row < 9 && !trialCell; row++) {
+    for (let column = 0; column < 9; column++) {
+        if (!boardValue(row, column)) {
+            const candidates = candidatesFor(row, column);
+            if (candidates.length > 1) trialCell = { row, column, candidates };
+        }
+    }
+}
+assert(trialCell, 'generated puzzle has a cell with multiple currently valid candidates');
+board.children[trialCell.row * 9 + trialCell.column].click();
+numberPad.children[trialCell.candidates[0] - 1].click();
+numberPad.children[trialCell.candidates[1] - 1].click();
+assert.equal(elements.get('#mistakes').textContent, '0', 'does not penalize alternate candidates that obey Sudoku constraints');
+assert.equal(board.children[trialCell.row * 9 + trialCell.column].textContent, trialCell.candidates[1], 'allows a player to revise a valid trial entry');
+
 const emptyCell = board.children.find(cell => cell.getAttribute('aria-label').endsWith('empty'));
 emptyCell.click();
 notes.click();
