@@ -17,7 +17,6 @@
         stop: '<svg class="tool-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><rect class="tool-icon-fill" x="6" y="6" width="12" height="12" rx="1"/></svg>'
     };
 
-    let solution = [];
     let puzzle = [];
     let values = [];
     let notes = [];
@@ -63,7 +62,6 @@
     function startGame() {
         const difficulty = difficultySelect.value;
         const generated = createPuzzle(difficulty);
-        solution = generated.completed;
         puzzle = generated.playable;
         values = puzzle.map(row => [...row]);
         notes = Array.from({ length: 9 }, () => Array.from({ length: 9 }, () => new Set()));
@@ -175,7 +173,7 @@
         removePeerNotes(row, column, number);
         statusElement.textContent = 'Nice. Keep going.';
         render();
-        if (values.every(boardRow => boardRow.every(Boolean))) endGame(true);
+        if (isGridCompleteAndValid(values)) endGame(true);
     }
 
     function removePeerNotes(row, column, number) {
@@ -193,15 +191,21 @@
     }
 
     function giveHint() {
-        if (!selected || puzzle[selected.row][selected.column] || gameOver || autoSolving) {
+        if (!selected || puzzle[selected.row][selected.column] || values[selected.row][selected.column] || gameOver || autoSolving) {
             statusElement.textContent = 'Select an empty square to use a hint.';
             return;
         }
         if (!hints) { statusElement.textContent = 'You’ve used all three hints.'; return; }
         const { row, column } = selected;
-        values[row][column] = solution[row][column];
+        const currentSolution = solveGrid(values);
+        if (!currentSolution) {
+            statusElement.textContent = 'No hint fits the current board. Try revising one of your entries.';
+            return;
+        }
+        const hint = currentSolution[row][column];
+        values[row][column] = hint;
         notes[row][column].clear();
-        removePeerNotes(row, column, solution[row][column]);
+        removePeerNotes(row, column, hint);
         hints -= 1;
         document.querySelector('#hint').innerHTML = `${CONTROL_ICONS.hint}Hint <small>${hints} left</small>`;
         statusElement.textContent = 'A little nudge in the right direction.';
@@ -355,6 +359,44 @@
             }
         }
         return true;
+    }
+
+    function isGridCompleteAndValid(grid) {
+        return grid.every((gridRow, row) => gridRow.every((value, column) =>
+            value >= 1 && value <= 9 && isPlacementValid(grid, row, column, value)));
+    }
+
+    function solveGrid(grid) {
+        const candidateGrid = grid.map(row => [...row]);
+        for (let row = 0; row < 9; row++) {
+            for (let column = 0; column < 9; column++) {
+                const value = candidateGrid[row][column];
+                if (value && !isPlacementValid(candidateGrid, row, column, value)) return null;
+            }
+        }
+
+        function fillNextCell() {
+            let emptyCell = null;
+            for (let row = 0; row < 9 && !emptyCell; row++) {
+                for (let column = 0; column < 9; column++) {
+                    if (!candidateGrid[row][column]) {
+                        emptyCell = { row, column };
+                        break;
+                    }
+                }
+            }
+            if (!emptyCell) return true;
+
+            for (let value = 1; value <= 9; value++) {
+                if (!isPlacementValid(candidateGrid, emptyCell.row, emptyCell.column, value)) continue;
+                candidateGrid[emptyCell.row][emptyCell.column] = value;
+                if (fillNextCell()) return true;
+            }
+            candidateGrid[emptyCell.row][emptyCell.column] = 0;
+            return false;
+        }
+
+        return fillNextCell() ? candidateGrid : null;
     }
 
     function moveSelection(rowChange, columnChange) {
