@@ -109,7 +109,14 @@
     async function share({ image, filename, title, text, url = location.href }) {
         const blob = await toBlob(image), file = new File([blob], filename, { type: 'image/png' });
         if (!await preview({ blob, title, text, url })) throw new DOMException('Share cancelled', 'AbortError');
-        if (navigator.share && navigator.canShare?.({ files: [file] })) { await navigator.share({ title, text, url, files: [file] }); return 'shared'; }
+        const photo = { files: [file] };
+        // A URL makes iOS treat this as a collection of separate items ("1 Link and
+        // 1 Image"), so its share sheet uses a generic document icon. Sharing the
+        // generated PNG as the sole item gives the sheet an actual image preview.
+        const appleMobile = /iPad|iPhone|iPod/.test(navigator.userAgent)
+            || (/Mac/.test(navigator.platform) && navigator.maxTouchPoints > 1);
+        const shareData = appleMobile ? photo : { title, text, url, ...photo };
+        if (navigator.share && navigator.canShare?.(photo)) { await navigator.share(shareData); return 'shared'; }
         const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = filename; link.click(); setTimeout(() => URL.revokeObjectURL(link.href), 1000);
         try { await navigator.clipboard.writeText(`${text}\n${url}`); return 'downloaded-copy'; } catch { return 'downloaded'; }
     }
