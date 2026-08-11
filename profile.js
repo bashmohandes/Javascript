@@ -16,7 +16,7 @@
         document.querySelector('#profile-note').textContent = `Member since ${new Date(profile.user.createdAt + 'Z').toLocaleDateString()}`;
         document.querySelector('#profile-form').gamertag.value = profile.user.gamertag;
         const byGame = Object.fromEntries(profile.totals.map(item => [item.game, item]));
-        document.querySelector('#stats').innerHTML = Object.keys(labels).map(game => { const row = byGame[game] || {}; return `<div class="stat"><span>${labels[game]}</span><strong>${row.games_played || 0} played</strong><small>${row.wins || 0} wins · Best ${row.best_score ?? '—'}</small></div>`; }).join('');
+        document.querySelector('#stats').innerHTML = Object.keys(labels).map(game => { const row = byGame[game] || {}; return `<div class="stat"><span class="stat-game">${labels[game]}</span><div class="stat-metrics"><div><strong>${row.games_played || 0}</strong><small>Played</small></div><div><strong>${row.wins || 0}</strong><small>Wins</small></div><div><strong>${row.best_score ?? '—'}</strong><small>Best</small></div></div></div>`; }).join('');
         document.querySelector('#history').innerHTML = profile.recent.length ? profile.recent.map(row => `<tr><td>${labels[row.game]}</td><td>${row.won ? 'Win' : 'Played'}</td><td>${row.score}</td><td>${new Date(row.played_at + 'Z').toLocaleString()}</td></tr>`).join('') : '<tr><td colspan="4" class="empty">Play a game to begin your history.</td></tr>';
     }
     async function loadLeaders(game) {
