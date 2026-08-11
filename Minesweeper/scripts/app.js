@@ -10,7 +10,8 @@
     const statusElement = document.querySelector('#status');
     const flagButton = document.querySelector('#flag-mode');
     const modal = document.querySelector('#finish-modal');
-    let cells = [], level, started, ended, elapsed, timerId, flagMode, focusedIndex, pressTimer, longPressed;
+    const shareButton = document.querySelector('#share-result');
+    let cells = [], level, started, ended, elapsed, timerId, flagMode, focusedIndex, pressTimer, longPressed, lastResultWon;
 
     const formatTime = seconds => `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
     const neighboursOf = index => {
@@ -25,7 +26,7 @@
     function startGame() {
         level = LEVELS[difficultyElement.value];
         cells = Array.from({ length: level.rows * level.columns }, () => ({ mine: false, revealed: false, flagged: false, count: 0 }));
-        started = false; ended = false; elapsed = 0; flagMode = false; focusedIndex = 0;
+        started = false; ended = false; elapsed = 0; flagMode = false; focusedIndex = 0; lastResultWon = null;
         clearInterval(timerId); timerElement.textContent = '00:00'; modal.hidden = true;
         flagButton.setAttribute('aria-pressed', 'false'); flagButton.querySelector('small').textContent = 'Off';
         statusElement.textContent = 'Choose any tile to begin. Your first move is always safe.';
@@ -79,7 +80,7 @@
 
     function activate(index) { flagMode ? toggleFlag(index) : reveal(index); }
     function endGame(won, explodedIndex) {
-        ended = true; clearInterval(timerId);
+        ended = true; lastResultWon = won; clearInterval(timerId);
         const difficulty = difficultyElement.value;
         window.Arcade?.record({ game: 'minesweeper', won, details: { difficulty, seconds: elapsed } }).catch(() => {});
         if (!won) cells.forEach((cell, index) => { if (cell.mine) cell.revealed = true; if (index === explodedIndex) cell.exploded = true; });
@@ -93,7 +94,24 @@
         document.querySelector('#finish-title').textContent = won ? 'Beautifully done.' : 'So close.';
         document.querySelector('#finish-summary').textContent = won ? `You cleared the field in ${formatTime(elapsed)}.` : 'The next field is waiting when you are.';
         document.querySelector('#result-icon').textContent = won ? '✦' : '✹';
-        updateBest(); render(); modal.hidden = false; document.querySelector('#play-again').focus();
+        updateBest(); render(); modal.hidden = false; shareButton.focus();
+    }
+
+    async function shareResult() {
+        if (lastResultWon === null) return;
+        const difficulty = difficultyElement.value;
+        const difficultyName = difficulty[0].toUpperCase() + difficulty.slice(1);
+        const caption = lastResultWon
+            ? `I cleared a ${difficulty} Minesweeper field in ${formatTime(elapsed)}!`
+            : `I took on a ${difficulty} Minesweeper field in JS Arcade.`;
+        shareButton.disabled = true;
+        try {
+            const image = window.ResultShare.minesweeper({ cells, rows: level.rows, columns: level.columns, difficulty: difficultyName, time: formatTime(elapsed), won: lastResultWon });
+            const result = await window.ResultShare.share({ image, filename: 'js-arcade-minesweeper.png', title: 'My Minesweeper result', text: caption });
+            if (result === 'downloaded-copy') shareButton.textContent = 'Image saved · caption copied';
+            else if (result === 'downloaded') shareButton.textContent = 'Image saved';
+        } catch (error) { if (error.name !== 'AbortError') shareButton.textContent = 'Could not share'; }
+        finally { shareButton.disabled = false; setTimeout(() => { shareButton.textContent = 'Share result'; }, 2600); }
     }
 
     function updateBest() { const best = Number(localStorage.getItem(`minesweeper-best-${difficultyElement.value}`)); bestElement.textContent = best ? formatTime(best) : '—'; }
@@ -129,5 +147,6 @@
     flagButton.addEventListener('click', () => { flagMode = !flagMode; flagButton.setAttribute('aria-pressed', flagMode); flagButton.querySelector('small').textContent = flagMode ? 'On' : 'Off'; });
     difficultyElement.addEventListener('change', startGame);
     ['#new-game', '#new-game-top', '#play-again'].forEach(selector => document.querySelector(selector).addEventListener('click', startGame));
+    shareButton.addEventListener('click', shareResult);
     startGame();
 })();

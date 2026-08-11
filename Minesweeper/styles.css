@@ -37,6 +37,9 @@ select { width:100%; padding:12px; border:1px solid var(--line); border-radius:7
 .primary-button { min-width:170px; padding:13px 22px; border:0; border-radius:7px; color:white; background:var(--accent); font-weight:700; cursor:pointer; transition:.18s; }.primary-button:hover { background:var(--accent-dark); transform:translateY(-2px); }
 .tip { margin:17px 0 0; color:var(--muted); font-size:11px; text-align:center; }.touch-tip { display:none; }
 .modal { position:fixed; inset:0; display:grid; place-items:center; padding:20px; background:rgba(20,36,30,.65); backdrop-filter:blur(7px); }.modal[hidden]{display:none}.modal-card { width:min(420px,100%); padding:44px; border-radius:14px; background:var(--card); text-align:center; box-shadow:0 25px 80px rgba(0,0,0,.25); }.modal-card h2{font-size:38px}.modal-card>p:not(.eyebrow){margin:15px 0 27px;color:var(--muted)}.result-icon{margin-bottom:14px;color:var(--accent);font-size:48px}
+.finish-actions { display:grid; gap:10px; }
+.secondary-button { width:100%; padding:13px 22px; border:1px solid var(--line); border-radius:7px; color:var(--ink); background:transparent; font-weight:700; cursor:pointer; }
+.secondary-button:hover { background:rgba(33,52,46,.06); }
 @keyframes pop { 50% { transform:scale(1.16); } }
 @media(max-width:700px){.app-shell{width:min(100% - 20px,600px)}.topbar{height:64px}.intro{display:block;padding:30px 0 25px}.stats{min-width:0;margin-top:24px;padding-top:17px;border-top:1px solid var(--line);justify-content:space-between}.game-card{padding:12px}.game-toolbar{align-items:start}.status{max-width:62%;line-height:1.45}.board{--cell-size:min(9.1vw,48px);padding:8px;gap:2px;justify-content:start}.controls{align-items:stretch;flex-direction:column}.primary-button{width:100%}.desktop-tip{display:none}.touch-tip{display:inline}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}

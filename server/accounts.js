@@ -110,8 +110,8 @@ class Accounts {
         if (!GAMES.has(game)) throw new Error('Unknown game.');
         return this.database.prepare(`SELECT users.gamertag, ranked.score, ranked.won, ranked.details, ranked.played_at
             FROM game_results ranked JOIN users ON users.id = ranked.user_id
-            WHERE ranked.game = ? AND ranked.id = (SELECT best.id FROM game_results best WHERE best.user_id = ranked.user_id AND best.game = ranked.game ORDER BY best.score DESC, best.played_at ASC LIMIT 1)
-            ORDER BY ranked.score DESC, ranked.played_at ASC LIMIT 20`).all(game).map(row => ({ ...row, won: Boolean(row.won), details: JSON.parse(row.details) }));
+            WHERE ranked.game = ? AND ranked.id = (SELECT best.id FROM game_results best WHERE best.user_id = ranked.user_id AND best.game = ranked.game ORDER BY best.score DESC, COALESCE(json_extract(best.details, '$.seconds'), 86401) ASC, best.played_at ASC LIMIT 1)
+            ORDER BY ranked.score DESC, COALESCE(json_extract(ranked.details, '$.seconds'), 86401) ASC, ranked.played_at ASC LIMIT 20`).all(game).map(row => ({ ...row, won: Boolean(row.won), details: JSON.parse(row.details) }));
     }
 }
 
@@ -140,7 +140,8 @@ function validateResult(game, wonValue, details) {
     if (!['solo', 'duo', 'online'].includes(details.mode) || !/^\d-\d$/.test(String(details.score))) throw new Error('Invalid Pong result.');
     const [player, opponent] = String(details.score).split('-').map(Number);
     if ((player !== 7 && opponent !== 7) || (player === 7 && opponent === 7) || won !== (player === 7)) throw new Error('Invalid Pong result.');
-    return { won, score: player * 100 + opponent, normalizedDetails: { mode: details.mode, score: `${player}-${opponent}` } };
+    const seconds = integer(details.seconds, 1, 86400, 'Pong time');
+    return { won, score: player * 100 + opponent, normalizedDetails: { mode: details.mode, score: `${player}-${opponent}`, seconds } };
 }
 
 module.exports = { Accounts, hashPasscode, verifyPasscode, validateResult };

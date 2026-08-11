@@ -141,14 +141,15 @@ server.on('upgrade', (request, socket, head) => {
     if (new URL(request.url, 'http://localhost').pathname !== '/ws' || (allowedOrigins.length && !allowedOrigins.includes(origin))) {
         socket.write('HTTP/1.1 403 Forbidden\r\n\r\n'); socket.destroy(); return;
     }
-    websocketServer.handleUpgrade(request, socket, head, client => websocketServer.emit('connection', client));
+    websocketServer.handleUpgrade(request, socket, head, client => websocketServer.emit('connection', client, request));
 });
 
 function send(socket, message) { if (socket.readyState === 1) socket.send(JSON.stringify(message)); }
-function credentials(room, player) { return { type: 'session', roomCode: room.code, playerId: player.id, playerToken: player.token, side: player.side }; }
+function credentials(room, player) { return { type: 'session', roomCode: room.code, playerId: player.id, playerToken: player.token, side: player.side, gamertags: room.players.map(candidate => candidate?.gamertag || null) }; }
 
-websocketServer.on('connection', socket => {
+websocketServer.on('connection', (socket, request) => {
     let membership = null;
+    const gamertag = sessionUser(request)?.gamertag || '';
     socket.isAlive = true;
     socket.on('pong', () => { socket.isAlive = true; });
     socket.on('message', raw => {
@@ -156,8 +157,8 @@ websocketServer.on('connection', socket => {
         try { message = JSON.parse(raw.toString()); } catch { send(socket, { type: 'error', message: 'Invalid message.' }); return; }
         try {
             if (membership && membership.player.socket !== socket) throw new Error('This connection has been replaced by a newer session.');
-            if (!membership && message.type === 'create-room') membership = rooms.create(socket, { visibility: message.visibility, passcode: message.passcode });
-            else if (!membership && message.type === 'join-room') membership = rooms.join(message.roomCode, socket, message.passcode);
+            if (!membership && message.type === 'create-room') membership = rooms.create(socket, { visibility: message.visibility, passcode: message.passcode, gamertag });
+            else if (!membership && message.type === 'join-room') membership = rooms.join(message.roomCode, socket, message.passcode, gamertag);
             else if (!membership && message.type === 'resume') membership = rooms.resume(message.roomCode, message.playerToken, socket);
             else if (!membership) throw new Error('Create or join a room first.');
             else if (message.type === 'ready' || message.type === 'rematch') {
@@ -174,6 +175,7 @@ websocketServer.on('connection', socket => {
                 rooms.broadcast(membership.room, {
                     type: 'room-status',
                     players: membership.room.players.map(player => Boolean(player?.connected)),
+                    gamertags: membership.room.players.map(player => player?.gamertag || null),
                     ready: membership.room.players.map(player => Boolean(player?.ready))
                 });
                 if (message.type === 'resume') rooms.broadcast(membership.room, { type: 'peer-reconnected' });
