@@ -43,3 +43,38 @@ test('requires a valid passcode when creating private rooms', () => {
     assert.throws(() => rooms.create(socket()), /4.*32 characters/);
     assert.throws(() => rooms.create(socket(), { passcode: 'abc' }), /4.*32 characters/);
 });
+
+test('an old socket closing cannot disconnect a resumed player', () => {
+    const rooms = new RoomManager();
+    const oldSocket = socket();
+    const host = rooms.create(oldSocket, { visibility: 'public' });
+    const newSocket = socket();
+
+    rooms.resume(host.room.code, host.player.token, newSocket);
+
+    assert.equal(rooms.disconnect(host.room, host.player, oldSocket), false);
+    assert.equal(host.player.connected, true);
+    assert.equal(host.player.socket, newSocket);
+});
+
+test('ready messages cannot reset a match that is already running', () => {
+    const rooms = new RoomManager();
+    const host = rooms.create(socket(), { visibility: 'public' });
+    const guest = rooms.join(host.room.code, socket());
+    rooms.ready(host.room, host.player);
+    rooms.ready(host.room, guest.player);
+    host.room.game.score[0] = 3;
+
+    assert.throws(() => rooms.ready(host.room, host.player), /already in progress/i);
+    assert.deepEqual(host.room.game.score, [3, 0]);
+});
+
+test('one player becoming ready does not mark the opponent ready', () => {
+    const rooms = new RoomManager();
+    const host = rooms.create(socket(), { visibility: 'public' });
+    const guest = rooms.join(host.room.code, socket());
+
+    assert.equal(rooms.ready(host.room, host.player), false);
+    assert.deepEqual(host.room.players.map(player => player.ready), [true, false]);
+    assert.equal(rooms.ready(host.room, guest.player), true);
+});

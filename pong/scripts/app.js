@@ -85,8 +85,16 @@ function applyOnlineState(state) {
     setScore(0, state.score[0]); setScore(1, state.score[1]);
     state.paddles.forEach((paddle, side) => Object.assign(paddles[side], paddle));
     balls = state.balls.map(ball => ({ ...ball })); game.powerUps = state.powerUps.map(powerUp => ({ ...powerUp }));
-    if (state.over) { const won = state.winner === online.side; status.textContent = won ? 'You won the online match!' : 'Your opponent won the online match.'; showOverlay(won ? 'You win!' : 'Opponent wins', 'Choose rematch when you are ready'); readyOnlineButton.textContent = 'Ready for rematch'; }
+    if (state.over) { const won = state.winner === online.side; status.textContent = won ? 'You won the online match!' : 'Your opponent won the online match.'; showOverlay(won ? 'You win!' : 'Opponent wins', 'Choose rematch when you are ready'); readyOnlineButton.disabled = false; readyOnlineButton.textContent = 'Ready for rematch'; }
     else if (state.running && !state.paused) overlay.hidden = true;
+}
+function applyReadyStatus(ready = []) {
+    const ownReady = Boolean(ready[online.side]);
+    const opponentReady = Boolean(ready[1 - online.side]);
+    readyOnlineButton.disabled = ownReady;
+    readyOnlineButton.textContent = ownReady ? 'Waiting…' : 'I’m ready';
+    if (ownReady) status.textContent = opponentReady ? 'Starting the match…' : 'Ready. Waiting for your opponent.';
+    else if (opponentReady) status.textContent = 'Your opponent is ready. Press “I’m ready” to start.';
 }
 function handleOnlineMessage(message) {
     if (message.type === 'session') {
@@ -95,9 +103,16 @@ function handleOnlineMessage(message) {
         const url = new URL(location.href); url.searchParams.set('room', message.roomCode); history.replaceState(null, '', url); status.textContent = message.side === 0 ? 'Room created. Share the invite and wait for your opponent.' : 'Joined room. Press “I’m ready” when set.';
     } else if (message.type === 'room-status') {
         const opponentConnected = message.players[1 - online.side];
-        status.textContent = opponentConnected ? 'Opponent connected. Both players can ready up.' : 'Waiting for your opponent to join…';
-    } else if (message.type === 'match-started') { readyOnlineButton.disabled = false; readyOnlineButton.textContent = 'Ready for rematch'; status.textContent = 'First to 7. The match is live!'; }
-    else if (message.type === 'waiting-ready') { readyOnlineButton.disabled = true; readyOnlineButton.textContent = 'Waiting…'; status.textContent = 'Ready. Waiting for your opponent.'; }
+        if (opponentConnected) {
+            applyReadyStatus(message.ready);
+            if (!message.ready?.some(Boolean)) status.textContent = 'Opponent connected. Both players can ready up.';
+        } else {
+            readyOnlineButton.disabled = false;
+            readyOnlineButton.textContent = 'I’m ready';
+            status.textContent = 'Waiting for your opponent to join…';
+        }
+    } else if (message.type === 'match-started') { readyOnlineButton.disabled = true; readyOnlineButton.textContent = 'Match in progress'; status.textContent = 'First to 7. The match is live!'; }
+    else if (message.type === 'ready-status') applyReadyStatus(message.ready);
     else if (message.type === 'state' && message.sequence > online.lastSequence) { online.lastSequence = message.sequence; applyOnlineState(message.state); }
     else if (message.type === 'peer-left') { setConnection('Reconnecting…', 'connecting'); status.textContent = `Opponent disconnected. Holding the match for ${Math.round(message.reconnectMs / 1000)} seconds.`; showOverlay('Opponent disconnected', 'The match will resume if they reconnect'); }
     else if (message.type === 'peer-reconnected') { setConnection('Connected', 'online'); status.textContent = 'Opponent reconnected. Match resumed.'; overlay.hidden = true; }

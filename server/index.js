@@ -72,29 +72,36 @@ websocketServer.on('connection', socket => {
         let message;
         try { message = JSON.parse(raw.toString()); } catch { send(socket, { type: 'error', message: 'Invalid message.' }); return; }
         try {
+            if (membership && membership.player.socket !== socket) throw new Error('This connection has been replaced by a newer session.');
             if (!membership && message.type === 'create-room') membership = rooms.create(socket, { visibility: message.visibility, passcode: message.passcode });
             else if (!membership && message.type === 'join-room') membership = rooms.join(message.roomCode, socket, message.passcode);
             else if (!membership && message.type === 'resume') membership = rooms.resume(message.roomCode, message.playerToken, socket);
             else if (!membership) throw new Error('Create or join a room first.');
             else if (message.type === 'ready' || message.type === 'rematch') {
                 const started = rooms.ready(membership.room, membership.player);
-                rooms.broadcast(membership.room, { type: started ? 'match-started' : 'waiting-ready', side: membership.player.side });
+                if (started) rooms.broadcast(membership.room, { type: 'match-started' });
+                else rooms.broadcast(membership.room, { type: 'ready-status', ready: membership.room.players.map(player => Boolean(player?.ready)) });
             } else if (message.type === 'input') rooms.input(membership.room, membership.player, message);
             else if (message.type === 'color') { rooms.color(membership.room, membership.player, message.color); rooms.broadcast(membership.room, { type: 'color', side: membership.player.side, color: message.color }); }
-            else if (message.type === 'leave') { rooms.disconnect(membership.room, membership.player); rooms.broadcast(membership.room, { type: 'peer-left', reconnectMs: rooms.reconnectMs }); membership = null; }
+            else if (message.type === 'leave') { rooms.disconnect(membership.room, membership.player, socket); rooms.broadcast(membership.room, { type: 'peer-left', reconnectMs: rooms.reconnectMs }); membership = null; }
             else throw new Error('Unsupported message type.');
 
             if (membership && ['create-room', 'join-room', 'resume'].includes(message.type)) {
                 send(socket, { ...credentials(membership.room, membership.player), visibility: membership.room.visibility });
-                rooms.broadcast(membership.room, { type: 'room-status', players: membership.room.players.map(player => Boolean(player?.connected)) });
+                rooms.broadcast(membership.room, {
+                    type: 'room-status',
+                    players: membership.room.players.map(player => Boolean(player?.connected)),
+                    ready: membership.room.players.map(player => Boolean(player?.ready))
+                });
                 if (message.type === 'resume') rooms.broadcast(membership.room, { type: 'peer-reconnected' });
             }
         } catch (error) { send(socket, { type: 'error', message: error.message }); }
     });
     socket.on('close', () => {
         if (!membership) return;
-        rooms.disconnect(membership.room, membership.player);
-        rooms.broadcast(membership.room, { type: 'peer-left', reconnectMs: rooms.reconnectMs });
+        if (rooms.disconnect(membership.room, membership.player, socket)) {
+            rooms.broadcast(membership.room, { type: 'peer-left', reconnectMs: rooms.reconnectMs });
+        }
     });
 });
 

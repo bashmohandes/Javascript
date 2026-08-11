@@ -45,12 +45,29 @@
     function reveal(index) {
         if (ended || cells[index].flagged || cells[index].revealed) return;
         if (!started) placeMines(index);
-        const cell = cells[index]; cell.revealed = true;
-        if (cell.mine) { endGame(false, index); return; }
-        if (!cell.count) neighboursOf(index).forEach(reveal);
+        if (cells[index].mine) { cells[index].revealed = true; endGame(false, index); return; }
+
+        // Reveal empty regions in one pass. Recursively calling reveal used to
+        // rebuild the entire board once per cleared cell, which was especially
+        // expensive on the 30-column field and could also run win checks while
+        // a flood fill was still in progress.
+        const pending = [index];
+        const queued = new Set(pending);
+        while (pending.length) {
+            const currentIndex = pending.pop();
+            const cell = cells[currentIndex];
+            if (cell.revealed || cell.flagged || cell.mine) continue;
+            cell.revealed = true;
+            if (!cell.count) neighboursOf(currentIndex).forEach(neighbour => {
+                if (!queued.has(neighbour) && !cells[neighbour].revealed && !cells[neighbour].flagged && !cells[neighbour].mine) {
+                    queued.add(neighbour);
+                    pending.push(neighbour);
+                }
+            });
+        }
         statusElement.textContent = 'The field is opening up. Keep going.';
         if (cells.every(item => item.mine || item.revealed)) endGame(true);
-        render();
+        else render();
     }
 
     function toggleFlag(index) {

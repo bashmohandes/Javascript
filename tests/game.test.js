@@ -34,3 +34,46 @@ test('ends the match when a player reaches seven', () => {
     assert.equal(game.over, true);
     assert.equal(game.winner, 1);
 });
+
+test('simulates ordinary event-loop stalls without dropping game time', () => {
+    const game = createGame(() => 0.5);
+    startGame(game);
+    game.serveIn = 0;
+    game.balls[0].vx = 100;
+
+    update(game, 0.2);
+
+    assert.ok(Math.abs(game.elapsed - 0.2) < 1e-9);
+    assert.ok(Math.abs(game.balls[0].x - 500) < 1e-9);
+});
+
+test('uses small physics steps so a fast ball still hits a paddle', () => {
+    const game = createGame();
+    startGame(game);
+    const ball = game.balls[0];
+    game.serveIn = 0;
+    ball.x = 80;
+    ball.y = game.paddles[0].y + game.paddles[0].h / 2;
+    ball.vx = -720;
+    ball.vy = 0;
+
+    update(game, 0.1);
+
+    assert.ok(ball.vx > 0, 'ball should bounce instead of crossing the paddle');
+    assert.deepEqual(game.score, [0, 0]);
+});
+
+test('a rematch clears stale input and winner state', () => {
+    const game = createGame();
+    startGame(game);
+    setInput(game, 0, { down: true, targetY: 500 });
+    for (let score = 0; score < 7; score += 1) point(game, 0);
+
+    startGame(game);
+
+    assert.equal(game.winner, undefined);
+    assert.deepEqual(game.inputs, [
+        { up: false, down: false, targetY: null },
+        { up: false, down: false, targetY: null }
+    ]);
+});
