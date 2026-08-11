@@ -11,4 +11,20 @@
 .arcade-auth-actions button { flex: 1; padding: 11px; color: #10271f; background: #83e6c3; border: 0; border-radius: 10px; font: 700 14px system-ui; cursor: pointer; }
 .arcade-auth-actions .secondary { color: white; background: rgba(255,255,255,.08); }
 .arcade-auth-message { min-height: 1.5em; color: #ffb3a7; }
+.result-share-dialog { width: min(680px, calc(100% - 28px)); overflow: hidden; }
+.result-share-content { display: grid; gap: 16px; padding: 22px; font: 15px/1.45 system-ui, sans-serif; }
+.result-share-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
+.result-share-heading h2, .result-share-content p { margin: 0; }
+.result-share-heading h2 { font-size: clamp(21px, 4vw, 28px); }
+.result-share-eyebrow { margin-bottom: 3px !important; color: #83e6c3; font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.result-share-close { width: 36px; height: 36px; padding: 0; color: #dbe3ee; background: rgba(255,255,255,.08); border: 0; border-radius: 50%; font: 25px/1 system-ui; cursor: pointer; }
+.result-share-image-wrap { overflow: hidden; background: #0d1420; border: 1px solid rgba(255,255,255,.14); border-radius: 14px; }
+.result-share-image-wrap img { display: block; width: 100%; height: auto; aspect-ratio: 40 / 21; object-fit: contain; }
+.result-share-caption { color: #f7f8fc; }
+.result-share-link { overflow: hidden; color: #9fabbc; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+.result-share-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.result-share-actions button { min-width: 110px; padding: 11px 16px; border: 0; border-radius: 10px; font: 700 14px system-ui; cursor: pointer; }
+.result-share-cancel { color: #f7f8fc; background: rgba(255,255,255,.09); }
+.result-share-confirm { color: #10271f; background: #83e6c3; }
 @media (max-width: 650px) { .arcade-account { top: auto; right: 10px; bottom: 10px; } }
+@media (max-width: 480px) { .result-share-content { padding: 17px; } .result-share-actions button { flex: 1; } }
