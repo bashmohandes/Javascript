@@ -65,8 +65,50 @@
         return card;
     }
     const toBlob = element => new Promise((resolve, reject) => element.toBlob(blob => blob ? resolve(blob) : reject(new Error('Could not create image.')), 'image/png'));
+    function preview({ blob, title, text, url }) {
+        if (typeof HTMLDialogElement === 'undefined') return Promise.resolve(true);
+        const objectUrl = URL.createObjectURL(blob);
+        const dialog = document.createElement('dialog');
+        dialog.className = 'arcade-dialog result-share-dialog';
+        dialog.setAttribute('aria-labelledby', 'result-share-title');
+        dialog.innerHTML = `
+            <div class="result-share-content">
+                <div class="result-share-heading">
+                    <div>
+                        <p class="result-share-eyebrow">Ready to share</p>
+                        <h2 id="result-share-title"></h2>
+                    </div>
+                    <button class="result-share-close" type="button" aria-label="Close preview">×</button>
+                </div>
+                <div class="result-share-image-wrap"><img alt="Preview of the generated result image"></div>
+                <p class="result-share-caption"></p>
+                <p class="result-share-link"></p>
+                <div class="result-share-actions">
+                    <button class="result-share-cancel" type="button">Cancel</button>
+                    <button class="result-share-confirm" type="button">Share photo</button>
+                </div>
+            </div>`;
+        dialog.querySelector('h2').textContent = title;
+        dialog.querySelector('img').src = objectUrl;
+        dialog.querySelector('.result-share-caption').textContent = text;
+        dialog.querySelector('.result-share-link').textContent = new URL(url, location.href).host;
+        document.body.append(dialog);
+        return new Promise(resolve => {
+            let confirmed = false;
+            const finish = value => { confirmed = value; dialog.close(); };
+            dialog.querySelector('.result-share-confirm').addEventListener('click', () => finish(true));
+            dialog.querySelector('.result-share-cancel').addEventListener('click', () => finish(false));
+            dialog.querySelector('.result-share-close').addEventListener('click', () => finish(false));
+            dialog.addEventListener('cancel', () => { confirmed = false; });
+            dialog.addEventListener('close', () => {
+                URL.revokeObjectURL(objectUrl); dialog.remove(); resolve(confirmed);
+            }, { once: true });
+            dialog.showModal();
+        });
+    }
     async function share({ image, filename, title, text, url = location.href }) {
         const blob = await toBlob(image), file = new File([blob], filename, { type: 'image/png' });
+        if (!await preview({ blob, title, text, url })) throw new DOMException('Share cancelled', 'AbortError');
         if (navigator.share && navigator.canShare?.({ files: [file] })) { await navigator.share({ title, text, url, files: [file] }); return 'shared'; }
         const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = filename; link.click(); setTimeout(() => URL.revokeObjectURL(link.href), 1000);
         try { await navigator.clipboard.writeText(`${text}\n${url}`); return 'downloaded-copy'; } catch { return 'downloaded'; }
