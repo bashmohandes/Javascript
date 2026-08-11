@@ -93,7 +93,19 @@ PONG_IMAGE=YOUR_DOCKERHUB_USERNAME/javascript-pong:1.0.0
 PONG_PORT=8080
 ALLOWED_ORIGINS=https://js-playground.tail01f640.ts.net
 COOKIE_SECURE=true
+TRUST_PROXY=true
 ```
+
+`TRUST_PROXY=true` is appropriate when the container is reachable only through
+the trusted NAS reverse proxy; it lets authentication throttling use the first
+forwarded client address. Leave it false if clients can connect directly to the
+container port and supply their own forwarding headers.
+
+Authentication attempts are throttled by client address and gamertag, and
+passcode hashing runs asynchronously so it does not block game simulation.
+Scores are derived by the server from validated result fields rather than
+accepted from the browser. Profile changes require the current passcode, revoke
+all existing sessions, and rotate the active session cookie.
 
 Then deploy or update without cloning the source repository:
 

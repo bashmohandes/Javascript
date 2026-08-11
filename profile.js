@@ -1,6 +1,11 @@
 (() => {
     'use strict';
     const labels = { pong: 'Pong', sudoku: 'Sudoku', minesweeper: 'Minesweeper' };
+    const profileForm = document.querySelector('#profile-form');
+    const currentPasscode = document.createElement('input');
+    currentPasscode.name = 'currentPasscode'; currentPasscode.type = 'password'; currentPasscode.minLength = 4; currentPasscode.maxLength = 128; currentPasscode.required = true; currentPasscode.placeholder = 'Current passcode'; currentPasscode.autocomplete = 'current-password'; currentPasscode.setAttribute('aria-label', 'Current passcode');
+    profileForm.insertBefore(currentPasscode, profileForm.elements.passcode);
+    profileForm.elements.passcode.autocomplete = 'new-password';
     const escape = value => String(value ?? '').replace(/[&<>"']/g, character => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[character]);
     const details = row => Object.entries(row.details || {}).map(([key, value]) => `${key}: ${value}`).join(' · ') || '—';
     async function loadProfile(user) {
@@ -20,6 +25,6 @@
     }
     document.addEventListener('arcade:user', event => loadProfile(event.detail).catch(() => {}));
     document.querySelector('#game-tabs').addEventListener('click', event => { if (!event.target.dataset.game) return; document.querySelectorAll('#game-tabs button').forEach(button => button.setAttribute('aria-pressed', button === event.target)); loadLeaders(event.target.dataset.game); });
-    document.querySelector('#profile-form').addEventListener('submit', async event => { event.preventDefault(); const message = document.querySelector('#profile-message'); try { await Arcade.api('/api/profile', { method:'PATCH', body:JSON.stringify(Object.fromEntries(new FormData(event.target))) }); message.textContent = 'Profile updated. Refreshing…'; location.reload(); } catch (error) { message.textContent = error.message; } });
+    profileForm.addEventListener('submit', async event => { event.preventDefault(); const message = document.querySelector('#profile-message'); try { await Arcade.api('/api/profile', { method:'PATCH', body:JSON.stringify(Object.fromEntries(new FormData(event.target))) }); message.textContent = 'Profile updated. Refreshing…'; location.reload(); } catch (error) { message.textContent = error.message; } });
     loadLeaders('pong');
 })();

@@ -13,6 +13,7 @@ const port = Number(process.env.PORT) || 8080;
 const database = openDatabase();
 const accounts = new Accounts(database);
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').map(value => value.trim()).filter(Boolean);
+const trustProxy = process.env.TRUST_PROXY === 'true';
 const rooms = new RoomManager({
     reconnectMs: Number(process.env.RECONNECT_GRACE_MS) || 15000,
     roomTimeoutMs: Number(process.env.ROOM_TIMEOUT_MS) || 1800000
@@ -37,6 +38,27 @@ function cookies(request) {
 }
 function sessionUser(request) { return accounts.userForToken(cookies(request).arcade_session); }
 function sessionCookie(token, expiresAt) { return `arcade_session=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Strict; Expires=${new Date(expiresAt).toUTCString()}${process.env.COOKIE_SECURE === 'true' ? '; Secure' : ''}`; }
+class RateLimiter {
+    constructor(limit, windowMs) { this.limit = limit; this.windowMs = windowMs; this.entries = new Map(); }
+    consume(key) {
+        const now = Date.now();
+        if (this.entries.size > 10000) {
+            for (const [entryKey, value] of this.entries) if (value.resetAt <= now) this.entries.delete(entryKey);
+            while (this.entries.size > 10000) this.entries.delete(this.entries.keys().next().value);
+        }
+        let entry = this.entries.get(key);
+        if (!entry || entry.resetAt <= now) entry = { count: 0, resetAt: now + this.windowMs };
+        entry.count += 1; this.entries.set(key, entry);
+        return entry.count <= this.limit ? 0 : Math.ceil((entry.resetAt - now) / 1000);
+    }
+    reset(key) { this.entries.delete(key); }
+}
+const loginLimiter = new RateLimiter(10, 15 * 60 * 1000);
+const loginIpLimiter = new RateLimiter(50, 15 * 60 * 1000);
+const registrationLimiter = new RateLimiter(5, 60 * 60 * 1000);
+const resultLimiter = new RateLimiter(60, 60 * 60 * 1000);
+function clientIp(request) { return trustProxy ? String(request.headers['x-forwarded-for'] || '').split(',')[0].trim() || request.socket.remoteAddress : request.socket.remoteAddress; }
+function throttle(response, retryAfter) { return json(response, 429, { error: 'Too many attempts. Try again later.' }, { 'retry-after': retryAfter }); }
 async function readJson(request) {
     let body = '';
     for await (const chunk of request) { body += chunk; if (body.length > 10000) throw new Error('Request is too large.'); }
@@ -63,11 +85,14 @@ const server = http.createServer(async (request, response) => {
         try {
             if (!sameOrigin(request)) return json(response, 403, { error: 'Origin not allowed.' });
             if (pathname === '/api/auth/register' && request.method === 'POST') {
-                const body = await readJson(request), user = accounts.create(body.gamertag, body.passcode), session = accounts.createSession(user.id);
+                const retryAfter = registrationLimiter.consume(clientIp(request)); if (retryAfter) return throttle(response, retryAfter);
+                const body = await readJson(request), user = await accounts.create(body.gamertag, body.passcode), session = accounts.createSession(user.id);
                 return json(response, 201, { user }, { 'set-cookie': sessionCookie(session.token, session.expiresAt) });
             }
             if (pathname === '/api/auth/login' && request.method === 'POST') {
-                const body = await readJson(request), user = accounts.authenticate(body.gamertag, body.passcode), session = accounts.createSession(user.id);
+                const body = await readJson(request), ip = clientIp(request), loginKey = `${ip}:${String(body.gamertag || '').trim().toLowerCase()}`;
+                const retryAfter = Math.max(loginLimiter.consume(loginKey), loginIpLimiter.consume(ip)); if (retryAfter) return throttle(response, retryAfter);
+                const user = await accounts.authenticate(body.gamertag, body.passcode), session = accounts.createSession(user.id); loginLimiter.reset(loginKey);
                 return json(response, 200, { user }, { 'set-cookie': sessionCookie(session.token, session.expiresAt) });
             }
             if (pathname === '/api/auth/logout' && request.method === 'POST') {
@@ -80,11 +105,17 @@ const server = http.createServer(async (request, response) => {
             const user = sessionUser(request);
             if (!user) return json(response, 401, { error: 'Sign in to continue.' });
             if (pathname === '/api/profile' && request.method === 'GET') return json(response, 200, accounts.profile(user.id));
-            if (pathname === '/api/profile' && request.method === 'PATCH') return json(response, 200, { user: accounts.update(user.id, await readJson(request)) });
-            if (pathname === '/api/results' && request.method === 'POST') return json(response, 201, accounts.record(user.id, await readJson(request)));
+            if (pathname === '/api/profile' && request.method === 'PATCH') {
+                const updated = await accounts.update(user.id, await readJson(request)), session = accounts.createSession(user.id);
+                return json(response, 200, { user: updated }, { 'set-cookie': sessionCookie(session.token, session.expiresAt) });
+            }
+            if (pathname === '/api/results' && request.method === 'POST') {
+                const retryAfter = resultLimiter.consume(user.id); if (retryAfter) return throttle(response, retryAfter);
+                return json(response, 201, accounts.record(user.id, await readJson(request)));
+            }
             return json(response, 404, { error: 'API endpoint not found.' });
         } catch (error) {
-            const clientError = /Gamertag|Passcode|incorrect|taken|Unknown game|Score|details|JSON|large/.test(error.message);
+            const clientError = /Gamertag|Passcode|passcode|incorrect|taken|Unknown game|Invalid|details|JSON|large/.test(error.message);
             return json(response, clientError ? 400 : 500, { error: clientError ? error.message : 'Server error.' });
         }
     }

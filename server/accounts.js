@@ -1,22 +1,24 @@
 'use strict';
 
 const crypto = require('node:crypto');
+const { promisify } = require('node:util');
 
 const SESSION_DAYS = 30;
 const GAMES = new Set(['pong', 'sudoku', 'minesweeper']);
 const hashToken = token => crypto.createHash('sha256').update(token).digest('hex');
 const normalizeGamertag = value => String(value || '').trim();
+const scrypt = promisify(crypto.scrypt);
 
-function hashPasscode(passcode, salt = crypto.randomBytes(16)) {
-    const derived = crypto.scryptSync(passcode, salt, 64);
+async function hashPasscode(passcode, salt = crypto.randomBytes(16)) {
+    const derived = await scrypt(passcode, salt, 64);
     return `scrypt:${salt.toString('base64url')}:${derived.toString('base64url')}`;
 }
 
-function verifyPasscode(passcode, encoded) {
+async function verifyPasscode(passcode, encoded) {
     const [, saltValue, hashValue] = String(encoded).split(':');
     if (!saltValue || !hashValue) return false;
     const expected = Buffer.from(hashValue, 'base64url');
-    const actual = crypto.scryptSync(passcode, Buffer.from(saltValue, 'base64url'), expected.length);
+    const actual = await scrypt(passcode, Buffer.from(saltValue, 'base64url'), expected.length);
     return crypto.timingSafeEqual(expected, actual);
 }
 
@@ -31,11 +33,11 @@ class Accounts {
         if (passcode.length < 4 || passcode.length > 128) throw new Error('Passcode must be 4–128 characters.');
     }
 
-    create(gamertagValue, passcodeValue) {
+    async create(gamertagValue, passcodeValue) {
         const gamertag = normalizeGamertag(gamertagValue), passcode = String(passcodeValue || '');
         this.validateCredentials(gamertag, passcode);
         try {
-            const result = this.database.prepare('INSERT INTO users (gamertag, passcode_hash) VALUES (?, ?)').run(gamertag, hashPasscode(passcode));
+            const result = this.database.prepare('INSERT INTO users (gamertag, passcode_hash) VALUES (?, ?)').run(gamertag, await hashPasscode(passcode));
             return publicUser(this.database.prepare('SELECT * FROM users WHERE id = ?').get(result.lastInsertRowid));
         } catch (error) {
             if (isUniqueConstraint(error)) throw new Error('That gamertag is already taken.');
@@ -43,9 +45,9 @@ class Accounts {
         }
     }
 
-    authenticate(gamertagValue, passcodeValue) {
+    async authenticate(gamertagValue, passcodeValue) {
         const row = this.database.prepare('SELECT * FROM users WHERE gamertag = ? COLLATE NOCASE').get(normalizeGamertag(gamertagValue));
-        if (!row || !verifyPasscode(String(passcodeValue || ''), row.passcode_hash)) throw new Error('Gamertag or passcode is incorrect.');
+        if (!row || !await verifyPasscode(String(passcodeValue || ''), row.passcode_hash)) throw new Error('Gamertag or passcode is incorrect.');
         return publicUser(row);
     }
 
@@ -64,15 +66,21 @@ class Accounts {
 
     deleteSession(token) { if (token) this.database.prepare('DELETE FROM sessions WHERE token_hash = ?').run(hashToken(token)); }
 
-    update(userId, changes) {
+    async update(userId, changes) {
         const current = this.database.prepare('SELECT * FROM users WHERE id = ?').get(userId);
         if (!current) throw new Error('User not found.');
         const gamertag = changes.gamertag === undefined ? current.gamertag : normalizeGamertag(changes.gamertag);
         const passcode = changes.passcode === undefined || changes.passcode === '' ? null : String(changes.passcode);
+        if (!await verifyPasscode(String(changes.currentPasscode || ''), current.passcode_hash)) throw new Error('Current passcode is incorrect.');
         this.validateCredentials(gamertag, passcode || 'keep');
         try {
-            this.database.prepare('UPDATE users SET gamertag = ?, passcode_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(gamertag, passcode ? hashPasscode(passcode) : current.passcode_hash, userId);
+            const passcodeHash = passcode ? await hashPasscode(passcode) : current.passcode_hash;
+            this.database.exec('BEGIN IMMEDIATE');
+            this.database.prepare('UPDATE users SET gamertag = ?, passcode_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(gamertag, passcodeHash, userId);
+            this.database.prepare('DELETE FROM sessions WHERE user_id = ?').run(userId);
+            this.database.exec('COMMIT');
         } catch (error) {
+            if (this.database.isTransaction) this.database.exec('ROLLBACK');
             if (isUniqueConstraint(error)) throw new Error('That gamertag is already taken.');
             throw error;
         }
@@ -80,14 +88,14 @@ class Accounts {
     }
 
     record(userId, result) {
-        const game = String(result.game || '').toLowerCase(), score = Number(result.score);
+        const game = String(result.game || '').toLowerCase();
         if (!GAMES.has(game)) throw new Error('Unknown game.');
-        if (!Number.isSafeInteger(score) || score < 0 || score > 100000000) throw new Error('Score must be a non-negative integer.');
         const details = result.details && typeof result.details === 'object' && !Array.isArray(result.details) ? result.details : {};
-        const encoded = JSON.stringify(details);
+        const { score, won, normalizedDetails } = validateResult(game, result.won, details);
+        const encoded = JSON.stringify(normalizedDetails);
         if (encoded.length > 2000) throw new Error('Game details are too large.');
-        const insert = this.database.prepare('INSERT INTO game_results (user_id, game, score, won, details) VALUES (?, ?, ?, ?, ?)').run(userId, game, score, result.won ? 1 : 0, encoded);
-        return { id: Number(insert.lastInsertRowid) };
+        const insert = this.database.prepare('INSERT INTO game_results (user_id, game, score, won, details) VALUES (?, ?, ?, ?, ?)').run(userId, game, score, won ? 1 : 0, encoded);
+        return { id: Number(insert.lastInsertRowid), score };
     }
 
     profile(userId) {
@@ -107,4 +115,32 @@ class Accounts {
     }
 }
 
-module.exports = { Accounts, hashPasscode, verifyPasscode };
+function integer(value, minimum, maximum, label) {
+    const number = Number(value);
+    if (!Number.isSafeInteger(number) || number < minimum || number > maximum) throw new Error(`Invalid ${label}.`);
+    return number;
+}
+
+function validateResult(game, wonValue, details) {
+    const won = wonValue === true;
+    if (game === 'sudoku') {
+        if (!['easy', 'medium', 'hard'].includes(details.difficulty)) throw new Error('Invalid Sudoku difficulty.');
+        const seconds = integer(details.seconds, won ? 1 : 0, 86400, 'Sudoku time');
+        const mistakes = integer(details.mistakes, 0, 3, 'mistake count');
+        const hintsUsed = integer(details.hintsUsed, 0, 3, 'hint count');
+        const base = { easy: 1000, medium: 2000, hard: 3500 }[details.difficulty];
+        return { won, score: won ? Math.max(1, base - seconds - mistakes * 100 + (3 - hintsUsed) * 50) : 0, normalizedDetails: { difficulty: details.difficulty, seconds, mistakes, hintsUsed } };
+    }
+    if (game === 'minesweeper') {
+        if (!['easy', 'medium', 'hard'].includes(details.difficulty)) throw new Error('Invalid Minesweeper difficulty.');
+        const seconds = integer(details.seconds, won ? 1 : 0, 86400, 'Minesweeper time');
+        const base = { easy: 1000, medium: 3000, hard: 6000 }[details.difficulty];
+        return { won, score: won ? Math.max(1, base - seconds) : 0, normalizedDetails: { difficulty: details.difficulty, seconds } };
+    }
+    if (!['solo', 'duo', 'online'].includes(details.mode) || !/^\d-\d$/.test(String(details.score))) throw new Error('Invalid Pong result.');
+    const [player, opponent] = String(details.score).split('-').map(Number);
+    if ((player !== 7 && opponent !== 7) || (player === 7 && opponent === 7) || won !== (player === 7)) throw new Error('Invalid Pong result.');
+    return { won, score: player * 100 + opponent, normalizedDetails: { mode: details.mode, score: `${player}-${opponent}` } };
+}
+
+module.exports = { Accounts, hashPasscode, verifyPasscode, validateResult };

@@ -12,6 +12,7 @@ services:
       ROOM_TIMEOUT_MS: ${ROOM_TIMEOUT_MS:-1800000}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://js-playground.tail01f640.ts.net}
       COOKIE_SECURE: ${COOKIE_SECURE:-true}
+      TRUST_PROXY: ${TRUST_PROXY:-true}
     volumes:
       - arcade-data:/app/data
     healthcheck:
