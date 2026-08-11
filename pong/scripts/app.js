@@ -35,7 +35,8 @@ const powerUpTypes = {
     burst: { name: 'Velocity Burst', icon: '✦', color: '#e7ca67', collection: 'ball' },
     split: { name: 'Split Ball', icon: '●●', color: '#cc8290', collection: 'ball' }
 };
-const CURVE_SHOT_IMPULSE = 420;
+const CURVE_SHOT_ACCELERATION = 700;
+const CURVE_SHOT_DURATION = 0.8;
 let balls = [];
 const online = { socket: null, roomCode: '', token: '', side: 0, connected: false, lastSequence: 0, reconnectTimer: null, intentionalClose: false };
 
@@ -142,7 +143,7 @@ function leaveOnline(notify = true) {
 }
 function onlineInput() { sendOnline({ type: 'input', up: game.keys.has('KeyW') || game.keys.has('ArrowUp'), down: game.keys.has('KeyS') || game.keys.has('ArrowDown'), targetY: null }); }
 
-function makeBall(x = game.width / 2, y = game.height / 2, vx = 0, vy = 0, decoy = false) { return { x, y, r: 10, vx, vy, decoy }; }
+function makeBall(x = game.width / 2, y = game.height / 2, vx = 0, vy = 0, decoy = false) { return { x, y, r: 10, vx, vy, decoy, curveAcceleration: 0, curveTime: 0 }; }
 function resize() { const ratio = Math.min(window.devicePixelRatio || 1, 2); canvas.width = game.width * ratio; canvas.height = game.height * ratio; ctx.setTransform(ratio, 0, 0, ratio, 0, 0); draw(); }
 function resetBall(direction = game.serve) { balls = [makeBall()]; game.serve = direction; }
 function launch() { const angle = (Math.random() * .8) - .4; balls[0].vx = game.serve * 410 * Math.cos(angle); balls[0].vy = 410 * Math.sin(angle); game.serve *= -1; }
@@ -205,9 +206,11 @@ function update(dt) {
     paddles.forEach(paddle => paddle.y = Math.max(12, Math.min(game.height - paddle.h - 12, paddle.y + paddle.vy * dt)));
     for (const ball of balls) {
         const slowed = ((game.effects[0].slowUntil || 0) > game.elapsed && ball.x < game.width / 2) || ((game.effects[1].slowUntil || 0) > game.elapsed && ball.x > game.width / 2);
-        const move = dt * (slowed ? .72 : 1); ball.x += ball.vx * move; ball.y += ball.vy * move;
+        const move = dt * (slowed ? .72 : 1);
+        if ((ball.curveTime || 0) > 0) { const curveStep = Math.min(dt, ball.curveTime); ball.vy += ball.curveAcceleration * curveStep; ball.curveTime = Math.max(0, ball.curveTime - dt); if (ball.curveTime === 0) ball.curveAcceleration = 0; }
+        ball.x += ball.vx * move; ball.y += ball.vy * move;
         if ((ball.y - ball.r < 10 && ball.vy < 0) || (ball.y + ball.r > game.height - 10 && ball.vy > 0)) ball.vy *= -1;
-        paddles.forEach((paddle, side) => { const toward = side === 0 ? ball.vx < 0 : ball.vx > 0; if (toward && ball.x + ball.r > paddle.x && ball.x - ball.r < paddle.x + paddle.w && ball.y + ball.r > paddle.y && ball.y - ball.r < paddle.y + paddle.h) { const offset = (ball.y - (paddle.y + paddle.h / 2)) / (paddle.h / 2); ball.x = side === 0 ? paddle.x + paddle.w + ball.r : paddle.x - ball.r; ball.vx = (side === 0 ? 1 : -1) * Math.min(Math.abs(ball.vx) * 1.055, 720); ball.vy = offset * 430; if (!ball.decoy && game.effects[side].curve) { ball.vy += (paddle.vy < 0 ? -1 : paddle.vy > 0 ? 1 : offset >= 0 ? 1 : -1) * CURVE_SHOT_IMPULSE; game.effects[side].curve = false; } if (!ball.decoy) game.lastTouch = side; } });
+        paddles.forEach((paddle, side) => { const toward = side === 0 ? ball.vx < 0 : ball.vx > 0; if (toward && ball.x + ball.r > paddle.x && ball.x - ball.r < paddle.x + paddle.w && ball.y + ball.r > paddle.y && ball.y - ball.r < paddle.y + paddle.h) { const offset = (ball.y - (paddle.y + paddle.h / 2)) / (paddle.h / 2); ball.x = side === 0 ? paddle.x + paddle.w + ball.r : paddle.x - ball.r; ball.vx = (side === 0 ? 1 : -1) * Math.min(Math.abs(ball.vx) * 1.055, 720); ball.vy = offset * 430; if (!ball.decoy && game.effects[side].curve) { ball.curveAcceleration = (offset >= 0 ? 1 : -1) * CURVE_SHOT_ACCELERATION; ball.curveTime = CURVE_SHOT_DURATION; game.effects[side].curve = false; } if (!ball.decoy) game.lastTouch = side; } });
         if (ball.x < -30 || ball.x > game.width + 30) { if (ball.decoy) balls = balls.filter(item => item !== ball); else { point(ball.x < -30 ? 1 : 0); return; } }
     }
 }

@@ -63,7 +63,7 @@ test('uses small physics steps so a fast ball still hits a paddle', () => {
     assert.deepEqual(game.score, [0, 0]);
 });
 
-test('curve shot adds a pronounced vertical impulse to the next return', () => {
+test('curve shot bends the next return gradually', () => {
     const game = createGame();
     startGame(game);
     const ball = game.balls[0];
@@ -76,8 +76,15 @@ test('curve shot adds a pronounced vertical impulse to the next return', () => {
 
     update(game, 0.01);
 
-    assert.ok(ball.vy >= 420, 'curve shot should visibly redirect a centered return');
+    const initialVelocity = ball.vy;
+    assert.ok(initialVelocity > 0 && initialVelocity < 20, 'curve shot should begin with acceleration instead of an instant kick');
+    assert.ok(ball.curveTime > 0, 'curve shot should remain active after the return');
     assert.equal(game.effects[0].curve, false, 'curve shot should be consumed by the return');
+
+    update(game, 0.2);
+
+    assert.ok(ball.vy > initialVelocity + 100, 'the ball should bend more as it travels');
+    assert.ok(ball.curveTime < 0.8, 'the curve duration should count down during flight');
 });
 
 test('a split-ball decoy can leave the arena without awarding a point', () => {
