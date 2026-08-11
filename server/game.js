@@ -38,11 +38,13 @@ function startGame(game) {
     game.running = true;
     game.paused = false;
     game.over = false;
+    game.winner = undefined;
     game.score = [0, 0];
     game.elapsed = 0;
     game.nextPowerUp = 5;
     game.powerUps = [];
     game.effects = [{}, {}];
+    game.inputs = [{ up: false, down: false, targetY: null }, { up: false, down: false, targetY: null }];
     game.paddles.forEach(paddle => { paddle.y = 240; paddle.h = paddle.baseH; });
     resetBall(game, game.serve, 0.75);
 }
@@ -122,9 +124,8 @@ function point(game, side) {
     } else resetBall(game, side === 0 ? 1 : -1);
 }
 
-function update(game, dt) {
+function updateStep(game, step) {
     if (!game.running || game.paused || game.over) return;
-    const step = Math.min(Math.max(dt, 0), 0.05);
     game.elapsed += step;
     if (game.serveIn > 0) {
         game.serveIn -= step;
@@ -171,6 +172,18 @@ function update(game, dt) {
         });
         if (ball.x < -30) { point(game, 1); return; }
         if (ball.x > WIDTH + 30) { point(game, 0); return; }
+    }
+}
+
+function update(game, dt) {
+    // Preserve elapsed simulation time during ordinary event-loop stalls while
+    // keeping each physics step small enough that a fast ball cannot tunnel
+    // through a paddle. Cap very long stalls to avoid a spiral of death.
+    let remaining = Math.min(Math.max(Number.isFinite(dt) ? dt : 0, 0), 0.25);
+    while (remaining > 0 && game.running && !game.paused && !game.over) {
+        const step = Math.min(remaining, 1 / 120);
+        updateStep(game, step);
+        remaining -= step;
     }
 }
 

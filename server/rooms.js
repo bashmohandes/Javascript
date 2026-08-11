@@ -65,6 +65,7 @@ class RoomManager {
     }
 
     ready(room, player) {
+        if (room.game.running && !room.game.over) throw new Error('The match is already in progress.');
         player.ready = true;
         if (room.players.every(candidate => candidate?.ready && candidate.connected)) {
             room.players.forEach(candidate => { candidate.ready = false; });
@@ -74,12 +75,16 @@ class RoomManager {
         return false;
     }
 
-    disconnect(room, player) {
+    disconnect(room, player, socket = player.socket) {
+        // A resumed session replaces the player's socket. The delayed close
+        // event from the old connection must not disconnect the new one.
+        if (player.socket !== socket) return false;
         player.connected = false;
         player.socket = null;
         player.disconnectedAt = Date.now();
         room.touchedAt = Date.now();
         if (room.game.running) room.game.paused = true;
+        return true;
     }
 
     tick(dt, now = Date.now()) {
