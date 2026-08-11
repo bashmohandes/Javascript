@@ -7,12 +7,18 @@ services:
       - "${PONG_PORT:-8080}:8080"
     environment:
       PORT: 8080
+      DATABASE_PATH: /app/data/arcade.sqlite
       RECONNECT_GRACE_MS: ${RECONNECT_GRACE_MS:-15000}
       ROOM_TIMEOUT_MS: ${ROOM_TIMEOUT_MS:-1800000}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+    volumes:
+      - arcade-data:/app/data
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
       interval: 30s
       timeout: 3s
       retries: 3
       start_period: 5s
+volumes:
+  arcade-data:

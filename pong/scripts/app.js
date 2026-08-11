@@ -39,6 +39,7 @@ const CURVE_SHOT_ACCELERATION = 700;
 const CURVE_SHOT_DURATION = 0.8;
 let balls = [];
 const online = { socket: null, roomCode: '', token: '', side: 0, connected: false, lastSequence: 0, reconnectTimer: null, intentionalClose: false };
+let recordedOnlineResult = null;
 
 function setConnection(label, state = 'offline') { connectionState.textContent = label; connectionState.dataset.state = state; }
 function sendOnline(message) { if (online.socket?.readyState === WebSocket.OPEN) online.socket.send(JSON.stringify(message)); }
@@ -87,7 +88,7 @@ function applyOnlineState(state) {
     setScore(0, state.score[0]); setScore(1, state.score[1]);
     state.paddles.forEach((paddle, side) => Object.assign(paddles[side], paddle));
     balls = state.balls.map(ball => ({ ...ball })); game.powerUps = state.powerUps.map(powerUp => ({ ...powerUp }));
-    if (state.over) { const won = state.winner === online.side; status.textContent = won ? 'You won the online match!' : 'Your opponent won the online match.'; showOverlay(won ? 'You win!' : 'Opponent wins', 'Choose rematch when you are ready'); readyOnlineButton.disabled = false; readyOnlineButton.textContent = 'Ready for rematch'; }
+    if (state.over) { const won = state.winner === online.side; const resultKey = `${online.roomCode}:${state.score.join('-')}:${state.elapsed}`; if (recordedOnlineResult !== resultKey) { recordedOnlineResult = resultKey; window.Arcade?.record({ game: 'pong', score: state.score[online.side] * 100 + state.score[1 - online.side], won, details: { mode: 'online', score: `${state.score[online.side]}-${state.score[1 - online.side]}` } }).catch(() => {}); } status.textContent = won ? 'You won the online match!' : 'Your opponent won the online match.'; showOverlay(won ? 'You win!' : 'Opponent wins', 'Choose rematch when you are ready'); readyOnlineButton.disabled = false; readyOnlineButton.textContent = 'Ready for rematch'; }
     else if (state.running && !state.paused) overlay.hidden = true;
 }
 function applyReadyStatus(ready = []) {
@@ -151,6 +152,7 @@ function setScore(side, value) { (side ? scoreRight : scoreLeft).textContent = v
 function clearPowerUps() { game.powerUps = []; game.effects = [{}, {}]; paddles.forEach(paddle => paddle.h = paddle.baseH); }
 function schedulePowerUp(first = false) { game.nextPowerUp = game.elapsed + (first ? 5 : 8 + Math.random() * 6); }
 function newGame() {
+    recordedOnlineResult = null;
     game.score = [0, 0]; game.over = false; game.elapsed = 0; game.lastTouch = 0; setScore(0, 0); setScore(1, 0);
     paddles.forEach(paddle => { paddle.y = 240; paddle.h = paddle.baseH; }); clearPowerUps(); schedulePowerUp(true);
     resetBall(Math.random() < .5 ? -1 : 1); game.running = true; game.paused = false; overlay.hidden = true;
@@ -161,7 +163,7 @@ function showOverlay(title, hint) { overlayTitle.textContent = title; overlayHin
 function togglePause() { if (game.mode === 'online') return; if (game.over || !game.running) { newGame(); return; } game.paused = !game.paused; game.paused ? showOverlay('Game paused', 'Click or press Space to continue') : overlay.hidden = true; }
 function point(side) {
     game.score[side]++; setScore(side, game.score[side]); clearPowerUps();
-    if (game.score[side] === 7) { game.over = true; game.running = false; const name = side === 0 ? (game.mode === 'solo' ? 'You' : 'Left player') : (game.mode === 'solo' ? 'Computer' : 'Right player'); status.textContent = `${name} won ${game.score[side]}–${game.score[1 - side]}.`; showOverlay(`${name} wins!`, 'Click to play another match'); return; }
+    if (game.score[side] === 7) { game.over = true; game.running = false; const playerSide = 0; const won = side === playerSide; window.Arcade?.record({ game: 'pong', score: game.score[playerSide] * 100 + game.score[1 - playerSide], won, details: { mode: game.mode, score: `${game.score[playerSide]}-${game.score[1 - playerSide]}` } }).catch(() => {}); const name = side === 0 ? (game.mode === 'solo' ? 'You' : 'Left player') : (game.mode === 'solo' ? 'Computer' : 'Right player'); status.textContent = `${name} won ${game.score[side]}–${game.score[1 - side]}.`; showOverlay(`${name} wins!`, 'Click to play another match'); return; }
     resetBall(side === 0 ? 1 : -1); schedulePowerUp(true); setTimeout(() => { if (game.running && !game.paused && balls[0].vx === 0) launch(); }, 650);
 }
 function spawnPowerUp() {

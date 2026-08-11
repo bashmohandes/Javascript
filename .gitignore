@@ -2,6 +2,7 @@
 bin
 obj
 node_modules/*
+data/
 
 # Generated from icon.svg by scripts/generate-icons.js. Keeping these build
 # artifacts out of Git allows source-only pull requests while still providing

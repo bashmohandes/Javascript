@@ -1,0 +1,14 @@
+.arcade-account { position: fixed; z-index: 1000; top: 14px; right: 16px; display: flex; align-items: center; gap: 8px; padding: 7px; color: #f7f8fc; background: rgba(13, 20, 32, .92); border: 1px solid rgba(255,255,255,.16); border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.25); font: 600 13px/1.2 system-ui, sans-serif; }
+.arcade-account a, .arcade-account button { padding: 8px 11px; color: inherit; background: transparent; border: 0; border-radius: 9px; font: inherit; text-decoration: none; cursor: pointer; }
+.arcade-account button { color: #10271f; background: #83e6c3; }
+.arcade-dialog { width: min(420px, calc(100% - 32px)); padding: 0; color: #f7f8fc; background: #172335; border: 1px solid rgba(255,255,255,.16); border-radius: 20px; box-shadow: 0 24px 80px #0009; }
+.arcade-dialog::backdrop { background: rgba(5,10,18,.72); backdrop-filter: blur(4px); }
+.arcade-auth { display: grid; gap: 16px; padding: 26px; font: 15px/1.5 system-ui, sans-serif; }
+.arcade-auth h2, .arcade-auth p { margin: 0; }
+.arcade-auth label { display: grid; gap: 6px; color: #b8c2d2; }
+.arcade-auth input { width: 100%; padding: 12px; color: white; background: #0d1420; border: 1px solid rgba(255,255,255,.18); border-radius: 10px; font: inherit; }
+.arcade-auth-actions { display: flex; gap: 9px; }
+.arcade-auth-actions button { flex: 1; padding: 11px; color: #10271f; background: #83e6c3; border: 0; border-radius: 10px; font: 700 14px system-ui; cursor: pointer; }
+.arcade-auth-actions .secondary { color: white; background: rgba(255,255,255,.08); }
+.arcade-auth-message { min-height: 1.5em; color: #ffb3a7; }
+@media (max-width: 650px) { .arcade-account { top: auto; right: 10px; bottom: 10px; } }

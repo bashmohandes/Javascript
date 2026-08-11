@@ -80,6 +80,9 @@
     function activate(index) { flagMode ? toggleFlag(index) : reveal(index); }
     function endGame(won, explodedIndex) {
         ended = true; clearInterval(timerId);
+        const difficulty = difficultyElement.value;
+        const score = won ? Math.max(1, { easy: 1000, medium: 3000, hard: 6000 }[difficulty] - elapsed) : 0;
+        window.Arcade?.record({ game: 'minesweeper', score, won, details: { difficulty, seconds: elapsed } }).catch(() => {});
         if (!won) cells.forEach((cell, index) => { if (cell.mine) cell.revealed = true; if (index === explodedIndex) cell.exploded = true; });
         if (won) {
             cells.forEach(cell => { if (cell.mine) cell.flagged = true; });

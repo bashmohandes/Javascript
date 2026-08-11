@@ -8,8 +8,9 @@ ENV NODE_ENV=production PORT=8080
 WORKDIR /app
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
-RUN npm run generate:icons && chown -R node:node /app
+RUN npm run generate:icons && mkdir -p /app/data && chown -R node:node /app
 USER node
+VOLUME ["/app/data"]
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD wget -qO- "http://127.0.0.1:${PORT}/healthz" >/dev/null || exit 1
