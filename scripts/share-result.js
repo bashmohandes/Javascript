@@ -64,7 +64,7 @@
         label(ctx, `${rows} × ${columns} field`, 855, 545, 19, 650, color.muted, 'center');
         return card;
     }
-    const toBlob = element => new Promise((resolve, reject) => element.toBlob(blob => blob ? resolve(blob) : reject(new Error('Could not create image.')), 'image/png'));
+    const toBlob = (element, type = 'image/png', quality) => new Promise((resolve, reject) => element.toBlob(blob => blob ? resolve(blob) : reject(new Error('Could not create image.')), type, quality));
     function preview({ blob, title, text, url }) {
         if (typeof HTMLDialogElement === 'undefined') return Promise.resolve(true);
         const objectUrl = URL.createObjectURL(blob);
@@ -107,17 +107,23 @@
         });
     }
     async function share({ image, filename, title, text, url = location.href }) {
-        const blob = await toBlob(image), file = new File([blob], filename, { type: 'image/png' });
-        if (!await preview({ blob, title, text, url })) throw new DOMException('Share cancelled', 'AbortError');
-        const photo = { files: [file] };
-        // A URL makes iOS treat this as a collection of separate items ("1 Link and
-        // 1 Image"), so its share sheet uses a generic document icon. Sharing the
-        // generated PNG as the sole item gives the sheet an actual image preview.
         const appleMobile = /iPad|iPhone|iPod/.test(navigator.userAgent)
             || (/Mac/.test(navigator.platform) && navigator.maxTouchPoints > 1);
-        const shareData = appleMobile ? photo : { title, text, url, ...photo };
-        if (navigator.share && navigator.canShare?.(photo)) { await navigator.share(shareData); return 'shared'; }
-        const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = filename; link.click(); setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+        // Safari's share sheet does not reliably create thumbnails for PNG files
+        // generated from a canvas. These cards are opaque, so JPEG is a safe and
+        // substantially more reliable share-sheet attachment on iOS/iPadOS.
+        const type = appleMobile ? 'image/jpeg' : 'image/png';
+        const sharedFilename = appleMobile ? filename.replace(/\.png$/i, '.jpg') : filename;
+        const blob = await toBlob(image, type, appleMobile ? .92 : undefined);
+        const file = new File([blob], sharedFilename, { type });
+        if (!await preview({ blob, title, text, url })) throw new DOMException('Share cancelled', 'AbortError');
+        const photo = { files: [file] };
+        // Passing `url` separately makes Apple devices present a second link item.
+        // Keep it in the caption so Messages receives the image and the complete
+        // message while the share sheet can still preview the JPEG attachment.
+        const shareData = appleMobile ? { ...photo, text: `${text}\n${url}` } : { title, text, url, ...photo };
+        if (navigator.share && navigator.canShare?.(shareData)) { await navigator.share(shareData); return 'shared'; }
+        const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = sharedFilename; link.click(); setTimeout(() => URL.revokeObjectURL(link.href), 1000);
         try { await navigator.clipboard.writeText(`${text}\n${url}`); return 'downloaded-copy'; } catch { return 'downloaded'; }
     }
     window.ResultShare = { sudoku, pong, minesweeper, share };
