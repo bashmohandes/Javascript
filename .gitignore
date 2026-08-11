@@ -1,6 +1,7 @@
 .DS_Store
 bin
 obj
+node_modules/*
 
 # Generated from icon.svg by scripts/generate-icons.js. Keeping these build
 # artifacts out of Git allows source-only pull requests while still providing
