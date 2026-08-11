@@ -4,10 +4,11 @@ const WIDTH = 960;
 const HEIGHT = 600;
 const WIN_SCORE = 7;
 const PADDLE_SPEED = 500;
-const CURVE_SHOT_IMPULSE = 420;
+const CURVE_SHOT_ACCELERATION = 700;
+const CURVE_SHOT_DURATION = 0.8;
 
 function makeBall() {
-    return { x: WIDTH / 2, y: HEIGHT / 2, r: 10, vx: 0, vy: 0, decoy: false };
+    return { x: WIDTH / 2, y: HEIGHT / 2, r: 10, vx: 0, vy: 0, decoy: false, curveAcceleration: 0, curveTime: 0 };
 }
 
 function createGame(random = Math.random) {
@@ -155,6 +156,12 @@ function updateStep(game, step) {
     for (const ball of game.balls) {
         const slowed = ((game.effects[0].slowUntil || 0) > game.elapsed && ball.x < WIDTH / 2) || ((game.effects[1].slowUntil || 0) > game.elapsed && ball.x > WIDTH / 2);
         const movement = step * (slowed ? 0.72 : 1);
+        if ((ball.curveTime || 0) > 0) {
+            const curveStep = Math.min(step, ball.curveTime);
+            ball.vy += ball.curveAcceleration * curveStep;
+            ball.curveTime = Math.max(0, ball.curveTime - step);
+            if (ball.curveTime === 0) ball.curveAcceleration = 0;
+        }
         ball.x += ball.vx * movement;
         ball.y += ball.vy * movement;
         if ((ball.y - ball.r < 10 && ball.vy < 0) || (ball.y + ball.r > HEIGHT - 10 && ball.vy > 0)) ball.vy *= -1;
@@ -165,7 +172,11 @@ function updateStep(game, step) {
             ball.x = side === 0 ? paddle.x + paddle.w + ball.r : paddle.x - ball.r;
             ball.vx = (side === 0 ? 1 : -1) * Math.min(Math.abs(ball.vx) * 1.055, 720);
             ball.vy = offset * 430;
-            if (!ball.decoy && game.effects[side].curve) { ball.vy += (offset >= 0 ? 1 : -1) * CURVE_SHOT_IMPULSE; game.effects[side].curve = false; }
+            if (!ball.decoy && game.effects[side].curve) {
+                ball.curveAcceleration = (offset >= 0 ? 1 : -1) * CURVE_SHOT_ACCELERATION;
+                ball.curveTime = CURVE_SHOT_DURATION;
+                game.effects[side].curve = false;
+            }
             if (!ball.decoy) game.lastTouch = side;
         });
         game.powerUps.slice().forEach(powerUp => {
