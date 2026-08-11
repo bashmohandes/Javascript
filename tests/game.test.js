@@ -63,6 +63,48 @@ test('uses small physics steps so a fast ball still hits a paddle', () => {
     assert.deepEqual(game.score, [0, 0]);
 });
 
+test('curve shot adds a pronounced vertical impulse to the next return', () => {
+    const game = createGame();
+    startGame(game);
+    const ball = game.balls[0];
+    game.serveIn = 0;
+    game.effects[0].curve = true;
+    ball.x = 58;
+    ball.y = game.paddles[0].y + game.paddles[0].h / 2;
+    ball.vx = -100;
+    ball.vy = 0;
+
+    update(game, 0.01);
+
+    assert.ok(ball.vy >= 420, 'curve shot should visibly redirect a centered return');
+    assert.equal(game.effects[0].curve, false, 'curve shot should be consumed by the return');
+});
+
+test('a split-ball decoy can leave the arena without awarding a point', () => {
+    const game = createGame();
+    startGame(game);
+    game.serveIn = 0;
+    game.balls.push({ ...game.balls[0], x: -31, vx: -100, decoy: true });
+
+    update(game, 0.01);
+
+    assert.deepEqual(game.score, [0, 0]);
+    assert.equal(game.balls.length, 1);
+    assert.equal(game.balls[0].decoy, false);
+});
+
+test('a decoy return does not consume a queued curve shot', () => {
+    const game = createGame();
+    startGame(game);
+    game.serveIn = 0;
+    game.effects[0].curve = true;
+    game.balls.push({ ...game.balls[0], x: 58, y: 300, vx: -100, vy: 0, decoy: true });
+
+    update(game, 0.01);
+
+    assert.equal(game.effects[0].curve, true);
+});
+
 test('a rematch clears stale input and winner state', () => {
     const game = createGame();
     startGame(game);

@@ -35,6 +35,7 @@ const powerUpTypes = {
     burst: { name: 'Velocity Burst', icon: '✦', color: '#e7ca67', collection: 'ball' },
     split: { name: 'Split Ball', icon: '●●', color: '#cc8290', collection: 'ball' }
 };
+const CURVE_SHOT_IMPULSE = 420;
 let balls = [];
 const online = { socket: null, roomCode: '', token: '', side: 0, connected: false, lastSequence: 0, reconnectTimer: null, intentionalClose: false };
 
@@ -141,7 +142,7 @@ function leaveOnline(notify = true) {
 }
 function onlineInput() { sendOnline({ type: 'input', up: game.keys.has('KeyW') || game.keys.has('ArrowUp'), down: game.keys.has('KeyS') || game.keys.has('ArrowDown'), targetY: null }); }
 
-function makeBall(x = game.width / 2, y = game.height / 2, vx = 0, vy = 0) { return { x, y, r: 10, vx, vy }; }
+function makeBall(x = game.width / 2, y = game.height / 2, vx = 0, vy = 0, decoy = false) { return { x, y, r: 10, vx, vy, decoy }; }
 function resize() { const ratio = Math.min(window.devicePixelRatio || 1, 2); canvas.width = game.width * ratio; canvas.height = game.height * ratio; ctx.setTransform(ratio, 0, 0, ratio, 0, 0); draw(); }
 function resetBall(direction = game.serve) { balls = [makeBall()]; game.serve = direction; }
 function launch() { const angle = (Math.random() * .8) - .4; balls[0].vx = game.serve * 410 * Math.cos(angle); balls[0].vy = 410 * Math.sin(angle); game.serve *= -1; }
@@ -180,7 +181,7 @@ function collectPowerUp(powerUp, side) {
     if (powerUp.type === 'curve') effect.curve = true;
     if (powerUp.type === 'slow') effect.slowUntil = game.elapsed + 6;
     if (powerUp.type === 'burst') balls.forEach(ball => { ball.vx *= 1.22; ball.vy *= 1.22; });
-    if (powerUp.type === 'split' && balls.length === 1) balls.push(makeBall(balls[0].x, balls[0].y, balls[0].vx, -balls[0].vy || 260));
+    if (powerUp.type === 'split' && balls.length === 1) balls.push(makeBall(balls[0].x, balls[0].y, balls[0].vx, -balls[0].vy || 260, true));
     status.textContent = `${side ? (game.mode === 'solo' ? 'Computer' : 'Right player') : (game.mode === 'solo' ? 'You' : 'Left player')} collected ${powerUpTypes[powerUp.type].name}.`;
     game.powerUps = game.powerUps.filter(item => item !== powerUp);
 }
@@ -191,7 +192,7 @@ function updatePowerUps() {
     game.powerUps.slice().forEach(powerUp => {
         const type = powerUpTypes[powerUp.type];
         if (type.collection === 'paddle' && overlapsPaddle(powerUp, paddles[powerUp.side])) collectPowerUp(powerUp, powerUp.side);
-        if (type.collection === 'ball') balls.forEach(ball => { if (game.powerUps.includes(powerUp) && Math.hypot(ball.x - powerUp.x, ball.y - powerUp.y) < ball.r + powerUp.r) collectPowerUp(powerUp, game.lastTouch); });
+        if (type.collection === 'ball') balls.forEach(ball => { if (!ball.decoy && game.powerUps.includes(powerUp) && Math.hypot(ball.x - powerUp.x, ball.y - powerUp.y) < ball.r + powerUp.r) collectPowerUp(powerUp, game.lastTouch); });
     });
 }
 function update(dt) {
@@ -206,8 +207,8 @@ function update(dt) {
         const slowed = ((game.effects[0].slowUntil || 0) > game.elapsed && ball.x < game.width / 2) || ((game.effects[1].slowUntil || 0) > game.elapsed && ball.x > game.width / 2);
         const move = dt * (slowed ? .72 : 1); ball.x += ball.vx * move; ball.y += ball.vy * move;
         if ((ball.y - ball.r < 10 && ball.vy < 0) || (ball.y + ball.r > game.height - 10 && ball.vy > 0)) ball.vy *= -1;
-        paddles.forEach((paddle, side) => { const toward = side === 0 ? ball.vx < 0 : ball.vx > 0; if (toward && ball.x + ball.r > paddle.x && ball.x - ball.r < paddle.x + paddle.w && ball.y + ball.r > paddle.y && ball.y - ball.r < paddle.y + paddle.h) { const offset = (ball.y - (paddle.y + paddle.h / 2)) / (paddle.h / 2); ball.x = side === 0 ? paddle.x + paddle.w + ball.r : paddle.x - ball.r; ball.vx = (side === 0 ? 1 : -1) * Math.min(Math.abs(ball.vx) * 1.055, 720); ball.vy = offset * 430; if (game.effects[side].curve) { ball.vy += (paddle.vy < 0 ? -1 : paddle.vy > 0 ? 1 : offset >= 0 ? 1 : -1) * 220; game.effects[side].curve = false; } game.lastTouch = side; } });
-        if (ball.x < -30) { point(1); return; } if (ball.x > game.width + 30) { point(0); return; }
+        paddles.forEach((paddle, side) => { const toward = side === 0 ? ball.vx < 0 : ball.vx > 0; if (toward && ball.x + ball.r > paddle.x && ball.x - ball.r < paddle.x + paddle.w && ball.y + ball.r > paddle.y && ball.y - ball.r < paddle.y + paddle.h) { const offset = (ball.y - (paddle.y + paddle.h / 2)) / (paddle.h / 2); ball.x = side === 0 ? paddle.x + paddle.w + ball.r : paddle.x - ball.r; ball.vx = (side === 0 ? 1 : -1) * Math.min(Math.abs(ball.vx) * 1.055, 720); ball.vy = offset * 430; if (!ball.decoy && game.effects[side].curve) { ball.vy += (paddle.vy < 0 ? -1 : paddle.vy > 0 ? 1 : offset >= 0 ? 1 : -1) * CURVE_SHOT_IMPULSE; game.effects[side].curve = false; } if (!ball.decoy) game.lastTouch = side; } });
+        if (ball.x < -30 || ball.x > game.width + 30) { if (ball.decoy) balls = balls.filter(item => item !== ball); else { point(ball.x < -30 ? 1 : 0); return; } }
     }
 }
 
@@ -254,7 +255,7 @@ function draw() {
     ctx.fillStyle = 'rgba(255,253,248,.12)'; for (let y = 18; y < game.height; y += 34) ctx.fillRect(game.width / 2 - 2, y, 4, 18);
     ctx.strokeStyle = 'rgba(255,253,248,.16)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(game.width / 2, game.height / 2, 82, 0, Math.PI * 2); ctx.stroke();
     game.powerUps.forEach(drawPowerUp); paddles.forEach(paddle => { ctx.fillStyle = paddle.color; roundedRect(paddle.x, paddle.y, paddle.w, paddle.h, 7); });
-    ctx.fillStyle = '#fffdf8'; balls.forEach(ball => { ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2); ctx.fill(); });
+    balls.forEach(ball => { ctx.fillStyle = ball.decoy ? '#cc8290' : '#fffdf8'; ctx.globalAlpha = ball.decoy ? .78 : 1; ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2); ctx.fill(); }); ctx.globalAlpha = 1;
 }
 function frame(time) { const dt = Math.min((time - game.last) / 1000, .025) || 0; game.last = time; if (game.mode !== 'online' && game.running && !game.paused) update(dt); draw(); requestAnimationFrame(frame); }
 

@@ -4,9 +4,10 @@ const WIDTH = 960;
 const HEIGHT = 600;
 const WIN_SCORE = 7;
 const PADDLE_SPEED = 500;
+const CURVE_SHOT_IMPULSE = 420;
 
 function makeBall() {
-    return { x: WIDTH / 2, y: HEIGHT / 2, r: 10, vx: 0, vy: 0 };
+    return { x: WIDTH / 2, y: HEIGHT / 2, r: 10, vx: 0, vy: 0, decoy: false };
 }
 
 function createGame(random = Math.random) {
@@ -106,7 +107,7 @@ function collect(game, powerUp, side) {
     if (powerUp.type === 'burst') game.balls.forEach(ball => { ball.vx *= 1.22; ball.vy *= 1.22; });
     if (powerUp.type === 'split' && game.balls.length === 1) {
         const ball = game.balls[0];
-        game.balls.push({ ...ball, vy: -ball.vy || 260 });
+        game.balls.push({ ...ball, vy: -ball.vy || 260, decoy: true });
     }
     game.powerUps = game.powerUps.filter(item => item !== powerUp);
 }
@@ -164,14 +165,16 @@ function updateStep(game, step) {
             ball.x = side === 0 ? paddle.x + paddle.w + ball.r : paddle.x - ball.r;
             ball.vx = (side === 0 ? 1 : -1) * Math.min(Math.abs(ball.vx) * 1.055, 720);
             ball.vy = offset * 430;
-            if (game.effects[side].curve) { ball.vy += (offset >= 0 ? 1 : -1) * 220; game.effects[side].curve = false; }
-            game.lastTouch = side;
+            if (!ball.decoy && game.effects[side].curve) { ball.vy += (offset >= 0 ? 1 : -1) * CURVE_SHOT_IMPULSE; game.effects[side].curve = false; }
+            if (!ball.decoy) game.lastTouch = side;
         });
         game.powerUps.slice().forEach(powerUp => {
-            if (powerUpTypes[powerUp.type].collection === 'ball' && Math.hypot(ball.x - powerUp.x, ball.y - powerUp.y) < ball.r + powerUp.r) collect(game, powerUp, game.lastTouch);
+            if (!ball.decoy && powerUpTypes[powerUp.type].collection === 'ball' && Math.hypot(ball.x - powerUp.x, ball.y - powerUp.y) < ball.r + powerUp.r) collect(game, powerUp, game.lastTouch);
         });
-        if (ball.x < -30) { point(game, 1); return; }
-        if (ball.x > WIDTH + 30) { point(game, 0); return; }
+        if (ball.x < -30 || ball.x > WIDTH + 30) {
+            if (ball.decoy) game.balls = game.balls.filter(item => item !== ball);
+            else { point(game, ball.x < -30 ? 1 : 0); return; }
+        }
     }
 }
 
