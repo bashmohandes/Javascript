@@ -5,10 +5,15 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { WebSocketServer } = require('ws');
 const { RoomManager } = require('./rooms');
+const { openDatabase } = require('./database');
+const { Accounts } = require('./accounts');
 
 const root = path.resolve(__dirname, '..');
 const port = Number(process.env.PORT) || 8080;
+const database = openDatabase();
+const accounts = new Accounts(database);
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').map(value => value.trim()).filter(Boolean);
+const trustProxy = process.env.TRUST_PROXY === 'true';
 const rooms = new RoomManager({
     reconnectMs: Number(process.env.RECONNECT_GRACE_MS) || 15000,
     roomTimeoutMs: Number(process.env.ROOM_TIMEOUT_MS) || 1800000
@@ -24,7 +29,47 @@ const mime = {
     '.json': 'application/json; charset=utf-8'
 };
 
-const server = http.createServer((request, response) => {
+function json(response, status, body, headers = {}) {
+    response.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...headers });
+    response.end(JSON.stringify(body));
+}
+function cookies(request) {
+    return Object.fromEntries(String(request.headers.cookie || '').split(';').map(part => part.trim().split('=').map(decodeURIComponent)).filter(pair => pair.length === 2));
+}
+function sessionUser(request) { return accounts.userForToken(cookies(request).arcade_session); }
+function sessionCookie(token, expiresAt) { return `arcade_session=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Strict; Expires=${new Date(expiresAt).toUTCString()}${process.env.COOKIE_SECURE === 'true' ? '; Secure' : ''}`; }
+class RateLimiter {
+    constructor(limit, windowMs) { this.limit = limit; this.windowMs = windowMs; this.entries = new Map(); }
+    consume(key) {
+        const now = Date.now();
+        if (this.entries.size > 10000) {
+            for (const [entryKey, value] of this.entries) if (value.resetAt <= now) this.entries.delete(entryKey);
+            while (this.entries.size > 10000) this.entries.delete(this.entries.keys().next().value);
+        }
+        let entry = this.entries.get(key);
+        if (!entry || entry.resetAt <= now) entry = { count: 0, resetAt: now + this.windowMs };
+        entry.count += 1; this.entries.set(key, entry);
+        return entry.count <= this.limit ? 0 : Math.ceil((entry.resetAt - now) / 1000);
+    }
+    reset(key) { this.entries.delete(key); }
+}
+const loginLimiter = new RateLimiter(10, 15 * 60 * 1000);
+const loginIpLimiter = new RateLimiter(50, 15 * 60 * 1000);
+const registrationLimiter = new RateLimiter(5, 60 * 60 * 1000);
+const resultLimiter = new RateLimiter(60, 60 * 60 * 1000);
+function clientIp(request) { return trustProxy ? String(request.headers['x-forwarded-for'] || '').split(',')[0].trim() || request.socket.remoteAddress : request.socket.remoteAddress; }
+function throttle(response, retryAfter) { return json(response, 429, { error: 'Too many attempts. Try again later.' }, { 'retry-after': retryAfter }); }
+async function readJson(request) {
+    let body = '';
+    for await (const chunk of request) { body += chunk; if (body.length > 10000) throw new Error('Request is too large.'); }
+    try { return body ? JSON.parse(body) : {}; } catch { throw new Error('Invalid JSON.'); }
+}
+function sameOrigin(request) {
+    const origin = request.headers.origin;
+    return !origin || origin === `${request.headers['x-forwarded-proto'] || 'http'}://${request.headers.host}` || allowedOrigins.includes(origin);
+}
+
+const server = http.createServer(async (request, response) => {
     const pathname = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
     if (pathname === '/healthz') {
         response.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
@@ -35,6 +80,44 @@ const server = http.createServer((request, response) => {
         response.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
         response.end(JSON.stringify({ rooms: rooms.publicRooms() }));
         return;
+    }
+    if (pathname.startsWith('/api/')) {
+        try {
+            if (!sameOrigin(request)) return json(response, 403, { error: 'Origin not allowed.' });
+            if (pathname === '/api/auth/register' && request.method === 'POST') {
+                const retryAfter = registrationLimiter.consume(clientIp(request)); if (retryAfter) return throttle(response, retryAfter);
+                const body = await readJson(request), user = await accounts.create(body.gamertag, body.passcode), session = accounts.createSession(user.id);
+                return json(response, 201, { user }, { 'set-cookie': sessionCookie(session.token, session.expiresAt) });
+            }
+            if (pathname === '/api/auth/login' && request.method === 'POST') {
+                const body = await readJson(request), ip = clientIp(request), loginKey = `${ip}:${String(body.gamertag || '').trim().toLowerCase()}`;
+                const retryAfter = Math.max(loginLimiter.consume(loginKey), loginIpLimiter.consume(ip)); if (retryAfter) return throttle(response, retryAfter);
+                const user = await accounts.authenticate(body.gamertag, body.passcode), session = accounts.createSession(user.id); loginLimiter.reset(loginKey);
+                return json(response, 200, { user }, { 'set-cookie': sessionCookie(session.token, session.expiresAt) });
+            }
+            if (pathname === '/api/auth/logout' && request.method === 'POST') {
+                accounts.deleteSession(cookies(request).arcade_session);
+                return json(response, 200, { ok: true }, { 'set-cookie': 'arcade_session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0' });
+            }
+            if (pathname === '/api/me' && request.method === 'GET') return json(response, 200, { user: sessionUser(request) });
+            const leaderboard = pathname.match(/^\/api\/leaderboards\/(pong|sudoku|minesweeper)$/);
+            if (leaderboard && request.method === 'GET') return json(response, 200, { game: leaderboard[1], entries: accounts.leaderboard(leaderboard[1]) });
+            const user = sessionUser(request);
+            if (!user) return json(response, 401, { error: 'Sign in to continue.' });
+            if (pathname === '/api/profile' && request.method === 'GET') return json(response, 200, accounts.profile(user.id));
+            if (pathname === '/api/profile' && request.method === 'PATCH') {
+                const updated = await accounts.update(user.id, await readJson(request)), session = accounts.createSession(user.id);
+                return json(response, 200, { user: updated }, { 'set-cookie': sessionCookie(session.token, session.expiresAt) });
+            }
+            if (pathname === '/api/results' && request.method === 'POST') {
+                const retryAfter = resultLimiter.consume(user.id); if (retryAfter) return throttle(response, retryAfter);
+                return json(response, 201, accounts.record(user.id, await readJson(request)));
+            }
+            return json(response, 404, { error: 'API endpoint not found.' });
+        } catch (error) {
+            const clientError = /Gamertag|Passcode|passcode|incorrect|taken|Unknown game|Invalid|details|JSON|large/.test(error.message);
+            return json(response, clientError ? 400 : 500, { error: clientError ? error.message : 'Server error.' });
+        }
     }
     if (/^\/(?:server|tests|node_modules)(?:\/|$)/.test(pathname) || /^\/(?:package(?:-lock)?\.json|compose\.yaml|Dockerfile|project(?:\.lock)?\.json)$/.test(pathname)) {
         response.writeHead(404).end('Not found');
@@ -111,8 +194,8 @@ const broadcast = setInterval(() => rooms.broadcastStates(), 1000 / 30);
 const heartbeat = setInterval(() => websocketServer.clients.forEach(socket => { if (!socket.isAlive) return socket.terminate(); socket.isAlive = false; socket.ping(); }), 15000);
 
 server.listen(port, '0.0.0.0', () => console.log(`JavaScript Playground listening on http://0.0.0.0:${port}`));
-function shutdown() { clearInterval(simulation); clearInterval(broadcast); clearInterval(heartbeat); websocketServer.clients.forEach(socket => socket.close(1001, 'Server shutting down')); server.close(() => process.exit(0)); }
+function shutdown() { clearInterval(simulation); clearInterval(broadcast); clearInterval(heartbeat); websocketServer.clients.forEach(socket => socket.close(1001, 'Server shutting down')); server.close(() => { database.close(); process.exit(0); }); }
 process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
 
-module.exports = { server, rooms };
+module.exports = { server, rooms, accounts };

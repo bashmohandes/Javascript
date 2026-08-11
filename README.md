@@ -1,8 +1,8 @@
 # JavaScript Playground
 
 A small collection of browser games and coding exercises, built for fun and
-learning. Everything runs directly in the browser—no application build step is
-required.
+learning. The modern games share optional arcade accounts, persistent play
+history, profiles, and leaderboards. No browser build step is required.
 
 ## Games
 
@@ -53,8 +53,19 @@ docker compose up -d --build
 docker compose down
 ```
 
-The container exposes `GET /healthz` and runs as an unprivileged user. Game
-rooms are intentionally ephemeral, so no volume is required.
+The container exposes `GET /healthz` and runs as an unprivileged user. Online
+Pong rooms remain ephemeral, while accounts and results are stored in SQLite.
+Both Compose files mount the named `arcade-data` volume at `/app/data`, with the
+database at `/app/data/arcade.sqlite`, so account data survives restarts and
+deployments. Back up that volume as part of the NAS backup routine. To use a
+bind mount, replace the volume source with a NAS directory such as
+`/volume1/docker/javascript-arcade:/app/data` and ensure the container user can
+write to it.
+
+Versioned migrations live in `server/migrations`. Unapplied `.sql` files run in
+filename order inside a transaction at startup and are recorded in
+`schema_migrations`. Add future changes as the next zero-padded migration rather
+than editing a migration that has already shipped.
 
 ### Publish the image with GitHub Actions
 
@@ -80,7 +91,21 @@ the NAS, save the following as `.env` beside `compose.nas.yaml`:
 ```dotenv
 PONG_IMAGE=YOUR_DOCKERHUB_USERNAME/javascript-pong:1.0.0
 PONG_PORT=8080
+ALLOWED_ORIGINS=https://js-playground.tail01f640.ts.net
+COOKIE_SECURE=true
+TRUST_PROXY=true
 ```
+
+`TRUST_PROXY=true` is appropriate when the container is reachable only through
+the trusted NAS reverse proxy; it lets authentication throttling use the first
+forwarded client address. Leave it false if clients can connect directly to the
+container port and supply their own forwarding headers.
+
+Authentication attempts are throttled by client address and gamertag, and
+passcode hashing runs asynchronously so it does not block game simulation.
+Scores are derived by the server from validated result fields rather than
+accepted from the browser. Profile changes require the current passcode, revoke
+all existing sessions, and rotate the active session cookie.
 
 Then deploy or update without cloning the source repository:
 
@@ -114,6 +139,7 @@ allowlist:
 ALLOWED_ORIGINS=https://pong.example.com
 RECONNECT_GRACE_MS=15000
 ROOM_TIMEOUT_MS=1800000
+COOKIE_SECURE=true
 ```
 
 Do not publish the plain HTTP port directly to the internet. Use HTTPS/WSS and

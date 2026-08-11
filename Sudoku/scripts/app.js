@@ -218,6 +218,8 @@
     function endGame(won) {
         gameOver = true;
         clearInterval(timerId);
+        const difficulty = difficultySelect.value;
+        window.Arcade?.record({ game: 'sudoku', won, details: { difficulty, seconds: elapsed, mistakes, hintsUsed: 3 - hints } }).catch(() => {});
         if (!won) return;
         document.querySelector('#finish-summary').textContent = `You solved this ${difficultySelect.value} puzzle in ${timerElement.textContent} with ${mistakes} mistake${mistakes === 1 ? '' : 's'}.`;
         modal.hidden = false;
