@@ -57,6 +57,14 @@ test('an old socket closing cannot disconnect a resumed player', () => {
     assert.equal(host.player.socket, newSocket);
 });
 
+test('rooms retain public gamertags for a matchup', () => {
+    const rooms = new RoomManager({ random: () => 0 });
+    const host = rooms.create(socket(), { visibility: 'public', gamertag: 'Host_Player' });
+    const guest = rooms.join(host.room.code, socket(), '', 'Guest_Player');
+    assert.deepEqual(host.room.players.map(player => player.gamertag), ['Host_Player', 'Guest_Player']);
+    assert.equal(guest.player.gamertag, 'Guest_Player');
+});
+
 test('ready messages cannot reset a match that is already running', () => {
     const rooms = new RoomManager();
     const host = rooms.create(socket(), { visibility: 'public' });

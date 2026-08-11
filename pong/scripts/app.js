@@ -16,6 +16,7 @@ const onlineRoom = document.querySelector('#online-room');
 const connectionState = document.querySelector('#connection-state');
 const readyOnlineButton = document.querySelector('#ready-online');
 const roomList = document.querySelector('#room-list');
+const shareButton = document.querySelector('#share-result');
 
 const game = {
     width: 960, height: 600, running: false, paused: false, over: false, mode: 'solo',
@@ -38,8 +39,13 @@ const powerUpTypes = {
 const CURVE_SHOT_ACCELERATION = 700;
 const CURVE_SHOT_DURATION = 0.8;
 let balls = [];
-const online = { socket: null, roomCode: '', token: '', side: 0, connected: false, lastSequence: 0, reconnectTimer: null, intentionalClose: false };
+const online = { socket: null, roomCode: '', token: '', side: 0, gamertags: [null, null], connected: false, lastSequence: 0, reconnectTimer: null, intentionalClose: false };
 let recordedOnlineResult = null;
+const formatDuration = seconds => {
+    const total = Math.max(0, Math.round(seconds));
+    const hours = Math.floor(total / 3600), minutes = Math.floor(total % 3600 / 60), remainder = total % 60;
+    return hours ? `${hours}:${String(minutes).padStart(2, '0')}:${String(remainder).padStart(2, '0')}` : `${String(minutes).padStart(2, '0')}:${String(remainder).padStart(2, '0')}`;
+};
 
 function setConnection(label, state = 'offline') { connectionState.textContent = label; connectionState.dataset.state = state; }
 function sendOnline(message) { if (online.socket?.readyState === WebSocket.OPEN) online.socket.send(JSON.stringify(message)); }
@@ -88,7 +94,7 @@ function applyOnlineState(state) {
     setScore(0, state.score[0]); setScore(1, state.score[1]);
     state.paddles.forEach((paddle, side) => Object.assign(paddles[side], paddle));
     balls = state.balls.map(ball => ({ ...ball })); game.powerUps = state.powerUps.map(powerUp => ({ ...powerUp }));
-    if (state.over) { const won = state.winner === online.side; const resultKey = `${online.roomCode}:${state.score.join('-')}:${state.elapsed}`; if (recordedOnlineResult !== resultKey) { recordedOnlineResult = resultKey; window.Arcade?.record({ game: 'pong', won, details: { mode: 'online', score: `${state.score[online.side]}-${state.score[1 - online.side]}` } }).catch(() => {}); } status.textContent = won ? 'You won the online match!' : 'Your opponent won the online match.'; showOverlay(won ? 'You win!' : 'Opponent wins', 'Choose rematch when you are ready'); readyOnlineButton.disabled = false; readyOnlineButton.textContent = 'Ready for rematch'; }
+    if (state.over) { const won = state.winner === online.side; const resultKey = `${online.roomCode}:${state.score.join('-')}:${state.elapsed}`; if (recordedOnlineResult !== resultKey) { recordedOnlineResult = resultKey; window.Arcade?.record({ game: 'pong', won, details: { mode: 'online', score: `${state.score[online.side]}-${state.score[1 - online.side]}`, seconds: Math.max(1, Math.round(state.elapsed)) } }).catch(() => {}); } status.textContent = won ? 'You won the online match!' : 'Your opponent won the online match.'; showOverlay(won ? 'You win!' : 'Opponent wins', `Finished in ${formatDuration(state.elapsed)} · Choose rematch when ready`); shareButton.hidden = false; readyOnlineButton.disabled = false; readyOnlineButton.textContent = 'Ready for rematch'; }
     else if (state.running && !state.paused) overlay.hidden = true;
 }
 function applyReadyStatus(ready = []) {
@@ -101,10 +107,11 @@ function applyReadyStatus(ready = []) {
 }
 function handleOnlineMessage(message) {
     if (message.type === 'session') {
-        online.roomCode = message.roomCode; online.token = message.playerToken; online.side = message.side; saveSession(); showOnlineRoom(message.roomCode); updateOnlineIdentity(); setConnection('Connected', 'online');
+        online.roomCode = message.roomCode; online.token = message.playerToken; online.side = message.side; online.gamertags = message.gamertags || [null, null]; saveSession(); showOnlineRoom(message.roomCode); updateOnlineIdentity(); setConnection('Connected', 'online');
         document.querySelector('#room-visibility-display').textContent = message.visibility === 'public' ? 'Public room' : 'Private room';
         const url = new URL(location.href); url.searchParams.set('room', message.roomCode); history.replaceState(null, '', url); status.textContent = message.side === 0 ? 'Room created. Share the invite and wait for your opponent.' : 'Joined room. Press “I’m ready” when set.';
     } else if (message.type === 'room-status') {
+        online.gamertags = message.gamertags || online.gamertags;
         const opponentConnected = message.players[1 - online.side];
         if (opponentConnected) {
             applyReadyStatus(message.ready);
@@ -114,7 +121,7 @@ function handleOnlineMessage(message) {
             readyOnlineButton.textContent = 'I’m ready';
             status.textContent = 'Waiting for your opponent to join…';
         }
-    } else if (message.type === 'match-started') { readyOnlineButton.disabled = true; readyOnlineButton.textContent = 'Match in progress'; status.textContent = 'First to 7. The match is live!'; }
+    } else if (message.type === 'match-started') { shareButton.hidden = true; readyOnlineButton.disabled = true; readyOnlineButton.textContent = 'Match in progress'; status.textContent = 'First to 7. The match is live!'; }
     else if (message.type === 'ready-status') applyReadyStatus(message.ready);
     else if (message.type === 'state' && message.sequence > online.lastSequence) { online.lastSequence = message.sequence; applyOnlineState(message.state); }
     else if (message.type === 'peer-left') { setConnection('Reconnecting…', 'connecting'); status.textContent = `Opponent disconnected. Holding the match for ${Math.round(message.reconnectMs / 1000)} seconds.`; showOverlay('Opponent disconnected', 'The match will resume if they reconnect'); }
@@ -153,6 +160,7 @@ function clearPowerUps() { game.powerUps = []; game.effects = [{}, {}]; paddles.
 function schedulePowerUp(first = false) { game.nextPowerUp = game.elapsed + (first ? 5 : 8 + Math.random() * 6); }
 function newGame() {
     recordedOnlineResult = null;
+    shareButton.hidden = true;
     game.score = [0, 0]; game.over = false; game.elapsed = 0; game.lastTouch = 0; setScore(0, 0); setScore(1, 0);
     paddles.forEach(paddle => { paddle.y = 240; paddle.h = paddle.baseH; }); clearPowerUps(); schedulePowerUp(true);
     resetBall(Math.random() < .5 ? -1 : 1); game.running = true; game.paused = false; overlay.hidden = true;
@@ -163,7 +171,7 @@ function showOverlay(title, hint) { overlayTitle.textContent = title; overlayHin
 function togglePause() { if (game.mode === 'online') return; if (game.over || !game.running) { newGame(); return; } game.paused = !game.paused; game.paused ? showOverlay('Game paused', 'Click or press Space to continue') : overlay.hidden = true; }
 function point(side) {
     game.score[side]++; setScore(side, game.score[side]); clearPowerUps();
-    if (game.score[side] === 7) { game.over = true; game.running = false; const playerSide = 0; const won = side === playerSide; window.Arcade?.record({ game: 'pong', won, details: { mode: game.mode, score: `${game.score[playerSide]}-${game.score[1 - playerSide]}` } }).catch(() => {}); const name = side === 0 ? (game.mode === 'solo' ? 'You' : 'Left player') : (game.mode === 'solo' ? 'Computer' : 'Right player'); status.textContent = `${name} won ${game.score[side]}–${game.score[1 - side]}.`; showOverlay(`${name} wins!`, 'Click to play another match'); return; }
+    if (game.score[side] === 7) { game.over = true; game.running = false; const playerSide = 0; const won = side === playerSide; window.Arcade?.record({ game: 'pong', won, details: { mode: game.mode, score: `${game.score[playerSide]}-${game.score[1 - playerSide]}`, seconds: Math.max(1, Math.round(game.elapsed)) } }).catch(() => {}); const name = side === 0 ? (game.mode === 'solo' ? 'You' : 'Left player') : (game.mode === 'solo' ? 'Computer' : 'Right player'); status.textContent = `${name} won ${game.score[side]}–${game.score[1 - side]} in ${formatDuration(game.elapsed)}.`; showOverlay(`${name} wins!`, `Finished in ${formatDuration(game.elapsed)} · Click to play again`); shareButton.hidden = false; return; }
     resetBall(side === 0 ? 1 : -1); schedulePowerUp(true); setTimeout(() => { if (game.running && !game.paused && balls[0].vx === 0) launch(); }, 650);
 }
 function spawnPowerUp() {
@@ -264,8 +272,31 @@ function draw() {
 }
 function frame(time) { const dt = Math.min((time - game.last) / 1000, .025) || 0; game.last = time; if (game.mode !== 'online' && game.running && !game.paused) update(dt); draw(); requestAnimationFrame(frame); }
 
-document.querySelectorAll('[data-mode]').forEach(button => button.addEventListener('click', () => { if (game.mode === 'online' && button.dataset.mode !== 'online') leaveOnline(); game.mode = button.dataset.mode; document.querySelectorAll('[data-mode]').forEach(item => item.setAttribute('aria-pressed', item === button)); onlinePanel.hidden = game.mode !== 'online'; document.querySelectorAll('.local-control').forEach(item => item.hidden = game.mode === 'online'); document.querySelector('#pause').hidden = game.mode === 'online'; if (game.mode === 'online') { game.running = false; game.paused = true; resetBall(); refreshRooms(); showOverlay('Online match', 'Choose a public room or create your own'); } else { resetColorControls(); newGame(); } }));
+async function shareResult() {
+    if (!game.over) return;
+    const ownSide = game.mode === 'online' ? online.side : 0;
+    const player = game.mode === 'online' ? (online.gamertags[ownSide] || 'You') : game.mode === 'duo' ? 'Left player' : 'You';
+    const opponent = game.mode === 'online' ? (online.gamertags[1 - ownSide] || 'Opponent') : game.mode === 'duo' ? 'Right player' : 'Computer';
+    const ownScore = game.score[ownSide], opponentScore = game.score[1 - ownSide];
+    const won = ownScore > opponentScore;
+    const time = formatDuration(game.elapsed);
+    const caption = game.mode === 'online'
+        ? `${player} ${won ? 'beat' : 'played'} ${opponent} ${ownScore}–${opponentScore} in ${time} in Pong!`
+        : `I ${won ? 'won' : 'finished'} a Pong match ${ownScore}–${opponentScore} in ${time}!`;
+    const shareUrl = new URL(location.href); shareUrl.searchParams.delete('room');
+    shareButton.disabled = true;
+    try {
+        const image = window.ResultShare.pong({ board: canvas, score: game.score, player, opponent, result: won ? 'Victory!' : 'Match complete', mode: game.mode, time });
+        const result = await window.ResultShare.share({ image, filename: 'js-arcade-pong.png', title: 'My Pong result', text: caption, url: shareUrl.href });
+        if (result === 'downloaded-copy') shareButton.textContent = 'Image saved · caption copied';
+        else if (result === 'downloaded') shareButton.textContent = 'Image saved';
+    } catch (error) { if (error.name !== 'AbortError') shareButton.textContent = 'Could not share'; }
+    finally { shareButton.disabled = false; setTimeout(() => { shareButton.textContent = 'Share result'; }, 2600); }
+}
+
+document.querySelectorAll('[data-mode]').forEach(button => button.addEventListener('click', () => { shareButton.hidden = true; if (game.mode === 'online' && button.dataset.mode !== 'online') leaveOnline(); game.mode = button.dataset.mode; document.querySelectorAll('[data-mode]').forEach(item => item.setAttribute('aria-pressed', item === button)); onlinePanel.hidden = game.mode !== 'online'; document.querySelectorAll('.local-control').forEach(item => item.hidden = game.mode === 'online'); document.querySelector('#pause').hidden = game.mode === 'online'; if (game.mode === 'online') { game.running = false; game.paused = true; resetBall(); refreshRooms(); showOverlay('Online match', 'Choose a public room or create your own'); } else { resetColorControls(); newGame(); } }));
 document.querySelector('#new-game').addEventListener('click', newGame); document.querySelector('#pause').addEventListener('click', togglePause); overlay.addEventListener('click', togglePause);
+shareButton.addEventListener('click', shareResult);
 document.querySelector('#room-visibility').addEventListener('change', event => { document.querySelector('#create-passcode').hidden = event.target.value !== 'private'; });
 document.querySelector('#create-room').addEventListener('click', () => { const visibility = document.querySelector('#room-visibility').value; const passcode = document.querySelector('#create-passcode').value.trim(); if (visibility === 'private' && (passcode.length < 4 || passcode.length > 32)) { status.textContent = 'Choose a private room passcode between 4 and 32 characters.'; return; } connectOnline({ type: 'create-room', visibility, passcode }); });
 document.querySelector('#join-room').addEventListener('click', () => { const roomCode = document.querySelector('#room-code').value.trim().toUpperCase(); if (roomCode.length !== 5) { status.textContent = 'Enter the five-character room code.'; return; } connectOnline({ type: 'join-room', roomCode, passcode: document.querySelector('#join-passcode').value.trim() }); });

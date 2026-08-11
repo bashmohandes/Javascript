@@ -85,6 +85,9 @@ kbd { padding: 1px 4px; border: 1px solid var(--line); border-radius: 3px; backg
 .modal-card { width: min(420px, 100%); padding: 45px; border-radius: 12px; background: var(--card); text-align: center; box-shadow: 0 25px 80px rgba(0,0,0,.24); }
 .modal-card h2 { font-size: 38px; }
 .modal-card p:not(.eyebrow) { margin: 15px 0 27px; color: var(--muted); }
+.finish-actions { display:grid; gap:10px; }
+.secondary-button { width:100%; padding:14px 18px; border:1px solid var(--line); border-radius:7px; color:var(--ink); background:transparent; font-weight:700; cursor:pointer; }
+.secondary-button:hover { background:rgba(32,53,47,.06); }
 .celebration { margin-bottom: 16px; color: var(--accent); font-size: 48px; }
 @keyframes shake { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
 @keyframes solve-pulse { from { filter: brightness(1.45); } to { filter: brightness(1); } }

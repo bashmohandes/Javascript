@@ -21,6 +21,7 @@
             <canvas id="game" width="960" height="600" aria-label="Pong game arena"></canvas>
             <div class="arena-score" aria-hidden="true"><span id="arena-score-left">0</span><i>—</i><span id="arena-score-right">0</span></div>
             <button class="arena-message" id="arena-message" type="button"><strong>Ready to rally?</strong><span>Click or press Space to serve</span></button>
+            <button class="arena-share primary-button" id="share-result" type="button" hidden>Share result</button>
         </div>
         <aside class="controls" aria-label="Game controls">
             <div id="status" class="status" role="status" aria-live="polite">Choose your match and start the rally.</div>
@@ -63,5 +64,5 @@
             <p class="instructions"><strong>Touch</strong> Drag on your half of the arena to move your paddle.<br><strong>Left / online</strong> <kbd>W</kbd> <kbd>S</kbd><br><strong>Right paddle</strong> <kbd>↑</kbd> <kbd>↓</kbd> in local two-player mode<br><kbd>Space</kbd> pauses local matches</p>
         </aside>
     </section>
-</main><script src="../arcade.js"></script><script src="scripts/app.js"></script>
+</main><script src="../arcade.js"></script><script src="../scripts/share-result.js"></script><script src="scripts/app.js"></script>
 </body></html>

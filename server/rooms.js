@@ -22,23 +22,23 @@ class RoomManager {
         return code;
     }
 
-    create(socket, { visibility = 'private', passcode = '' } = {}) {
+    create(socket, { visibility = 'private', passcode = '', gamertag = '' } = {}) {
         const isPublic = visibility === 'public';
         const normalizedPasscode = normalizePasscode(passcode);
         if (!isPublic && (normalizedPasscode.length < 4 || normalizedPasscode.length > 32)) throw new Error('Private room passcodes must be 4–32 characters.');
         const code = this.makeCode();
-        const player = { id: token(), token: token(), side: 0, socket, connected: true, ready: false, disconnectedAt: null };
+        const player = { id: token(), token: token(), side: 0, gamertag: String(gamertag || ''), socket, connected: true, ready: false, disconnectedAt: null };
         const room = { code, visibility: isPublic ? 'public' : 'private', passcode: isPublic ? '' : normalizedPasscode, players: [player, null], game: createGame(this.random), createdAt: Date.now(), touchedAt: Date.now(), countdownUntil: null };
         this.rooms.set(code, room);
         return { room, player };
     }
 
-    join(code, socket, passcode = '') {
+    join(code, socket, passcode = '', gamertag = '') {
         const room = this.rooms.get(String(code || '').toUpperCase());
         if (!room) throw new Error('Room not found. Check the code and try again.');
         if (room.players[1]) throw new Error('That room is already full.');
         if (room.visibility === 'private' && normalizePasscode(passcode) !== room.passcode) throw new Error('That passcode is incorrect.');
-        const player = { id: token(), token: token(), side: 1, socket, connected: true, ready: false, disconnectedAt: null };
+        const player = { id: token(), token: token(), side: 1, gamertag: String(gamertag || ''), socket, connected: true, ready: false, disconnectedAt: null };
         room.players[1] = player;
         room.touchedAt = Date.now();
         return { room, player };

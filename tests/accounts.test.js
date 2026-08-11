@@ -48,5 +48,17 @@ test('validates result structure and derives scores on the server', async t => {
     const sudoku = accounts.record(user.id, { game: 'sudoku', score: 100000000, won: true, details: { difficulty: 'medium', seconds: 300, mistakes: 1, hintsUsed: 2 } });
     assert.equal(sudoku.score, 1650);
     assert.throws(() => accounts.record(user.id, { game: 'pong', won: true, details: { mode: 'online', score: '6-0' } }), /Invalid Pong/);
+    const pong = accounts.record(user.id, { game: 'pong', won: true, details: { mode: 'online', score: '7-3', seconds: 125 } });
+    assert.equal(pong.score, 703);
+    assert.equal(accounts.leaderboard('pong')[0].details.seconds, 125);
     assert.throws(() => accounts.record(user.id, { game: 'minesweeper', won: true, details: { difficulty: 'impossible', seconds: 1 } }), /Invalid Minesweeper/);
+});
+
+test('faster time breaks ties on the leaderboard', async t => {
+    const accounts = fixture(t);
+    const fast = await accounts.create('Fast', 'passcode');
+    const slow = await accounts.create('Slow', 'passcode');
+    accounts.record(slow.id, { game: 'pong', won: true, details: { mode: 'solo', score: '7-2', seconds: 180 } });
+    accounts.record(fast.id, { game: 'pong', won: true, details: { mode: 'solo', score: '7-2', seconds: 90 } });
+    assert.deepEqual(accounts.leaderboard('pong').map(row => row.gamertag), ['Fast', 'Slow']);
 });

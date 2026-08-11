@@ -11,6 +11,7 @@
     const notesButton = document.querySelector('#notes');
     const autoSolveButton = document.querySelector('#auto-solve');
     const modal = document.querySelector('#finish-modal');
+    const shareButton = document.querySelector('#share-result');
     const CONTROL_ICONS = {
         hint: '<svg class="tool-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M8.2 14.7a7 7 0 1 1 7.6 0c-.5.4-.8 1-.8 1.6V17H9v-.7c0-.6-.3-1.2-.8-1.6Z"/></svg>',
         play: '<svg class="tool-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path class="tool-icon-fill" d="m8 5 11 7-11 7Z"/></svg>',
@@ -226,6 +227,19 @@
         document.querySelector('#play-again').focus();
     }
 
+    async function shareResult() {
+        const difficulty = difficultySelect.value;
+        const caption = `I solved a ${difficulty} Sudoku in ${timerElement.textContent} with ${mistakes} mistake${mistakes === 1 ? '' : 's'}!`;
+        shareButton.disabled = true;
+        try {
+            const image = window.ResultShare.sudoku({ values, difficulty: difficultyLabel.textContent, time: timerElement.textContent, mistakes });
+            const result = await window.ResultShare.share({ image, filename: 'js-arcade-sudoku.png', title: 'My Sudoku result', text: caption });
+            if (result === 'downloaded-copy') shareButton.textContent = 'Image saved · caption copied';
+            else if (result === 'downloaded') shareButton.textContent = 'Image saved';
+        } catch (error) { if (error.name !== 'AbortError') shareButton.textContent = 'Could not share'; }
+        finally { shareButton.disabled = false; setTimeout(() => { shareButton.textContent = 'Share result'; }, 2600); }
+    }
+
     function autoSolve() {
         if (gameOver || autoSolving) return;
         solveSnapshot = {
@@ -389,6 +403,7 @@
         notesButton.querySelector('small').textContent = notesMode ? 'On' : 'Off';
     });
     ['#new-game', '#new-game-top', '#play-again'].forEach(selector => document.querySelector(selector).addEventListener('click', startGame));
+    shareButton.addEventListener('click', shareResult);
     difficultySelect.addEventListener('change', startGame);
     document.addEventListener('keydown', event => {
         if (/^[1-9]$/.test(event.key)) enterNumber(Number(event.key));
