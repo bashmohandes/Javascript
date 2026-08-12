@@ -83,8 +83,12 @@ class BattleTanksRooms {
             const shooter = room.game.activePlayer, health = room.game.tanks.map(tank => tank.health), turn = room.turnId;
             game.stepPhysics(room.game, Math.min(Math.max(dt, 0), .1));
             room.game.tanks.forEach((tank, side) => { const damage = health[side] - tank.health; if (damage > 0) { room.stats[shooter].hits += 1; room.stats[side].damageTaken += damage; } });
-            if (room.game.phase !== 'projectile-flight') room.turnId = turn + 1;
-            if (room.game.phase === 'game-over') this.finish(room);
+            if (room.game.phase !== 'projectile-flight') {
+                room.turnId = turn + 1;
+                if (room.game.phase === 'game-over') this.finish(room);
+                room.lastBroadcast = now;
+                this.broadcast(room, { type: 'state', state: this.state(room) });
+            }
         }
     }
     disconnect(room, player, socket = player.socket) { if (player.socket !== socket) return false; Object.assign(player, { connected: false, socket: null, disconnectedAt: Date.now() }); room.paused = room.game.phase !== 'setup' && room.game.phase !== 'game-over'; room.touchedAt = Date.now(); return true; }
