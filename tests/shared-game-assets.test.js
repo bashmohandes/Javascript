@@ -11,6 +11,7 @@ const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 test('competitive games consume shared styles without cross-game imports', () => {
     assert.match(read('pong/styles.css'), /styles\/game\.css/);
     assert.match(read('tictactoe/styles.css'), /styles\/game\.css/);
+    assert.match(read('battle-tanks/styles.css'), /styles\/game\.css/);
     assert.doesNotMatch(read('tictactoe/styles.css'), /pong/i);
     assert.doesNotMatch(read('tictactoe/index.html'), /(?:src|href)=["'][^"']*pong/i);
 });
