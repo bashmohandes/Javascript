@@ -82,6 +82,7 @@ const autoSolve = register('auto-solve', 'button');
 register('new-game', 'button');
 register('new-game-top', 'button');
 register('play-again', 'button');
+register('share-result', 'button');
 register('finish-summary');
 const numberPad = register('number-pad');
 
