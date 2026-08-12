@@ -50,6 +50,14 @@ test('achievement shares include a generated image on game and profile pages', (
     assert.match(read('profile.html'), /scripts\/share-result\.js/);
 });
 
+test('result sharing preserves user activation when the preview is confirmed', () => {
+    const share = read('scripts/share-result.js');
+    assert.match(share, /function preview\([^)]*, onConfirm\)/);
+    assert.match(share, /result-share-confirm[\s\S]*?addEventListener\('click', async \(\) => \{[\s\S]*?await onConfirm\(\)/);
+    assert.match(share, /return preview\(\{ blob, title, text, url \}, async \(\) => \{[\s\S]*?navigator\.share\(shareData\)/);
+    assert.match(share, /if \(result === 'shared'\) \{ confirmButton\.disabled = false; return; \}/);
+});
+
 test('every arcade page opts into shared iPhone safe-area handling', () => {
     const pages = [
         'index.html',
