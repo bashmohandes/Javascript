@@ -59,15 +59,28 @@
     let achievementDialog;
     const shareAchievement = async achievement => {
         const text = `${achievement.icon} Achievement unlocked: “${achievement.title}” in JavaScript Arcade — ${achievement.condition}`;
-        if (navigator.share) return navigator.share({ title: achievement.title, text, url: location.origin + '/profile.html#achievements' });
-        await navigator.clipboard.writeText(`${text} ${location.origin}/profile.html#achievements`);
+        const url = location.origin + '/profile.html#achievements';
+        const image = window.ResultShare?.achievement(achievement);
+        if (image) return window.ResultShare.share({ image, filename: `achievement-${achievement.id}.png`, title: achievement.title, text, url });
+        if (navigator.share) return navigator.share({ title: achievement.title, text, url });
+        await navigator.clipboard.writeText(`${text} ${url}`);
     };
-    const showUnlocks = unlocked => unlocked.forEach((achievement, index) => setTimeout(() => {
+    const unlockQueue = [];
+    let showingUnlock = false;
+    const showNextUnlock = () => {
+        const achievement = unlockQueue.shift();
+        if (!achievement) { showingUnlock = false; return; }
+        showingUnlock = true;
         const toast = document.createElement('aside'); toast.className = 'achievement-toast'; toast.setAttribute('role', 'status');
         toast.innerHTML = `<span>${achievement.icon}</span><div><small>Achievement unlocked</small><strong>${achievement.title}</strong></div>`;
-        document.body.append(toast); setTimeout(() => toast.remove(), 5200);
+        document.body.append(toast);
         document.dispatchEvent(new CustomEvent('arcade:achievement', { detail: achievement }));
-    }, index * 450));
+        setTimeout(() => { toast.remove(); showNextUnlock(); }, 5200);
+    };
+    const showUnlocks = unlocked => {
+        unlockQueue.push(...unlocked);
+        if (!showingUnlock) showNextUnlock();
+    };
     const loadAchievements = async () => {
         if (!game || !achievementDialog) return;
         const result = await api(`/api/achievements/${game}`);

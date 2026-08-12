@@ -16,8 +16,11 @@
     const details = row => Object.entries(row.details || {}).filter(([key]) => key !== 'seconds').map(([key, value]) => `${detailLabels[key] || key}: ${value}`).join(' · ') || '—';
     async function shareAchievement(item) {
         const text = `${item.icon} I unlocked “${item.title}” in JavaScript Arcade — ${item.condition}`;
-        if (navigator.share) return navigator.share({ title: item.title, text, url: location.href.split('#')[0] + '#achievements' });
-        await navigator.clipboard.writeText(`${text} ${location.href.split('#')[0]}#achievements`);
+        const url = location.href.split('#')[0] + '#achievements';
+        const image = window.ResultShare?.achievement(item);
+        if (image) return window.ResultShare.share({ image, filename: `achievement-${item.id}.png`, title: item.title, text, url });
+        if (navigator.share) return navigator.share({ title: item.title, text, url });
+        await navigator.clipboard.writeText(`${text} ${url}`);
     }
     function renderAchievements(items) {
         const panel = document.querySelector('#achievements'); panel.hidden = false;

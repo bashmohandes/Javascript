@@ -34,6 +34,22 @@ test('shared arcade UI keeps mobile navigation above the safe area and displays 
     assert.match(script, /arcade-build-version/);
 });
 
+test('achievement notifications are queued and displayed one at a time', () => {
+    const script = read('arcade.js');
+    assert.match(script, /unlockQueue\.push\(\.\.\.unlocked\)/);
+    assert.match(script, /setTimeout\(\(\) => \{ toast\.remove\(\); showNextUnlock\(\); \}, 5200\)/);
+    assert.doesNotMatch(script, /index \* 450/);
+});
+
+test('achievement shares include a generated image on game and profile pages', () => {
+    const share = read('scripts/share-result.js');
+    assert.match(share, /function achievement\(/);
+    assert.match(share, /window\.ResultShare = \{[^}]*achievement, share/);
+    assert.match(read('arcade.js'), /ResultShare\?\.achievement\(achievement\)/);
+    assert.match(read('profile.js'), /ResultShare\?\.achievement\(item\)/);
+    assert.match(read('profile.html'), /scripts\/share-result\.js/);
+});
+
 test('every arcade page opts into shared iPhone safe-area handling', () => {
     const pages = [
         'index.html',
