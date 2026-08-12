@@ -55,7 +55,8 @@
     buildVersion.className = 'arcade-build-version';
     buildVersion.textContent = 'Build …';
     document.body.append(account, dialog, buildVersion);
-    const game = ({ '/pong/':'pong', '/Sudoku/':'sudoku', '/Minesweeper/':'minesweeper', '/tictactoe/':'tictactoe' })[location.pathname.match(/^\/(?:pong|Sudoku|Minesweeper|tictactoe)\//)?.[0]];
+    const gamePath = location.pathname.match(/\/(pong|Sudoku|Minesweeper|tictactoe|battle-tanks)\//)?.[1];
+    const game = ({ pong:'pong', Sudoku:'sudoku', Minesweeper:'minesweeper', tictactoe:'tictactoe', 'battle-tanks':'battletanks' })[gamePath];
     let achievementDialog;
     const shareAchievement = async achievement => {
         const text = `${achievement.icon} Achievement unlocked: “${achievement.title}” in JavaScript Arcade — ${achievement.condition}`;
