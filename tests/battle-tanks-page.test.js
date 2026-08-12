@@ -16,3 +16,9 @@ test('homepage links to Battle Tanks and its page loads all shared arcade assets
     }
     assert.match(page, /scripts\/game\.js[\s\S]*scripts\/app\.js/, 'mechanics must load before the browser application');
 });
+
+test('Battle Tanks resets its impact callout guard for local and synchronized rematches', () => {
+    const app = read('battle-tanks/scripts/app.js');
+    assert.match(app, /\(state\.impactSerial\|\|0\)<lastImpactSerial\)lastImpactSerial=0/, 'a lower synchronized serial should identify a new match');
+    assert.match(app, /resetMatch\(state\);lastImpactSerial=0/, 'local resets should immediately clear the impact guard');
+});

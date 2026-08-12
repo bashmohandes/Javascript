@@ -66,6 +66,18 @@ test('a direct collision damages only the target tank', () => {
     state.projectile = { x: target.x - 20, y: target.y + game.TANK_H / 2, vx: 200, vy: 0, owner: 0 }; state.phase = 'projectile-flight';
     assert.deepEqual(game.stepPhysics(state, 0.2), { type: 'tank', index: 1 });
     assert.deepEqual(state.tanks.map(tank => tank.health), [100, 50]);
+    assert.equal(state.lastImpact.type, 'tank'); assert.equal(state.impacts.length, 0);
+});
+
+test('missed shots leave bounded impact residue in the arena', () => {
+    const state = match();
+    for (let shot = 0; shot < 18; shot += 1) {
+        state.projectile = { x: 250 + shot, y: game.GROUND - 2, vx: 0, vy: 20, owner: state.activePlayer };
+        state.phase = 'projectile-flight'; game.stepPhysics(state);
+    }
+    assert.equal(state.lastImpact.type, 'terrain');
+    assert.equal(state.impacts.length, 14, 'old residue should be discarded to keep rendering bounded');
+    assert.equal(state.impactSerial, 18);
 });
 
 test('all player inputs are ignored during projectile flight', () => {

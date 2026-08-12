@@ -16,6 +16,13 @@ test('competitive games consume shared styles without cross-game imports', () =>
     assert.doesNotMatch(read('tictactoe/index.html'), /(?:src|href)=["'][^"']*pong/i);
 });
 
+test('online competitive games consume shared room UI behavior', () => {
+    for (const game of ['pong', 'tictactoe', 'battle-tanks']) {
+        assert.match(read(`${game}/index.html`), /scripts\/online-rooms\.js/);
+        assert.match(read(`${game}/scripts/app.js`), /OnlineRooms/);
+    }
+});
+
 test('competitive games consume the same shared color palette', () => {
     const palette = read('scripts/game-colors.js');
     assert.match(palette, /ArcadeGameColors/);
