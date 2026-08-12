@@ -13,7 +13,11 @@ history, profiles, and leaderboards. No browser build step is required.
 | **Minesweeper** | A responsive mine-clearing puzzle with three field sizes, flags, keyboard controls, and saved best times. | [Play modern Minesweeper](https://bashmohandes.github.io/Javascript/Minesweeper/) |
 | **Minesweeper Classic** | The original p5.js experiment, preserved alongside the new game. | [Play Minesweeper Classic](https://bashmohandes.github.io/Javascript/Minesweeper/classic/) |
 | **Pong** | Responsive solo, couch co-op, and public or private online multiplayer Pong. | [Play Pong](https://bashmohandes.github.io/Javascript/pong/) |
-| **Battle Tanks** | A turn-based local two-player artillery duel with adjustable movement, angle, and power. | [Play Battle Tanks](https://bashmohandes.github.io/Javascript/battle-tanks/) |
+| **Battle Tanks** | Turn-based local and authoritative online artillery duels with movement, aiming, and a central barrier. | [Play Battle Tanks](https://bashmohandes.github.io/Javascript/battle-tanks/) |
+
+## Battle Tanks controls and online play
+
+Use A/D to move, W/S to aim, Q/E to change power, and Space to fire. Tanks remain on their own side of the central barrier and alternate turns after each projectile resolves. Online matches use the same public/private room, invitation, ready, reconnection, and rematch flow as Pong and Tic-tac-toe. The Node server owns movement bounds, projectile physics, collisions, damage, turns, and results; a static GitHub Pages preview supports local play only.
 
 The repository also contains solutions and experiments from LeetCode,
 Codeforces, and Codewars.

@@ -87,11 +87,11 @@ class Accounts {
         return publicUser(this.database.prepare('SELECT * FROM users WHERE id = ?').get(userId));
     }
 
-    record(userId, result) {
+    record(userId, result, options = {}) {
         const game = String(result.game || '').toLowerCase();
         if (!GAMES.has(game)) throw new Error('Unknown game.');
         const details = result.details && typeof result.details === 'object' && !Array.isArray(result.details) ? result.details : {};
-        const { score, won, normalizedDetails } = validateResult(game, result.won, details);
+        const { score, won, normalizedDetails } = validateResult(game, result.won, details, options.trustedOnline === true);
         const encoded = JSON.stringify(normalizedDetails);
         if (encoded.length > 2000) throw new Error('Game details are too large.');
         const insert = this.database.prepare('INSERT INTO game_results (user_id, game, score, won, details) VALUES (?, ?, ?, ?, ?)').run(userId, game, score, won ? 1 : 0, encoded);
@@ -128,23 +128,24 @@ function integer(value, minimum, maximum, label) {
     return number;
 }
 
-function validateResult(game, wonValue, details) {
+function validateResult(game, wonValue, details, trustedOnline = false) {
     const won = wonValue === true;
     if (game === 'battletanks') {
-        if (details.mode !== 'local') throw new Error('Invalid Battle Tanks mode.');
+        if (!['local', 'online'].includes(details.mode)) throw new Error('Invalid Battle Tanks mode.');
+        if (details.mode === 'online' && !trustedOnline) throw new Error('Invalid Battle Tanks mode.');
         const field = (name, minimum, maximum) => {
             if (typeof details[name] !== 'number' || !Number.isFinite(details[name]) || !Number.isSafeInteger(details[name])) throw new Error(`Invalid Battle Tanks ${name}.`);
             return integer(details[name], minimum, maximum, `Battle Tanks ${name}`);
         };
-        const winner = field('winner', 1, 2), turns = field('turns', 2, 200), shots = field('shots', 2, 200);
-        const hits = field('hits', 2, 3), seconds = field('seconds', 1, 7200), damageTaken = field('damageTaken', 0, 100);
-        const credibleHealth = winner === 1 ? damageTaken <= 50 : damageTaken === 100;
-        if (turns !== shots || hits > shots || won !== (winner === 1) || damageTaken % 50 !== 0 || !credibleHealth) throw new Error('Invalid Battle Tanks result.');
+        const winner = field('winner', 1, 2), turns = field('turns', 2, 200), shots = field('shots', details.mode === 'local' ? 2 : 0, 200);
+        const hits = field('hits', details.mode === 'local' ? 2 : 0, details.mode === 'local' ? Math.min(3, shots) : shots), seconds = field('seconds', 1, 7200), damageTaken = field('damageTaken', 0, 100);
+        const credibleLocalHealth = details.mode !== 'local' || (winner === 1 ? damageTaken <= 50 : damageTaken === 100);
+        if ((details.mode === 'local' && turns !== shots) || (details.mode === 'online' && shots > turns) || won !== (winner === 1) || damageTaken % 50 !== 0 || !credibleLocalHealth) throw new Error('Invalid Battle Tanks result.');
         // Wins rank above losses. Accuracy is worth up to 5,000 points, while
         // fewer turns break otherwise equal matches: 10,000*win + 5,000*hits/shots + 10*(200-turns).
         const score = (won ? 10000 : 0) + Math.floor(hits * 5000 / shots) + (200 - turns) * 10;
         const accuracy = Math.floor(hits * 100 / shots);
-        return { won, score, normalizedDetails: { mode: 'local', winner, turns, shots, hits, accuracy, seconds, damageTaken } };
+        return { won, score, normalizedDetails: { mode: details.mode, winner, turns, shots, hits, accuracy, seconds, damageTaken } };
     }
     if (game === 'tictactoe') {
         if (!['solo-easy', 'solo-medium', 'solo-hard', 'duo', 'online'].includes(details.mode)) throw new Error('Invalid Tic-tac-toe mode.');

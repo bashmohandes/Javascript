@@ -89,6 +89,7 @@
         return null;
     }
     function resetMatch(state) { const fresh = createInitialState(); Object.keys(state).forEach(key => delete state[key]); Object.assign(state, fresh); beginTurn(state, 0); return state; }
+    function snapshot(state) { return { phase: state.phase, activePlayer: state.activePlayer, tanks: state.tanks.map(tank => ({ ...tank })), projectile: state.projectile ? { ...state.projectile } : null, winner: state.winner, shots: state.shots, hits: state.hits, announcement: state.announcement }; }
 
-    return { WIDTH, HEIGHT, GROUND, GRAVITY, TANK_W, TANK_H, PROJECTILE_R, STARTING_HEALTH, DAMAGE, barrier, createInitialState, beginTurn, tankBounds, moveTank, adjustAim, adjustPower, fireProjectile, collisionAt, stepPhysics, resolveShot, resetMatch };
+    return { WIDTH, HEIGHT, GROUND, GRAVITY, TANK_W, TANK_H, PROJECTILE_R, STARTING_HEALTH, DAMAGE, barrier, createInitialState, beginTurn, tankBounds, moveTank, adjustAim, adjustPower, fireProjectile, collisionAt, stepPhysics, resolveShot, resetMatch, snapshot };
 }));
