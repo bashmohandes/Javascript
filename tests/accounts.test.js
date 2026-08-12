@@ -62,3 +62,15 @@ test('faster time breaks ties on the leaderboard', async t => {
     accounts.record(fast.id, { game: 'pong', won: true, details: { mode: 'solo', score: '7-2', seconds: 90 } });
     assert.deepEqual(accounts.leaderboard('pong').map(row => row.gamertag), ['Fast', 'Slow']);
 });
+
+test('paginates profile history ten most-recent games at a time', async t => {
+    const accounts = fixture(t);
+    const user = await accounts.create('Historian', 'passcode');
+    for (let index = 0; index < 23; index += 1) accounts.record(user.id, { game: 'pong', won: true, details: { mode: 'solo', score: `7-${index % 7}`, seconds: index + 1 } });
+    const firstPage = accounts.profile(user.id);
+    const lastPage = accounts.profile(user.id, 3);
+    assert.equal(firstPage.recent.length, 10);
+    assert.deepEqual(firstPage.pagination, { page: 1, pageSize: 10, totalGames: 23, totalPages: 3 });
+    assert.equal(lastPage.recent.length, 3);
+    assert.ok(firstPage.recent[0].id > lastPage.recent[0].id);
+});

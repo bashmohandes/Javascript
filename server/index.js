@@ -104,7 +104,10 @@ const server = http.createServer(async (request, response) => {
             if (leaderboard && request.method === 'GET') return json(response, 200, { game: leaderboard[1], entries: accounts.leaderboard(leaderboard[1]) });
             const user = sessionUser(request);
             if (!user) return json(response, 401, { error: 'Sign in to continue.' });
-            if (pathname === '/api/profile' && request.method === 'GET') return json(response, 200, accounts.profile(user.id));
+            if (pathname === '/api/profile' && request.method === 'GET') {
+                const parameters = new URL(request.url, 'http://localhost').searchParams;
+                return json(response, 200, accounts.profile(user.id, parameters.get('page'), parameters.get('pageSize')));
+            }
             if (pathname === '/api/profile' && request.method === 'PATCH') {
                 const updated = await accounts.update(user.id, await readJson(request)), session = accounts.createSession(user.id);
                 return json(response, 200, { user: updated }, { 'set-cookie': sessionCookie(session.token, session.expiresAt) });

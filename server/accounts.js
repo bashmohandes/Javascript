@@ -98,11 +98,16 @@ class Accounts {
         return { id: Number(insert.lastInsertRowid), score };
     }
 
-    profile(userId) {
+    profile(userId, pageValue = 1, pageSizeValue = 10) {
+        const page = Math.max(1, Number.parseInt(pageValue, 10) || 1);
+        const pageSize = Math.min(10, Math.max(1, Number.parseInt(pageSizeValue, 10) || 10));
         const user = publicUser(this.database.prepare('SELECT * FROM users WHERE id = ?').get(userId));
         const totals = this.database.prepare('SELECT game, COUNT(*) games_played, SUM(won) wins, MAX(score) best_score FROM game_results WHERE user_id = ? GROUP BY game').all(userId);
-        const recent = this.database.prepare('SELECT id, game, score, won, details, played_at FROM game_results WHERE user_id = ? ORDER BY played_at DESC, id DESC LIMIT 25').all(userId).map(row => ({ ...row, won: Boolean(row.won), details: JSON.parse(row.details) }));
-        return { user, totals, recent };
+        const totalGames = this.database.prepare('SELECT COUNT(*) total FROM game_results WHERE user_id = ?').get(userId).total;
+        const totalPages = Math.max(1, Math.ceil(totalGames / pageSize));
+        const currentPage = Math.min(page, totalPages);
+        const recent = this.database.prepare('SELECT id, game, score, won, details, played_at FROM game_results WHERE user_id = ? ORDER BY played_at DESC, id DESC LIMIT ? OFFSET ?').all(userId, pageSize, (currentPage - 1) * pageSize).map(row => ({ ...row, won: Boolean(row.won), details: JSON.parse(row.details) }));
+        return { user, totals, recent, pagination: { page: currentPage, pageSize, totalGames, totalPages } };
     }
 
     leaderboard(gameValue) {
