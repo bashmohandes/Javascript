@@ -86,3 +86,19 @@ test('one player becoming ready does not mark the opponent ready', () => {
     assert.deepEqual(host.room.players.map(player => player.ready), [true, false]);
     assert.equal(rooms.ready(host.room, guest.player), true);
 });
+
+test('either connected player can start a rematch for the whole room', () => {
+    const rooms = new RoomManager();
+    const host = rooms.create(socket(), { visibility: 'public' });
+    const guest = rooms.join(host.room.code, socket());
+    rooms.ready(host.room, host.player);
+    rooms.ready(host.room, guest.player);
+    host.room.game.over = true;
+    host.room.game.running = false;
+    host.room.game.score = [7, 4];
+
+    assert.equal(rooms.rematch(host.room), true);
+    assert.equal(host.room.game.running, true);
+    assert.equal(host.room.game.over, false);
+    assert.deepEqual(host.room.game.score, [0, 0]);
+});

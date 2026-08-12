@@ -75,6 +75,15 @@ class RoomManager {
         return false;
     }
 
+    rematch(room) {
+        if (!room.game.over) throw new Error('The match must be finished before starting a rematch.');
+        if (!room.players.every(candidate => candidate?.connected)) throw new Error('Both players must be connected to start a rematch.');
+        room.players.forEach(candidate => { candidate.ready = false; });
+        startGame(room.game);
+        room.touchedAt = Date.now();
+        return true;
+    }
+
     disconnect(room, player, socket = player.socket) {
         // A resumed session replaces the player's socket. The delayed close
         // event from the old connection must not disconnect the new one.
