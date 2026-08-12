@@ -74,3 +74,25 @@ test('paginates profile history ten most-recent games at a time', async t => {
     assert.equal(lastPage.recent.length, 3);
     assert.ok(firstPage.recent[0].id > lastPage.recent[0].id);
 });
+
+test('validates Battle Tanks results, derives scores, ranks players, and persists history', async t => {
+    const accounts = fixture(t);
+    const ace = await accounts.create('TankAce', 'passcode');
+    const rival = await accounts.create('TankRival', 'passcode');
+    const victory = { game: 'battletanks', won: true, details: { mode: 'local', winner: 1, turns: 4, shots: 4, hits: 2, seconds: 40, damageTaken: 0 } };
+    const result = accounts.record(ace.id, { ...victory, score: 999999 });
+    assert.equal(result.score, 14460, 'client-provided scores must not be trusted');
+    accounts.record(rival.id, { game: 'battletanks', won: true, details: { mode: 'local', winner: 1, turns: 5, shots: 5, hits: 2, seconds: 20, damageTaken: 50 } });
+    assert.deepEqual(accounts.leaderboard('battletanks').map(row => row.gamertag), ['TankAce', 'TankRival']);
+    const history = accounts.profile(ace.id).recent.find(row => row.game === 'battletanks');
+    assert.deepEqual(history.details, { mode: 'local', winner: 1, turns: 4, shots: 4, hits: 2, accuracy: 50, seconds: 40, damageTaken: 0 });
+
+    const invalid = [
+        { ...victory, details: { ...victory.details, mode: 'online' } },
+        { ...victory, won: false },
+        { ...victory, details: { ...victory.details, turns: 3 } },
+        { ...victory, details: { ...victory.details, hits: 4 } },
+        { ...victory, details: { ...victory.details, damageTaken: 25 } }
+    ];
+    for (const payload of invalid) assert.throws(() => accounts.record(ace.id, payload), /Invalid Battle Tanks/);
+});

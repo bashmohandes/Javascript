@@ -1,23 +1,8 @@
 (function(root){
 'use strict';
-const WIDTH=960,HEIGHT=540,GROUND=488,GRAVITY=210,TANK_W=58,TANK_H=30,PROJECTILE_R=6,STARTING_HEALTH=100,DAMAGE=50;
-const barrier={x:448,y:266,w:64,h:GROUND-266};
-const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
-function createInitialState(){return{phase:'setup',activePlayer:0,tanks:[{x:115,y:GROUND-TANK_H,angle:45,power:60,health:STARTING_HEALTH},{x:WIDTH-115-TANK_W,y:GROUND-TANK_H,angle:45,power:60,health:STARTING_HEALTH}],projectile:null,winner:null,shots:0,hits:0,startedAt:Date.now(),resultSubmitted:false,announcement:'Preparing the arena.'};}
-function beginTurn(state,player=state.activePlayer){if(state.phase==='game-over')return false;state.activePlayer=player;state.phase='aiming';state.projectile=null;state.announcement=`Player ${player+1}: adjust your shot.`;return true;}
-function tankBounds(player){return player===0?{min:0,max:barrier.x-TANK_W}:{min:barrier.x+barrier.w,max:WIDTH-TANK_W};}
-function moveTank(state,direction,amount=8){if(state.phase!=='aiming')return false;const tank=state.tanks[state.activePlayer],bounds=tankBounds(state.activePlayer);tank.x=clamp(tank.x+(direction==='forward'?(state.activePlayer? -amount:amount):(state.activePlayer?amount:-amount)),bounds.min,bounds.max);return true;}
-function adjustAim(state,delta){if(state.phase!=='aiming')return false;const tank=state.tanks[state.activePlayer];tank.angle=clamp(tank.angle+delta,10,80);return true;}
-function adjustPower(state,delta){if(state.phase!=='aiming')return false;const tank=state.tanks[state.activePlayer];tank.power=clamp(tank.power+delta,20,100);return true;}
-function fireProjectile(state){if(state.phase!=='aiming')return false;const tank=state.tanks[state.activePlayer],direction=state.activePlayer? -1:1,radians=tank.angle*Math.PI/180,speed=170+tank.power*3.2;state.shots++;state.projectile={x:tank.x+TANK_W/2+direction*32,y:tank.y-7,vx:Math.cos(radians)*speed*direction,vy:-Math.sin(radians)*speed,owner:state.activePlayer};state.phase='projectile-flight';state.announcement=`Player ${state.activePlayer+1} fired.`;return true;}
-function circleRect(x,y,r,rect){return x+r>=rect.x&&x-r<=rect.x+rect.w&&y+r>=rect.y&&y-r<=rect.y+rect.h;}
-function resolveShot(state,hit){state.projectile=null;if(hit&&hit.type==='tank'){state.hits++;const target=state.tanks[hit.index];target.health=Math.max(0,target.health-DAMAGE);if(target.health===0){state.phase='game-over';state.winner=1-hit.index;state.announcement=`Player ${state.winner+1} wins!`;return hit;}}state.activePlayer=1-state.activePlayer;state.phase='aiming';state.announcement=hit?.type==='tank'?`Direct hit! Player ${state.activePlayer+1}'s turn.`:`Shot ended. Player ${state.activePlayer+1}'s turn.`;return hit;}
-function collisionAt(state,x,y){if(circleRect(x,y,PROJECTILE_R,barrier))return{type:'barrier'};for(let i=0;i<state.tanks.length;i++){const t=state.tanks[i];if(circleRect(x,y,PROJECTILE_R,{x:t.x,y:t.y,w:TANK_W,h:TANK_H}))return{type:'tank',index:i};}if(y+PROJECTILE_R>=GROUND)return{type:'terrain'};if(x+PROJECTILE_R<0||x-PROJECTILE_R>WIDTH||y+PROJECTILE_R<0||y-PROJECTILE_R>HEIGHT)return{type:'out-of-bounds'};return null;}
-function stepPhysics(state,dt=1/120){if(state.phase!=='projectile-flight'||!state.projectile)return null;const p=state.projectile,dx=p.vx*dt,dy=p.vy*dt+.5*GRAVITY*dt*dt,steps=Math.max(1,Math.ceil(Math.max(Math.abs(dx),Math.abs(dy))/3));for(let i=1;i<=steps;i++){const f=i/steps,hit=collisionAt(state,p.x+dx*f,p.y+dy*f);if(hit){p.x+=dx*f;p.y+=dy*f;return resolveShot(state,hit);}}p.x+=dx;p.y+=dy;p.vy+=GRAVITY*dt;return null;}
-function resetMatch(state){const fresh=createInitialState();Object.keys(state).forEach(key=>delete state[key]);Object.assign(state,fresh);beginTurn(state,0);return state;}
-const api={WIDTH,HEIGHT,GROUND,GRAVITY,TANK_W,TANK_H,PROJECTILE_R,STARTING_HEALTH,DAMAGE,barrier,createInitialState,beginTurn,tankBounds,moveTank,adjustAim,adjustPower,fireProjectile,collisionAt,stepPhysics,resolveShot,resetMatch};
-if(typeof module!=='undefined'&&module.exports)module.exports=api;root.BattleTanksCore=api;
-if(typeof document==='undefined')return;
+const api=root.BattleTanksCore;
+if(!api)throw new Error('Battle Tanks mechanics failed to load.');
+const {WIDTH,HEIGHT,GROUND,TANK_W,TANK_H,PROJECTILE_R,STARTING_HEALTH,barrier,createInitialState,beginTurn,tankBounds,moveTank,adjustAim,adjustPower,fireProjectile,stepPhysics,resetMatch}=api;
 const canvas=document.querySelector('#game'),ctx=canvas.getContext('2d'),status=document.querySelector('#status'),fire=document.querySelector('#fire'),rematch=document.querySelector('#rematch'),arena=document.querySelector('#arena'),shareButton=document.querySelector('#share-result'),fullscreenButton=document.querySelector('#fullscreen');const state=createInitialState();let last=performance.now(),accumulator=0,dragging=false;
 const tankColors=[window.ArcadeGameColors[3].value,window.ArcadeGameColors[1].value];
 let arenaColors;
