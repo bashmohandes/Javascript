@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#f5f1e8">
+    <meta name="description" content="A local two-player artillery duel with tanks, terrain, and turn-based aiming."><title>Battle Tanks · Take your shot</title>
+    <script src="../theme-init.js"></script><link rel="icon" href="../icon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="../arcade.css">
+</head>
+<body>
+<main class="app-shell">
+    <header class="topbar"><a class="brand" href="../index.html" aria-label="Back to games"><span class="brand-mark" aria-hidden="true">T</span><span>Battle Tanks</span></a><span class="version-link">Couch duel</span></header>
+    <section class="intro" aria-labelledby="page-title"><div><p class="eyebrow">One shot at a time</p><h1 id="page-title">Line up the hit.</h1><p class="intro-copy">Move, set your angle and choose your power. The central wall makes every shot count.</p></div><div class="scoreboard" aria-label="Tank health"><div class="score"><span>Player 1</span><strong id="health-left">100</strong><small>health</small></div><span class="score-divider">—</span><div class="score"><span>Player 2</span><strong id="health-right">100</strong><small>health</small></div></div></section>
+    <section class="game-layout">
+        <div class="arena-wrap" id="arena" data-active="0"><canvas id="game" width="960" height="540" aria-label="Battle Tanks arena. Player 1 is active." role="img"></canvas><div class="active-flag" id="active-flag" aria-hidden="true">Player 1 turn</div></div>
+        <aside class="controls" aria-label="Game controls">
+            <div id="status" class="status" role="status" aria-live="polite">Player 1: adjust your shot.</div>
+            <div class="readouts" aria-label="Current shot settings"><div><span>Active player</span><strong id="active-player">Player 1</strong></div><div><span>Angle</span><strong id="angle">45°</strong></div><div><span>Power</span><strong id="power">60%</strong></div></div>
+            <div class="control-pad" aria-label="Turn controls">
+                <div class="control-group"><span>Move</span><button type="button" data-action="backward" aria-label="Move backward">←</button><button type="button" data-action="forward" aria-label="Move forward">→</button></div>
+                <div class="control-group"><span>Aim</span><button type="button" data-action="aim-down" aria-label="Lower firing angle">−</button><button type="button" data-action="aim-up" aria-label="Raise firing angle">+</button></div>
+                <div class="control-group"><span>Power</span><button type="button" data-action="power-down" aria-label="Decrease launch power">−</button><button type="button" data-action="power-up" aria-label="Increase launch power">+</button></div>
+            </div>
+            <button class="primary-button fire-button" id="fire" type="button">Fire</button><button class="secondary-button" id="rematch" type="button" hidden>Play rematch</button>
+            <p class="instructions"><strong>Keyboard</strong> <kbd>A</kbd>/<kbd>D</kbd> move · <kbd>W</kbd>/<kbd>S</kbd> aim · <kbd>Q</kbd>/<kbd>E</kbd> power · <kbd>Space</kbd> fire.<br><strong>Touch or pointer</strong> Use the controls, or drag the active tank horizontally in its half.<br>Each tank starts with <strong>100 health</strong>. A direct hit deals 50 damage.</p>
+        </aside>
+    </section>
+</main><script src="scripts/app.js"></script>
+</body>
+</html>
