@@ -64,6 +64,15 @@
         label(ctx, `${rows} × ${columns} field`, 855, 545, 19, 650, color.muted, 'center');
         return card;
     }
+    function tictactoe({ board, colors, moves, outcome }) {
+        const card = makeCanvas(), ctx = card.getContext('2d');
+        frame(ctx, 'Tic-tac-toe', outcome, `${moves} moves · Three in a row`);
+        const size = 390, cell = size / 3, left = 690, top = 100;
+        ctx.fillStyle = color.ink; ctx.fillRect(left, top, size, size); ctx.strokeStyle = color.muted; ctx.lineWidth = 7;
+        for (let i = 1; i < 3; i += 1) { ctx.beginPath(); ctx.moveTo(left + i * cell, top); ctx.lineTo(left + i * cell, top + size); ctx.stroke(); ctx.beginPath(); ctx.moveTo(left, top + i * cell); ctx.lineTo(left + size, top + i * cell); ctx.stroke(); }
+        board.forEach((mark, index) => { if (mark) label(ctx, mark, left + (index % 3 + .5) * cell, top + (Math.floor(index / 3) + .72) * cell, 86, 800, colors[mark === 'O' ? 1 : 0], 'center'); });
+        return card;
+    }
     const toBlob = (element, type = 'image/png', quality) => new Promise((resolve, reject) => element.toBlob(blob => blob ? resolve(blob) : reject(new Error('Could not create image.')), type, quality));
     function preview({ blob, title, text, url }) {
         if (typeof HTMLDialogElement === 'undefined') return Promise.resolve(true);
@@ -126,5 +135,5 @@
         const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = sharedFilename; link.click(); setTimeout(() => URL.revokeObjectURL(link.href), 1000);
         try { await navigator.clipboard.writeText(`${text}\n${url}`); return 'downloaded-copy'; } catch { return 'downloaded'; }
     }
-    window.ResultShare = { sudoku, pong, minesweeper, share };
+    window.ResultShare = { sudoku, pong, minesweeper, tictactoe, share };
 })();

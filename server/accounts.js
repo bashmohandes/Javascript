@@ -4,7 +4,7 @@ const crypto = require('node:crypto');
 const { promisify } = require('node:util');
 
 const SESSION_DAYS = 30;
-const GAMES = new Set(['pong', 'sudoku', 'minesweeper']);
+const GAMES = new Set(['pong', 'sudoku', 'minesweeper', 'tictactoe']);
 const hashToken = token => crypto.createHash('sha256').update(token).digest('hex');
 const normalizeGamertag = value => String(value || '').trim();
 const scrypt = promisify(crypto.scrypt);
@@ -128,6 +128,12 @@ function integer(value, minimum, maximum, label) {
 
 function validateResult(game, wonValue, details) {
     const won = wonValue === true;
+    if (game === 'tictactoe') {
+        if (!['solo-easy', 'solo-medium', 'solo-hard', 'duo', 'online'].includes(details.mode)) throw new Error('Invalid Tic-tac-toe mode.');
+        const seconds = integer(details.seconds, 1, 86400, 'Tic-tac-toe time');
+        const moves = integer(details.moves, 3, 9, 'Tic-tac-toe move count');
+        return { won, score: won ? 1000 + (10 - moves) * 100 + Math.max(0, 300 - seconds) : 0, normalizedDetails: { mode: details.mode, seconds, moves, outcome: won ? 'win' : details.outcome === 'draw' ? 'draw' : 'loss' } };
+    }
     if (game === 'sudoku') {
         if (!['easy', 'medium', 'hard'].includes(details.difficulty)) throw new Error('Invalid Sudoku difficulty.');
         const seconds = integer(details.seconds, won ? 1 : 0, 86400, 'Sudoku time');

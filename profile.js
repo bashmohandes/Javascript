@@ -1,6 +1,6 @@
 (() => {
     'use strict';
-    const labels = { pong: 'Pong', sudoku: 'Sudoku', minesweeper: 'Minesweeper' };
+    const labels = { pong: 'Pong', sudoku: 'Sudoku', minesweeper: 'Minesweeper', tictactoe: 'Tic-tac-toe' };
     const profileForm = document.querySelector('#profile-form');
     const currentPasscode = document.createElement('input');
     currentPasscode.name = 'currentPasscode'; currentPasscode.type = 'password'; currentPasscode.minLength = 4; currentPasscode.maxLength = 128; currentPasscode.required = true; currentPasscode.placeholder = 'Current passcode'; currentPasscode.autocomplete = 'current-password'; currentPasscode.setAttribute('aria-label', 'Current passcode');
