@@ -73,6 +73,23 @@
         board.forEach((mark, index) => { if (mark) label(ctx, mark, left + (index % 3 + .5) * cell, top + (Math.floor(index / 3) + .72) * cell, 86, 800, colors[mark === 'O' ? 1 : 0], 'center'); });
         return card;
     }
+    function achievement({ icon, title, condition, game }) {
+        const card = makeCanvas(), ctx = card.getContext('2d');
+        frame(ctx, 'Achievement unlocked', title, game ? `Earned in ${game}` : 'JavaScript Arcade');
+        ctx.fillStyle = color.white; ctx.strokeStyle = color.line; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.roundRect(695, 95, 360, 360, 42); ctx.fill(); ctx.stroke();
+        label(ctx, icon, 875, 315, 150, 700, color.ink, 'center');
+        ctx.fillStyle = color.accent; ctx.fillRect(70, 318, 72, 7);
+        const words = condition.split(/\s+/); let line = '', y = 380;
+        for (const word of words) {
+            const candidate = line ? `${line} ${word}` : word;
+            ctx.font = '600 25px system-ui, -apple-system, "Segoe UI", sans-serif';
+            if (line && ctx.measureText(candidate).width > 520) { label(ctx, line, 70, y, 25, 600); line = word; y += 38; }
+            else line = candidate;
+        }
+        if (line) label(ctx, line, 70, y, 25, 600);
+        return card;
+    }
     const toBlob = (element, type = 'image/png', quality) => new Promise((resolve, reject) => element.toBlob(blob => blob ? resolve(blob) : reject(new Error('Could not create image.')), type, quality));
     function preview({ blob, title, text, url }) {
         if (typeof HTMLDialogElement === 'undefined') return Promise.resolve(true);
@@ -135,5 +152,5 @@
         const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = sharedFilename; link.click(); setTimeout(() => URL.revokeObjectURL(link.href), 1000);
         try { await navigator.clipboard.writeText(`${text}\n${url}`); return 'downloaded-copy'; } catch { return 'downloaded'; }
     }
-    window.ResultShare = { sudoku, pong, minesweeper, tictactoe, share };
+    window.ResultShare = { sudoku, pong, minesweeper, tictactoe, achievement, share };
 })();
