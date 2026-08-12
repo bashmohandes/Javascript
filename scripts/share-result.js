@@ -91,8 +91,11 @@
         return card;
     }
     const toBlob = (element, type = 'image/png', quality) => new Promise((resolve, reject) => element.toBlob(blob => blob ? resolve(blob) : reject(new Error('Could not create image.')), type, quality));
-    function preview({ blob, title, text, url }) {
-        if (typeof HTMLDialogElement === 'undefined') return Promise.resolve(true);
+    function preview({ blob, title, text, url }, onConfirm) {
+        // Web Share requires transient user activation. Run the share callback
+        // directly from this dialog's click handler rather than after its close
+        // event, which is too late in Safari and other strict implementations.
+        if (typeof HTMLDialogElement === 'undefined') return onConfirm();
         const objectUrl = URL.createObjectURL(blob);
         const dialog = document.createElement('dialog');
         dialog.className = 'arcade-dialog result-share-dialog';
@@ -119,15 +122,31 @@
         dialog.querySelector('.result-share-caption').textContent = text;
         dialog.querySelector('.result-share-link').textContent = new URL(url, location.href).host;
         document.body.append(dialog);
-        return new Promise(resolve => {
+        return new Promise((resolve, reject) => {
+            let result;
+            let error;
             let confirmed = false;
-            const finish = value => { confirmed = value; dialog.close(); };
-            dialog.querySelector('.result-share-confirm').addEventListener('click', () => finish(true));
-            dialog.querySelector('.result-share-cancel').addEventListener('click', () => finish(false));
-            dialog.querySelector('.result-share-close').addEventListener('click', () => finish(false));
-            dialog.addEventListener('cancel', () => { confirmed = false; });
+            const finish = () => dialog.close();
+            const confirmButton = dialog.querySelector('.result-share-confirm');
+            confirmButton.addEventListener('click', async () => {
+                confirmed = true;
+                confirmButton.disabled = true;
+                try { result = await onConfirm(); }
+                catch (shareError) { error = shareError; }
+                // Keep the modal preview in place behind the native share sheet.
+                // Closing it as iPadOS opens the sheet can turn the same tap into
+                // a backdrop click and dismiss both layers. The user can close the
+                // preview after returning from a successful native share instead.
+                if (result === 'shared') { confirmButton.disabled = false; return; }
+                finish();
+            });
+            dialog.querySelector('.result-share-cancel').addEventListener('click', finish);
+            dialog.querySelector('.result-share-close').addEventListener('click', finish);
             dialog.addEventListener('close', () => {
-                URL.revokeObjectURL(objectUrl); dialog.remove(); resolve(confirmed);
+                URL.revokeObjectURL(objectUrl); dialog.remove();
+                if (error) reject(error);
+                else if (confirmed) resolve(result);
+                else reject(new DOMException('Share cancelled', 'AbortError'));
             }, { once: true });
             dialog.showModal();
         });
@@ -142,15 +161,16 @@
         const sharedFilename = appleMobile ? filename.replace(/\.png$/i, '.jpg') : filename;
         const blob = await toBlob(image, type, appleMobile ? .92 : undefined);
         const file = new File([blob], sharedFilename, { type });
-        if (!await preview({ blob, title, text, url })) throw new DOMException('Share cancelled', 'AbortError');
         const photo = { files: [file] };
         // Passing `url` separately makes Apple devices present a second link item.
         // Keep it in the caption so Messages receives the image and the complete
         // message while the share sheet can still preview the JPEG attachment.
         const shareData = appleMobile ? { ...photo, text: `${text}\n${url}` } : { title, text, url, ...photo };
-        if (navigator.share && navigator.canShare?.(shareData)) { await navigator.share(shareData); return 'shared'; }
-        const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = sharedFilename; link.click(); setTimeout(() => URL.revokeObjectURL(link.href), 1000);
-        try { await navigator.clipboard.writeText(`${text}\n${url}`); return 'downloaded-copy'; } catch { return 'downloaded'; }
+        return preview({ blob, title, text, url }, async () => {
+            if (navigator.share && navigator.canShare?.(shareData)) { await navigator.share(shareData); return 'shared'; }
+            const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = sharedFilename; link.click(); setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+            try { await navigator.clipboard.writeText(`${text}\n${url}`); return 'downloaded-copy'; } catch { return 'downloaded'; }
+        });
     }
     window.ResultShare = { sudoku, pong, minesweeper, tictactoe, achievement, share };
 })();
