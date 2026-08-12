@@ -101,4 +101,8 @@ test('either connected player can start a rematch for the whole room', () => {
     assert.equal(host.room.game.running, true);
     assert.equal(host.room.game.over, false);
     assert.deepEqual(host.room.game.score, [0, 0]);
+
+    host.room.game.score[0] = 2;
+    assert.equal(rooms.rematch(host.room), true, 'a concurrent second request is accepted');
+    assert.deepEqual(host.room.game.score, [2, 0], 'a duplicate request must not reset the new match');
 });
