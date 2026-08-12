@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { WebSocketServer } = require('ws');
 const { RoomManager } = require('./rooms');
+const { TicTacToeRooms } = require('./tictactoe-rooms');
 const { openDatabase } = require('./database');
 const { Accounts } = require('./accounts');
 
@@ -18,6 +19,7 @@ const rooms = new RoomManager({
     reconnectMs: Number(process.env.RECONNECT_GRACE_MS) || 15000,
     roomTimeoutMs: Number(process.env.ROOM_TIMEOUT_MS) || 1800000
 });
+const ticRooms = new TicTacToeRooms({ reconnectMs: Number(process.env.RECONNECT_GRACE_MS) || 15000, roomTimeoutMs: Number(process.env.ROOM_TIMEOUT_MS) || 1800000 });
 const mime = {
     '.html': 'text/html; charset=utf-8',
     '.js': 'text/javascript; charset=utf-8',
@@ -81,6 +83,7 @@ const server = http.createServer(async (request, response) => {
         response.end(JSON.stringify({ rooms: rooms.publicRooms() }));
         return;
     }
+    if (pathname === '/api/tictactoe/rooms' && request.method === 'GET') return json(response, 200, { rooms: ticRooms.publicRooms() });
     if (pathname.startsWith('/api/')) {
         try {
             if (!sameOrigin(request)) return json(response, 403, { error: 'Origin not allowed.' });
@@ -100,7 +103,7 @@ const server = http.createServer(async (request, response) => {
                 return json(response, 200, { ok: true }, { 'set-cookie': 'arcade_session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0' });
             }
             if (pathname === '/api/me' && request.method === 'GET') return json(response, 200, { user: sessionUser(request) });
-            const leaderboard = pathname.match(/^\/api\/leaderboards\/(pong|sudoku|minesweeper)$/);
+            const leaderboard = pathname.match(/^\/api\/leaderboards\/(pong|sudoku|minesweeper|tictactoe)$/);
             if (leaderboard && request.method === 'GET') return json(response, 200, { game: leaderboard[1], entries: accounts.leaderboard(leaderboard[1]) });
             const user = sessionUser(request);
             if (!user) return json(response, 401, { error: 'Sign in to continue.' });
@@ -141,7 +144,7 @@ const server = http.createServer(async (request, response) => {
 const websocketServer = new WebSocketServer({ noServer: true, maxPayload: 4096 });
 server.on('upgrade', (request, socket, head) => {
     const origin = request.headers.origin;
-    if (new URL(request.url, 'http://localhost').pathname !== '/ws' || (allowedOrigins.length && !allowedOrigins.includes(origin))) {
+    if (!['/ws', '/ws/tictactoe'].includes(new URL(request.url, 'http://localhost').pathname) || (allowedOrigins.length && !allowedOrigins.includes(origin))) {
         socket.write('HTTP/1.1 403 Forbidden\r\n\r\n'); socket.destroy(); return;
     }
     websocketServer.handleUpgrade(request, socket, head, client => websocketServer.emit('connection', client, request));
@@ -151,6 +154,7 @@ function send(socket, message) { if (socket.readyState === 1) socket.send(JSON.s
 function credentials(room, player) { return { type: 'session', roomCode: room.code, playerId: player.id, playerToken: player.token, side: player.side, gamertags: room.players.map(candidate => candidate?.gamertag || null) }; }
 
 websocketServer.on('connection', (socket, request) => {
+    if (new URL(request.url, 'http://localhost').pathname === '/ws/tictactoe') { handleTicSocket(socket, request); return; }
     let membership = null;
     const gamertag = sessionUser(request)?.gamertag || '';
     socket.isAlive = true;
@@ -193,13 +197,36 @@ websocketServer.on('connection', (socket, request) => {
     });
 });
 
+function handleTicSocket(socket, request) {
+    let membership = null; const gamertag = sessionUser(request)?.gamertag || '';
+    const publish = () => membership && ticRooms.broadcast(membership.room, { type: 'state', state: ticRooms.state(membership.room) });
+    socket.on('message', raw => {
+        try {
+            const message = JSON.parse(raw.toString());
+            if (!membership && message.type === 'create-room') membership = ticRooms.create(socket, { ...message, gamertag });
+            else if (!membership && message.type === 'join-room') membership = ticRooms.join(message.roomCode, socket, message.passcode, gamertag);
+            else if (!membership && message.type === 'resume') membership = ticRooms.resume(message.roomCode, message.playerToken, socket);
+            else if (!membership) throw new Error('Create or join a room first.');
+            else if (['ready', 'rematch'].includes(message.type)) ticRooms.ready(membership.room, membership.player);
+            else if (message.type === 'move') ticRooms.move(membership.room, membership.player, message.cell);
+            else if (message.type === 'color') ticRooms.color(membership.room, membership.player, message.color);
+            else if (message.type === 'leave') { ticRooms.disconnect(membership.room, membership.player, socket); membership = null; return; }
+            else throw new Error('Unsupported message type.');
+            if (['create-room', 'join-room', 'resume'].includes(message.type)) send(socket, { type: 'session', roomCode: membership.room.code, playerToken: membership.player.token, side: membership.player.side, visibility: membership.room.visibility, gamertags: membership.room.players.map(item => item?.gamertag || null) });
+            ticRooms.broadcast(membership.room, { type: 'room-status', players: membership.room.players.map(item => Boolean(item?.connected)), ready: membership.room.players.map(item => Boolean(item?.ready)), gamertags: membership.room.players.map(item => item?.gamertag || null) }); publish();
+        } catch (error) { send(socket, { type: 'error', message: error.message }); }
+    });
+    socket.on('close', () => { if (membership && ticRooms.disconnect(membership.room, membership.player, socket)) ticRooms.broadcast(membership.room, { type: 'peer-left', reconnectMs: ticRooms.reconnectMs }); });
+}
+
 let lastTick = Date.now();
 const simulation = setInterval(() => { const now = Date.now(); rooms.tick((now - lastTick) / 1000, now); lastTick = now; }, 1000 / 60);
 const broadcast = setInterval(() => rooms.broadcastStates(), 1000 / 30);
+const ticCleanup = setInterval(() => ticRooms.tick(), 1000);
 const heartbeat = setInterval(() => websocketServer.clients.forEach(socket => { if (!socket.isAlive) return socket.terminate(); socket.isAlive = false; socket.ping(); }), 15000);
 
 server.listen(port, '0.0.0.0', () => console.log(`JavaScript Playground listening on http://0.0.0.0:${port}`));
-function shutdown() { clearInterval(simulation); clearInterval(broadcast); clearInterval(heartbeat); websocketServer.clients.forEach(socket => socket.close(1001, 'Server shutting down')); server.close(() => { database.close(); process.exit(0); }); }
+function shutdown() { clearInterval(simulation); clearInterval(ticCleanup); clearInterval(broadcast); clearInterval(heartbeat); websocketServer.clients.forEach(socket => socket.close(1001, 'Server shutting down')); server.close(() => { database.close(); process.exit(0); }); }
 process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
 
