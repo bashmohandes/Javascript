@@ -183,7 +183,7 @@ websocketServer.on('connection', (socket, request) => {
             else if (!membership && message.type === 'resume') membership = rooms.resume(message.roomCode, message.playerToken, socket);
             else if (!membership) throw new Error('Create or join a room first.');
             else if (message.type === 'ready' || message.type === 'rematch') {
-                const started = rooms.ready(membership.room, membership.player);
+                const started = message.type === 'rematch' ? rooms.rematch(membership.room) : rooms.ready(membership.room, membership.player);
                 if (started) rooms.broadcast(membership.room, { type: 'match-started' });
                 else rooms.broadcast(membership.room, { type: 'ready-status', ready: membership.room.players.map(player => Boolean(player?.ready)) });
             } else if (message.type === 'input') rooms.input(membership.room, membership.player, message);
@@ -221,7 +221,8 @@ function handleTicSocket(socket, request) {
             else if (!membership && message.type === 'join-room') membership = ticRooms.join(message.roomCode, socket, message.passcode, gamertag);
             else if (!membership && message.type === 'resume') membership = ticRooms.resume(message.roomCode, message.playerToken, socket);
             else if (!membership) throw new Error('Create or join a room first.');
-            else if (['ready', 'rematch'].includes(message.type)) ticRooms.ready(membership.room, membership.player);
+            else if (message.type === 'ready') ticRooms.ready(membership.room, membership.player);
+            else if (message.type === 'rematch') ticRooms.rematch(membership.room);
             else if (message.type === 'move') ticRooms.move(membership.room, membership.player, message.cell);
             else if (message.type === 'color') ticRooms.color(membership.room, membership.player, message.color);
             else if (message.type === 'leave') { ticRooms.disconnect(membership.room, membership.player, socket); membership = null; return; }

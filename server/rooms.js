@@ -75,6 +75,19 @@ class RoomManager {
         return false;
     }
 
+    rematch(room) {
+        // Both clients can act on the same finished-state snapshot before the
+        // first rematch update reaches them. Treat that second request as an
+        // idempotent success instead of showing an error during the new match.
+        if (!room.players.every(candidate => candidate?.connected)) throw new Error('Both players must be connected to start a rematch.');
+        if (room.game.running && !room.game.over) return true;
+        if (!room.game.over) throw new Error('The match must be finished before starting a rematch.');
+        room.players.forEach(candidate => { candidate.ready = false; });
+        startGame(room.game);
+        room.touchedAt = Date.now();
+        return true;
+    }
+
     disconnect(room, player, socket = player.socket) {
         // A resumed session replaces the player's socket. The delayed close
         // event from the old connection must not disconnect the new one.
