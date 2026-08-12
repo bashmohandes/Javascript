@@ -21,6 +21,12 @@ test('origin checks use direct connection details unless the proxy is trusted', 
     assert.equal(originAllowed(request({ host: 'arcade.test', origin: 'https://approved.test' }), ['https://approved.test']), true);
 });
 
+test('origin checks can require the header for WebSocket handshakes', () => {
+    const withoutOrigin = request({ host: 'arcade.test' });
+    assert.equal(originAllowed(withoutOrigin, [], false), true, 'ordinary non-browser API clients remain supported');
+    assert.equal(originAllowed(withoutOrigin, [], false, true), false, 'WebSocket handshakes must identify their origin');
+});
+
 test('trusted proxy addresses must be valid and use the proxy-adjacent value', () => {
     assert.equal(clientIp(request({ 'x-forwarded-for': '203.0.113.4, 198.51.100.7' }), true), '198.51.100.7');
     assert.equal(clientIp(request({ 'x-forwarded-for': 'not-an-ip' }), true), '127.0.0.1');

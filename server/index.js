@@ -68,8 +68,8 @@ async function readJson(request) {
     for await (const chunk of request) { body += chunk; if (body.length > 10000) throw new Error('Request is too large.'); }
     try { return body ? JSON.parse(body) : {}; } catch { throw new Error('Invalid JSON.'); }
 }
-function sameOrigin(request) {
-    return originAllowed(request, allowedOrigins, trustProxy);
+function sameOrigin(request, requireOrigin = false) {
+    return originAllowed(request, allowedOrigins, trustProxy, requireOrigin);
 }
 
 const server = http.createServer(async (request, response) => {
@@ -155,7 +155,7 @@ const websocketServer = new WebSocketServer({ noServer: true, maxPayload: 4096 }
 server.on('upgrade', (request, socket, head) => {
     let pathname;
     try { pathname = new URL(request.url, 'http://localhost').pathname; } catch { pathname = ''; }
-    if (!['/ws', '/ws/tictactoe'].includes(pathname) || !sameOrigin(request)) {
+    if (!['/ws', '/ws/tictactoe'].includes(pathname) || !sameOrigin(request, true)) {
         socket.write('HTTP/1.1 403 Forbidden\r\n\r\n'); socket.destroy(); return;
     }
     websocketServer.handleUpgrade(request, socket, head, client => websocketServer.emit('connection', client, request));

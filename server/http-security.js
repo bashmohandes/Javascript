@@ -47,9 +47,9 @@ function requestOrigin(request, trustProxy = false) {
     return host && !/[\s/\\]/.test(host) ? `${protocol}://${host}` : null;
 }
 
-function originAllowed(request, allowedOrigins, trustProxy = false) {
+function originAllowed(request, allowedOrigins, trustProxy = false, requireOrigin = false) {
     const origin = request.headers.origin;
-    if (!origin) return true;
+    if (!origin) return !requireOrigin;
     return origin === requestOrigin(request, trustProxy) || allowedOrigins.includes(origin);
 }
 
