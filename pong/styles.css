@@ -1,9 +1,11 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap');
 
 :root { --ink:#20352f; --muted:#6d7d76; --paper:#f7f3eb; --card:#fffdf8; --line:#c9d0c9; --accent:#d76b45; --accent-dark:#b84f2c; --sage:#dce5dc; }
+:root[data-theme="dark"] { --ink:#edf5f0; --muted:#a6b7ae; --paper:#0f1916; --card:#192620; --line:#405149; --accent:#f08a65; --accent-dark:#ffad8f; --sage:#294438; }
 * { box-sizing:border-box; }
 html,body { min-height:100%; }
 body { margin:0; min-height:100vh; min-height:100dvh; color:var(--ink); background:radial-gradient(circle at 12% 8%,rgba(215,107,69,.08),transparent 30rem),var(--paper); font-family:"DM Sans",sans-serif; }
+:root[data-theme="dark"] body { background:radial-gradient(circle at 12% 8%,rgba(215,107,69,.13),transparent 30rem),var(--paper); }
 body.arena-fullscreen { overflow:hidden; }
 button { color:inherit; font:inherit; }
 .app-shell { width:min(1120px,calc(100% - 40px)); margin:0 auto; padding-bottom:56px; }
@@ -17,6 +19,7 @@ button { color:inherit; font:inherit; }
 h1 { margin:0; font-family:"DM Serif Display",serif; font-size:clamp(42px,6vw,66px); font-weight:400; letter-spacing:-.02em; line-height:.98; }
 .intro-copy { max-width:540px; margin:16px 0 0; color:var(--muted); line-height:1.6; }
 .scoreboard { display:flex; align-items:center; gap:22px; padding:13px 20px; border:1px solid var(--line); border-radius:12px; background:rgba(255,255,255,.4); }
+:root[data-theme="dark"] .scoreboard,:root[data-theme="dark"] .secondary-button,:root[data-theme="dark"] .player-color,:root[data-theme="dark"] .power-guide,:root[data-theme="dark"] .online-panel { background:rgba(255,255,255,.04); }
 .score { min-width:54px; text-align:center; }
 .score span { display:block; color:var(--muted); font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; }
 .score strong { font-family:"DM Serif Display",serif; font-size:34px; font-weight:400; font-variant-numeric:tabular-nums; }

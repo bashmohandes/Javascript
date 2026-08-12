@@ -1,15 +1,21 @@
-.arcade-account { position: fixed; z-index: 1000; top: 14px; right: 16px; display: flex; align-items: center; gap: 8px; padding: 7px; color: #f7f8fc; background: rgba(13, 20, 32, .92); border: 1px solid rgba(255,255,255,.16); border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.25); font: 600 13px/1.2 system-ui, sans-serif; }
+:root { --arcade-nav-ink:#20352f; --arcade-nav-bg:rgba(255,253,248,.94); --arcade-nav-line:rgba(32,53,47,.18); --arcade-dialog-bg:#fffdf8; --arcade-dialog-muted:#6d7d76; --arcade-dialog-field:#f3eee5; --arcade-dialog-shadow:#20352f33; }
+:root[data-theme="dark"] { --arcade-nav-ink:#f3f7f4; --arcade-nav-bg:rgba(17,27,24,.94); --arcade-nav-line:rgba(255,255,255,.16); --arcade-dialog-bg:#17231f; --arcade-dialog-muted:#aab8b1; --arcade-dialog-field:#0e1714; --arcade-dialog-shadow:#0009; }
+.arcade-account { position: fixed; z-index: 1000; top: 14px; right: 16px; display: flex; align-items: center; gap: 8px; padding: 7px; color: var(--arcade-nav-ink); background: var(--arcade-nav-bg); border: 1px solid var(--arcade-nav-line); border-radius: 14px; box-shadow: 0 10px 30px var(--arcade-dialog-shadow); font: 600 13px/1.2 system-ui, sans-serif; backdrop-filter:blur(12px); }
 .arcade-account a, .arcade-account button { padding: 8px 11px; color: inherit; background: transparent; border: 0; border-radius: 9px; font: inherit; text-decoration: none; cursor: pointer; }
 .arcade-account button { color: #10271f; background: #83e6c3; }
-.arcade-dialog { width: min(420px, calc(100% - 32px)); padding: 0; color: #f7f8fc; background: #172335; border: 1px solid rgba(255,255,255,.16); border-radius: 20px; box-shadow: 0 24px 80px #0009; }
+.arcade-theme { display:flex; padding:3px; border-radius:9px; background:var(--arcade-dialog-field); }
+.arcade-account .arcade-theme button { padding:5px 7px; color:var(--arcade-dialog-muted); background:transparent; }
+.arcade-account .arcade-theme button[aria-checked="true"] { color:var(--arcade-nav-ink); background:var(--arcade-dialog-bg); box-shadow:0 1px 5px var(--arcade-dialog-shadow); }
+.arcade-theme button:focus-visible { outline:2px solid #d76b45; outline-offset:1px; }
+.arcade-dialog { width: min(420px, calc(100% - 32px)); padding: 0; color: var(--arcade-nav-ink); background: var(--arcade-dialog-bg); border: 1px solid var(--arcade-nav-line); border-radius: 20px; box-shadow: 0 24px 80px var(--arcade-dialog-shadow); }
 .arcade-dialog::backdrop { background: rgba(5,10,18,.72); backdrop-filter: blur(4px); }
 .arcade-auth { display: grid; gap: 16px; padding: 26px; font: 15px/1.5 system-ui, sans-serif; }
 .arcade-auth h2, .arcade-auth p { margin: 0; }
-.arcade-auth label { display: grid; gap: 6px; color: #b8c2d2; }
-.arcade-auth input { width: 100%; padding: 12px; color: white; background: #0d1420; border: 1px solid rgba(255,255,255,.18); border-radius: 10px; font: inherit; }
+.arcade-auth label { display: grid; gap: 6px; color: var(--arcade-dialog-muted); }
+.arcade-auth input { width: 100%; padding: 12px; color: var(--arcade-nav-ink); background: var(--arcade-dialog-field); border: 1px solid var(--arcade-nav-line); border-radius: 10px; font: inherit; }
 .arcade-auth-actions { display: flex; gap: 9px; }
 .arcade-auth-actions button { flex: 1; padding: 11px; color: #10271f; background: #83e6c3; border: 0; border-radius: 10px; font: 700 14px system-ui; cursor: pointer; }
-.arcade-auth-actions .secondary { color: white; background: rgba(255,255,255,.08); }
+.arcade-auth-actions .secondary { color: var(--arcade-nav-ink); background: var(--arcade-dialog-field); }
 .arcade-auth-message { min-height: 1.5em; color: #ffb3a7; }
 .result-share-dialog { width: min(680px, calc(100% - 28px)); overflow: hidden; }
 .result-share-content { display: grid; gap: 16px; padding: 22px; font: 15px/1.45 system-ui, sans-serif; }
@@ -27,4 +33,5 @@
 .result-share-cancel { color: #f7f8fc; background: rgba(255,255,255,.09); }
 .result-share-confirm { color: #10271f; background: #83e6c3; }
 @media (max-width: 650px) { .arcade-account { top: auto; right: 10px; bottom: 10px; } }
+@media (max-width: 520px) { .arcade-account > a:first-of-type { display:none; } .arcade-account { max-width:calc(100% - 20px); } }
 @media (max-width: 480px) { .result-share-content { padding: 17px; } .result-share-actions button { flex: 1; } }

@@ -13,6 +13,7 @@
     --related: #edf0e8;
     --error: #b83b38;
 }
+:root[data-theme="dark"] { --ink:#edf5f0; --muted:#a6b7ae; --paper:#0f1916; --card:#192620; --line:#405149; --accent:#f08a65; --accent-dark:#ffad8f; --sage:#294438; --selected:#56352b; --related:#1d3028; --error:#f07872; }
 
 * { box-sizing: border-box; }
 body {
@@ -24,6 +25,10 @@ body {
         var(--paper);
     font-family: "DM Sans", sans-serif;
 }
+:root[data-theme="dark"] body { background:radial-gradient(circle at 12% 8%,rgba(215,107,69,.13),transparent 30rem),var(--paper); }
+:root[data-theme="dark"] .cell.error,:root[data-theme="dark"] .cell.solving-backtrack { background:#4d2929; }
+:root[data-theme="dark"] .tool { background:rgba(255,255,255,.04); }
+:root[data-theme="dark"] .tool:hover,:root[data-theme="dark"] .tool[aria-pressed="true"] { background:#392a25; }
 button, select { font: inherit; }
 button { color: inherit; }
 .app-shell { width: min(1120px, calc(100% - 40px)); margin: 0 auto; padding-bottom: 56px; }
