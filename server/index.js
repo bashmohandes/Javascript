@@ -8,12 +8,14 @@ const { RoomManager } = require('./rooms');
 const { TicTacToeRooms } = require('./tictactoe-rooms');
 const { openDatabase } = require('./database');
 const { Accounts } = require('./accounts');
+const { Achievements } = require('./achievements');
 
 const root = path.resolve(__dirname, '..');
 const port = Number(process.env.PORT) || 8080;
 const buildVersion = process.env.BUILD_VERSION || 'dev';
 const database = openDatabase();
-const accounts = new Accounts(database);
+const achievements = new Achievements(database);
+const accounts = new Accounts(database, achievements);
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').map(value => value.trim()).filter(Boolean);
 const trustProxy = process.env.TRUST_PROXY === 'true';
 const rooms = new RoomManager({
@@ -86,6 +88,8 @@ const server = http.createServer(async (request, response) => {
         return;
     }
     if (pathname === '/api/tictactoe/rooms' && request.method === 'GET') return json(response, 200, { rooms: ticRooms.publicRooms() });
+    const achievementList = pathname.match(/^\/api\/achievements\/(pong|sudoku|minesweeper|tictactoe)$/);
+    if (achievementList && request.method === 'GET') return json(response, 200, { game: achievementList[1], achievements: achievements.list(sessionUser(request)?.id, achievementList[1]) });
     if (pathname.startsWith('/api/')) {
         try {
             if (!sameOrigin(request)) return json(response, 403, { error: 'Origin not allowed.' });
