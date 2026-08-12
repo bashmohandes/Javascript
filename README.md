@@ -73,7 +73,11 @@ The `Test and publish container` workflow tests the application and builds the
 container for every pull request. Pushes to `main` or `master` publish `latest`
 and immutable `sha-...` tags to Docker Hub. Tags such as `v1.2.3` additionally
 publish `1.2.3` and `1.2`. Published images support both AMD64 and ARM64 NAS
-devices and include provenance and an SBOM.
+devices and include provenance and an SBOM. The matching immutable tag (`sha-...`
+for commits or the semantic version for releases) is embedded in the image and
+shown at the bottom of every page. For a local build, set `BUILD_VERSION` before
+running Docker Compose; the same value is used for both the image tag and the
+displayed build version.
 
 Set up Docker Hub once:
 

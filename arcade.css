@@ -32,6 +32,7 @@
 .result-share-actions button { min-width: 110px; padding: 11px 16px; border: 0; border-radius: 10px; font: 700 14px system-ui; cursor: pointer; }
 .result-share-cancel { color: #f7f8fc; background: rgba(255,255,255,.09); }
 .result-share-confirm { color: #10271f; background: #83e6c3; }
-@media (max-width: 650px) { .arcade-account { top: auto; right: 10px; bottom: 10px; } }
+@media (max-width: 650px) { .arcade-account { top: auto; right: 10px; bottom: max(10px, env(safe-area-inset-bottom)); position: fixed; } }
 @media (max-width: 520px) { .arcade-account > a:first-of-type { display:none; } .arcade-account { max-width:calc(100% - 20px); } }
 @media (max-width: 480px) { .result-share-content { padding: 17px; } .result-share-actions button { flex: 1; } }
+.arcade-build-version { margin: 24px auto calc(18px + env(safe-area-inset-bottom)); padding: 0 16px; color: var(--arcade-dialog-muted); font: 12px/1.4 system-ui, sans-serif; text-align: center; }

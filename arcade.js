@@ -51,7 +51,11 @@
     });
     const dialog = document.createElement('dialog'); dialog.className = 'arcade-dialog';
     dialog.innerHTML = `<form class="arcade-auth" method="dialog"><h2>Arcade account</h2><p>Use one gamertag to save play history and scores across every game.</p><label>Gamertag<input name="gamertag" minlength="3" maxlength="24" pattern="[A-Za-z0-9_-]+" autocomplete="username" required></label><label>Passcode<input name="passcode" type="password" minlength="4" maxlength="128" autocomplete="current-password" required></label><p class="arcade-auth-message" role="status"></p><div class="arcade-auth-actions"><button value="login">Sign in</button><button value="register" class="secondary">Create account</button><button value="cancel" class="secondary" formnovalidate>Cancel</button></div></form>`;
-    document.body.append(account, dialog);
+    const buildVersion = document.createElement('footer');
+    buildVersion.className = 'arcade-build-version';
+    buildVersion.textContent = 'Build …';
+    document.body.append(account, dialog, buildVersion);
+    api('/api/version').then(result => { buildVersion.textContent = `Build ${result.version}`; }).catch(() => { buildVersion.hidden = true; });
     const render = () => {
         account.replaceChildren();
         account.append(themeControl);
