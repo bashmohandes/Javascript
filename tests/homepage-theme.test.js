@@ -18,3 +18,8 @@ test('homepage surfaces use theme palette variables', () => {
     assert.match(homepage, /background:\s*var\(--panel\);/);
     assert.match(homepage, /box-shadow:\s*0 24px 70px var\(--card-shadow\);/);
 });
+
+test('homepage gives every game card the same grid footprint', () => {
+    assert.match(homepage, /\.game-grid\s*{[^}]*grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\);[^}]*grid-auto-rows:\s*1fr;/s);
+    assert.doesNotMatch(homepage, /card-featured/);
+});
