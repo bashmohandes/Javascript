@@ -165,11 +165,14 @@ function send(socket, message) { if (socket.readyState === 1) socket.send(JSON.s
 function credentials(room, player) { return { type: 'session', roomCode: room.code, playerId: player.id, playerToken: player.token, side: player.side, gamertags: room.players.map(candidate => candidate?.gamertag || null) }; }
 
 websocketServer.on('connection', (socket, request) => {
+    // Every websocket shares the same heartbeat. Tic-tac-toe used to return
+    // before these handlers were installed, so its healthy connections were
+    // terminated on the first heartbeat interval.
+    socket.isAlive = true;
+    socket.on('pong', () => { socket.isAlive = true; });
     if (new URL(request.url, 'http://localhost').pathname === '/ws/tictactoe') { handleTicSocket(socket, request); return; }
     let membership = null;
     const gamertag = sessionUser(request)?.gamertag || '';
-    socket.isAlive = true;
-    socket.on('pong', () => { socket.isAlive = true; });
     socket.on('message', raw => {
         let message;
         try { message = JSON.parse(raw.toString()); } catch { send(socket, { type: 'error', message: 'Invalid message.' }); return; }
