@@ -27,7 +27,29 @@ test('competitive games consume the same shared color palette', () => {
 test('shared arcade UI keeps mobile navigation above the safe area and displays the build version', () => {
     const styles = read('arcade.css');
     const script = read('arcade.js');
+    assert.match(styles, /body::before\s*{[^}]*height:env\(safe-area-inset-top\)/);
+    assert.match(styles, /top:\s*calc\(14px \+ env\(safe-area-inset-top\)\)/);
     assert.match(styles, /bottom:\s*max\(10px, env\(safe-area-inset-bottom\)\)/);
     assert.match(script, /api\/version/);
     assert.match(script, /arcade-build-version/);
+});
+
+test('every arcade page opts into shared iPhone safe-area handling', () => {
+    const pages = [
+        'index.html',
+        'profile.html',
+        'pong/index.html',
+        'pong/classic/index.html',
+        'Sudoku/index.html',
+        'Sudoku/classic/index.html',
+        'Minesweeper/index.html',
+        'Minesweeper/classic/index.html',
+        'tictactoe/index.html'
+    ];
+
+    for (const page of pages) {
+        const html = read(page);
+        assert.match(html, /viewport-fit=cover/, `${page} should expose the iPhone safe area`);
+        assert.match(html, /arcade\.css/, `${page} should load the shared safe-area styles`);
+    }
 });

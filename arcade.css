@@ -1,6 +1,9 @@
 :root { --arcade-nav-ink:#20352f; --arcade-nav-bg:rgba(255,253,248,.94); --arcade-nav-line:rgba(32,53,47,.18); --arcade-dialog-bg:#fffdf8; --arcade-dialog-muted:#6d7d76; --arcade-dialog-field:#f3eee5; --arcade-dialog-shadow:#20352f33; }
 :root[data-theme="dark"] { --arcade-nav-ink:#f3f7f4; --arcade-nav-bg:rgba(17,27,24,.94); --arcade-nav-line:rgba(255,255,255,.16); --arcade-dialog-bg:#17231f; --arcade-dialog-muted:#aab8b1; --arcade-dialog-field:#0e1714; --arcade-dialog-shadow:#0009; }
-.arcade-account { position: fixed; z-index: 1000; top: 14px; right: 16px; display: flex; align-items: center; gap: 8px; padding: 7px; color: var(--arcade-nav-ink); background: var(--arcade-nav-bg); border: 1px solid var(--arcade-nav-line); border-radius: 14px; box-shadow: 0 10px 30px var(--arcade-dialog-shadow); font: 600 13px/1.2 system-ui, sans-serif; backdrop-filter:blur(12px); }
+/* Keep the first page control below notched and Dynamic Island status bars. A
+   flow spacer preserves each page's own header spacing instead of replacing it. */
+body::before { display:block; height:env(safe-area-inset-top); content:""; }
+.arcade-account { position: fixed; z-index: 1000; top: calc(14px + env(safe-area-inset-top)); right: max(16px, env(safe-area-inset-right)); display: flex; align-items: center; gap: 8px; padding: 7px; color: var(--arcade-nav-ink); background: var(--arcade-nav-bg); border: 1px solid var(--arcade-nav-line); border-radius: 14px; box-shadow: 0 10px 30px var(--arcade-dialog-shadow); font: 600 13px/1.2 system-ui, sans-serif; backdrop-filter:blur(12px); }
 .arcade-account a, .arcade-account button { padding: 8px 11px; color: inherit; background: transparent; border: 0; border-radius: 9px; font: inherit; text-decoration: none; cursor: pointer; }
 .arcade-account button { color: #10271f; background: #83e6c3; }
 .arcade-theme { display:flex; padding:3px; border-radius:9px; background:var(--arcade-dialog-field); }
