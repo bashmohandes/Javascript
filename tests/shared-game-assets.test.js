@@ -18,7 +18,7 @@ test('competitive games consume shared styles without cross-game imports', () =>
 test('competitive games consume the same shared color palette', () => {
     const palette = read('scripts/game-colors.js');
     assert.match(palette, /ArcadeGameColors/);
-    for (const game of ['pong', 'tictactoe']) {
+    for (const game of ['pong', 'tictactoe', 'battle-tanks']) {
         assert.match(read(`${game}/index.html`), /scripts\/game-colors\.js/);
         assert.match(read(`${game}/scripts/app.js`), /window\.ArcadeGameColors/);
     }
@@ -68,7 +68,8 @@ test('every arcade page opts into shared iPhone safe-area handling', () => {
         'Sudoku/classic/index.html',
         'Minesweeper/index.html',
         'Minesweeper/classic/index.html',
-        'tictactoe/index.html'
+        'tictactoe/index.html',
+        'battle-tanks/index.html'
     ];
 
     for (const page of pages) {
