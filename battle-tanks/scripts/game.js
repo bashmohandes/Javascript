@@ -19,7 +19,7 @@
                 { x: 115, y: GROUND - TANK_H, angle: 45, power: 60, health: STARTING_HEALTH },
                 { x: WIDTH - 115 - TANK_W, y: GROUND - TANK_H, angle: 45, power: 60, health: STARTING_HEALTH }
             ],
-            projectile: null, winner: null, shots: 0, hits: 0,
+            projectile: null, winner: null, shots: 0, hits: 0, impacts: [], impactSerial: 0, lastImpact: null,
             startedAt: Date.now(), resultSubmitted: false,
             announcement: 'Preparing the arena.'
         };
@@ -50,7 +50,13 @@
     }
     function circleRect(x, y, r, rect) { return x + r >= rect.x && x - r <= rect.x + rect.w && y + r >= rect.y && y - r <= rect.y + rect.h; }
     function resolveShot(state, hit) {
+        const point = state.projectile && Number.isFinite(state.projectile.x) ? { x: state.projectile.x, y: state.projectile.y } : null;
         state.projectile = null;
+        if (hit && point) {
+            state.impactSerial = (state.impactSerial || 0) + 1;
+            state.lastImpact = { ...point, type: hit.type, index: hit.index, serial: state.impactSerial };
+            if (hit.type === 'terrain' || hit.type === 'barrier') state.impacts = [...(state.impacts || []), state.lastImpact].slice(-14);
+        }
         if (hit && hit.type === 'tank') {
             state.hits += 1;
             const target = state.tanks[hit.index]; target.health = Math.max(0, target.health - DAMAGE);
@@ -89,7 +95,7 @@
         return null;
     }
     function resetMatch(state) { const fresh = createInitialState(); Object.keys(state).forEach(key => delete state[key]); Object.assign(state, fresh); beginTurn(state, 0); return state; }
-    function snapshot(state) { return { phase: state.phase, activePlayer: state.activePlayer, tanks: state.tanks.map(tank => ({ ...tank })), projectile: state.projectile ? { ...state.projectile } : null, winner: state.winner, shots: state.shots, hits: state.hits, announcement: state.announcement }; }
+    function snapshot(state) { return { phase: state.phase, activePlayer: state.activePlayer, tanks: state.tanks.map(tank => ({ ...tank })), projectile: state.projectile ? { ...state.projectile } : null, winner: state.winner, shots: state.shots, hits: state.hits, impacts: (state.impacts || []).map(impact => ({ ...impact })), impactSerial: state.impactSerial || 0, lastImpact: state.lastImpact ? { ...state.lastImpact } : null, announcement: state.announcement }; }
 
     return { WIDTH, HEIGHT, GROUND, GRAVITY, TANK_W, TANK_H, PROJECTILE_R, STARTING_HEALTH, DAMAGE, barrier, createInitialState, beginTurn, tankBounds, moveTank, adjustAim, adjustPower, fireProjectile, collisionAt, stepPhysics, resolveShot, resetMatch, snapshot };
 }));
