@@ -12,8 +12,11 @@
     --selected: #f5d8c9;
     --related: #edf0e8;
     --error: #b83b38;
+    --error-surface: #f8dcda;
+    --control-surface: rgba(255,255,255,.4);
+    --control-active: #fff8f1;
 }
-:root[data-theme="dark"] { --ink:#edf5f0; --muted:#a6b7ae; --paper:#0f1916; --card:#192620; --line:#405149; --accent:#f08a65; --accent-dark:#ffad8f; --sage:#294438; --selected:#56352b; --related:#1d3028; --error:#f07872; }
+:root[data-theme="dark"] { --ink:#edf5f0; --muted:#a6b7ae; --paper:#0f1916; --card:#192620; --line:#405149; --accent:#f08a65; --accent-dark:#ffad8f; --sage:#294438; --selected:#56352b; --related:#1d3028; --error:#f07872; --error-surface:#4d2929; --control-surface:rgba(255,255,255,.04); --control-active:#392a25; }
 
 * { box-sizing: border-box; }
 body {
@@ -26,9 +29,6 @@ body {
     font-family: "DM Sans", sans-serif;
 }
 :root[data-theme="dark"] body { background:radial-gradient(circle at 12% 8%,rgba(215,107,69,.13),transparent 30rem),var(--paper); }
-:root[data-theme="dark"] .cell.error,:root[data-theme="dark"] .cell.solving-backtrack { background:#4d2929; }
-:root[data-theme="dark"] .tool { background:rgba(255,255,255,.04); }
-:root[data-theme="dark"] .tool:hover,:root[data-theme="dark"] .tool[aria-pressed="true"] { background:#392a25; }
 button, select { font: inherit; }
 button { color: inherit; }
 .app-shell { width: min(1120px, calc(100% - 40px)); margin: 0 auto; padding-bottom: 56px; }
@@ -61,18 +61,18 @@ h1 { font-size: clamp(42px, 6vw, 66px); line-height: .98; }
 .cell.related { background: var(--related); }
 .cell.same { background: var(--sage); }
 .cell.selected { background: var(--selected); box-shadow: inset 0 0 0 2px var(--accent); }
-.cell.error { color: var(--error); background: #f8dcda; animation: shake .25s; }
+.cell.error { color: var(--error); background: var(--error-surface); animation: shake .25s; }
 .cell.solving { color: white; background: var(--accent); box-shadow: inset 0 0 0 3px var(--accent-dark); animation: solve-pulse .4s ease-out; }
 .cell.solving-rejected { background: var(--error); box-shadow: inset 0 0 0 3px #872b28; }
-.cell.solving-backtrack { color: var(--error); background: #f8dcda; box-shadow: inset 0 0 0 3px var(--error); }
+.cell.solving-backtrack { color: var(--error); background: var(--error-surface); box-shadow: inset 0 0 0 3px var(--error); }
 .notes-grid { position: absolute; inset: 4px; display: grid; grid-template-columns: repeat(3, 1fr); align-items: center; color: var(--accent-dark); font-size: clamp(7px, 1.3vw, 11px); font-weight: 600; }
 .controls { max-width: 390px; }
 .tool-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 28px; }
-.tool { -webkit-appearance: none; appearance: none; display: grid; grid-template-rows: 24px 16px 12px; place-items: center; align-content: center; gap: 3px; min-height: 78px; border: 1px solid var(--line); border-radius: 8px; background: rgba(255,255,255,.4); font-size: 12px; font-weight: 600; line-height: 1; cursor: pointer; transition: .18s; }
+.tool { -webkit-appearance: none; appearance: none; display: grid; grid-template-rows: 24px 16px 12px; place-items: center; align-content: center; gap: 3px; min-height: 78px; border: 1px solid var(--line); border-radius: 8px; background: var(--control-surface); font-size: 12px; font-weight: 600; line-height: 1; cursor: pointer; transition: .18s; }
 .tool-icon { display: block; width: 24px; height: 24px; overflow: visible; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
 .tool-icon-fill { fill: currentColor; stroke: none; }
 .tool small { color: var(--muted); font-size: 10px; }
-.tool:hover, .tool[aria-pressed="true"] { border-color: var(--accent); color: var(--accent-dark); background: #fff8f1; transform: translateY(-2px); }
+.tool:hover, .tool[aria-pressed="true"] { border-color: var(--accent); color: var(--accent-dark); background: var(--control-active); transform: translateY(-2px); }
 .tool.is-stopping { color: white; border-color: var(--error); background: var(--error); }
 .tool:disabled { opacity: .45; cursor: default; transform: none; }
 .number-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 22px; }
