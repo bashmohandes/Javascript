@@ -202,6 +202,40 @@
         .card-copy { position: relative; z-index: 1; }
         .card-copy p { margin: 0; color: var(--muted); line-height: 1.65; }
 
+        .capabilities {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 22px 0 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .capability {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 7px 10px;
+            color: var(--ink);
+            background: var(--control-fill);
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .capability svg {
+            width: 16px;
+            height: 16px;
+            color: var(--accent);
+            fill: none;
+            stroke: currentColor;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            stroke-width: 1.8;
+        }
+
         .actions { display: flex; flex-wrap: wrap; gap: 11px; margin-top: 28px; }
         .button {
             display: inline-flex;
@@ -261,6 +295,9 @@
                 <div class="card-copy">
                     <h2>Sudoku</h2>
                     <p>Slow down and find the pattern. Choose the refined new experience or revisit the original p5.js classic.</p>
+                    <ul class="capabilities" aria-label="Game modes">
+                        <li class="capability"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20c.6-4 2.7-6 6.5-6s5.9 2 6.5 6"/></svg>Single player</li>
+                    </ul>
                     <div class="actions">
                         <a class="button button-primary" href="Sudoku/index.html">Play new Sudoku&nbsp; →</a>
                         <a class="button button-secondary" href="Sudoku/classic/index.html">Play classic Sudoku</a>
@@ -276,6 +313,9 @@
                 <div class="card-copy">
                     <h2>Minesweeper</h2>
                     <p>Clear the field, read the clues, and avoid every hidden mine in the modernized game—or revisit the original experiment.</p>
+                    <ul class="capabilities" aria-label="Game modes">
+                        <li class="capability"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20c.6-4 2.7-6 6.5-6s5.9 2 6.5 6"/></svg>Single player</li>
+                    </ul>
                     <div class="actions">
                         <a class="button button-primary" href="Minesweeper/index.html">Play new Minesweeper&nbsp; →</a>
                         <a class="button button-secondary" href="Minesweeper/classic/index.html">Play classic Minesweeper</a>
@@ -291,6 +331,11 @@
                 <div class="card-copy">
                     <h2>Pong</h2>
                     <p>Meet the ball and hold your line in a polished solo or two-player rally—or revisit the original experiment.</p>
+                    <ul class="capabilities" aria-label="Game modes">
+                        <li class="capability"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20c.6-4 2.7-6 6.5-6s5.9 2 6.5 6"/></svg>Single player</li>
+                        <li class="capability"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2.5 20c.5-4 2.3-6 5.5-6s5 2 5.5 6M14 15c3.9-.8 6.5.9 7 4"/></svg>Local multiplayer</li>
+                        <li class="capability"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 3.7 5.5 3.7 9s-1.2 6.5-3.7 9c-2.5-2.5-3.7-5.5-3.7-9S9.5 5.5 12 3"/></svg>Online multiplayer</li>
+                    </ul>
                     <div class="actions">
                         <a class="button button-primary" href="pong/index.html">Play new Pong&nbsp; →</a>
                         <a class="button button-secondary" href="pong/classic/index.html">Play classic Pong</a>
@@ -299,7 +344,16 @@
             </article>
             <article class="card">
                 <div class="card-top"><span class="game-icon" aria-hidden="true">×○</span><span class="badge">New game</span></div>
-                <div class="card-copy"><h2>Tic-tac-toe</h2><p>Make three in a row against three computer levels, a friend nearby, or an online opponent.</p><div class="actions"><a class="button button-primary" href="tictactoe/index.html">Play Tic-tac-toe&nbsp; →</a></div></div>
+                <div class="card-copy">
+                    <h2>Tic-tac-toe</h2>
+                    <p>Make three in a row against three computer levels, a friend nearby, or an online opponent.</p>
+                    <ul class="capabilities" aria-label="Game modes">
+                        <li class="capability"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20c.6-4 2.7-6 6.5-6s5.9 2 6.5 6"/></svg>Single player</li>
+                        <li class="capability"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2.5 20c.5-4 2.3-6 5.5-6s5 2 5.5 6M14 15c3.9-.8 6.5.9 7 4"/></svg>Local multiplayer</li>
+                        <li class="capability"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 3.7 5.5 3.7 9s-1.2 6.5-3.7 9c-2.5-2.5-3.7-5.5-3.7-9S9.5 5.5 12 3"/></svg>Online multiplayer</li>
+                    </ul>
+                    <div class="actions"><a class="button button-primary" href="tictactoe/index.html">Play Tic-tac-toe&nbsp; →</a></div>
+                </div>
             </article>
         </section>
 
