@@ -11,6 +11,7 @@ const { Accounts } = require('./accounts');
 
 const root = path.resolve(__dirname, '..');
 const port = Number(process.env.PORT) || 8080;
+const buildVersion = process.env.BUILD_VERSION || 'dev';
 const database = openDatabase();
 const accounts = new Accounts(database);
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').map(value => value.trim()).filter(Boolean);
@@ -78,6 +79,7 @@ const server = http.createServer(async (request, response) => {
         response.end(JSON.stringify({ status: 'ok', rooms: rooms.rooms.size }));
         return;
     }
+    if (pathname === '/api/version' && request.method === 'GET') return json(response, 200, { version: buildVersion });
     if (pathname === '/api/rooms' && request.method === 'GET') {
         response.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
         response.end(JSON.stringify({ rooms: rooms.publicRooms() }));

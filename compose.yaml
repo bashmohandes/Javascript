@@ -1,6 +1,10 @@
 services:
   pong:
-    build: .
+    image: javascript-pong:${BUILD_VERSION:-dev}
+    build:
+      context: .
+      args:
+        BUILD_VERSION: ${BUILD_VERSION:-dev}
     container_name: javascript-pong
     restart: unless-stopped
     ports:

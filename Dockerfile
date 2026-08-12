@@ -4,7 +4,10 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
 FROM node:24-alpine
+ARG BUILD_VERSION=dev
 ENV NODE_ENV=production PORT=8080
+ENV BUILD_VERSION=${BUILD_VERSION}
+LABEL org.opencontainers.image.version=${BUILD_VERSION}
 WORKDIR /app
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
