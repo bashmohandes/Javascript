@@ -17,13 +17,43 @@
     <meta name="apple-mobile-web-app-title" content="JS Arcade">
     <style>
         :root {
+            color-scheme: light;
+            --ink: #20352f;
+            --muted: #65766f;
+            --panel: rgba(255, 253, 248, 0.8);
+            --line: rgba(32, 53, 47, 0.14);
+            --accent: #168267;
+            --accent-contrast: #ffffff;
+            --page-background: #f7f3eb;
+            --page-glow-start: rgba(104, 202, 179, 0.28);
+            --page-glow-end: rgba(187, 151, 221, 0.2);
+            --card-shadow: rgba(55, 72, 65, 0.14);
+            --control-fill: rgba(32, 53, 47, 0.055);
+            --hover-line: rgba(32, 53, 47, 0.42);
+            --focus-ring: rgba(22, 130, 103, 0.32);
+            --default-glow: rgba(43, 173, 141, 0.14);
+            --blue-glow: rgba(68, 118, 221, 0.13);
+            --purple-glow: rgba(153, 78, 196, 0.13);
+        }
+
+        :root[data-theme="dark"] {
             color-scheme: dark;
             --ink: #f7f8fc;
             --muted: #aab4c5;
             --panel: rgba(24, 35, 53, 0.76);
             --line: rgba(255, 255, 255, 0.11);
             --accent: #83e6c3;
-            --accent-dark: #10271f;
+            --accent-contrast: #10271f;
+            --page-background: #0d1420;
+            --page-glow-start: rgba(46, 101, 120, 0.45);
+            --page-glow-end: rgba(81, 58, 120, 0.35);
+            --card-shadow: rgba(0, 0, 0, 0.18);
+            --control-fill: rgba(255, 255, 255, 0.05);
+            --hover-line: rgba(255, 255, 255, 0.4);
+            --focus-ring: rgba(131, 230, 195, 0.45);
+            --default-glow: rgba(131, 230, 195, 0.16);
+            --blue-glow: rgba(114, 157, 255, 0.18);
+            --purple-glow: rgba(206, 132, 255, 0.18);
         }
 
         * { box-sizing: border-box; }
@@ -33,9 +63,9 @@
             margin: 0;
             color: var(--ink);
             background:
-                radial-gradient(circle at 8% 0%, rgba(46, 101, 120, 0.45), transparent 34rem),
-                radial-gradient(circle at 95% 90%, rgba(81, 58, 120, 0.35), transparent 36rem),
-                #0d1420;
+                radial-gradient(circle at 8% 0%, var(--page-glow-start), transparent 34rem),
+                radial-gradient(circle at 95% 90%, var(--page-glow-end), transparent 36rem),
+                var(--page-background);
             font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         }
 
@@ -68,7 +98,7 @@
             width: 34px;
             height: 34px;
             place-items: center;
-            color: #0d1420;
+            color: var(--accent-contrast);
             background: var(--accent);
             border-radius: 10px;
             font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
@@ -117,7 +147,7 @@
             background: var(--panel);
             border: 1px solid var(--line);
             border-radius: 28px;
-            box-shadow: 0 24px 70px rgba(0, 0, 0, 0.18);
+            box-shadow: 0 24px 70px var(--card-shadow);
             backdrop-filter: blur(14px);
         }
 
@@ -127,7 +157,7 @@
             bottom: -75px;
             width: 190px;
             height: 190px;
-            background: var(--glow, rgba(131, 230, 195, 0.16));
+            background: var(--glow, var(--default-glow));
             border-radius: 50%;
             content: "";
             filter: blur(8px);
@@ -135,8 +165,8 @@
 
         .card-featured { grid-column: 1 / -1; min-height: 330px; }
         .card-featured .card-copy { max-width: 610px; }
-        .card:nth-child(2) { --glow: rgba(114, 157, 255, 0.18); }
-        .card:nth-child(3) { --glow: rgba(206, 132, 255, 0.18); }
+        .card:nth-child(2) { --glow: var(--blue-glow); }
+        .card:nth-child(3) { --glow: var(--purple-glow); }
 
         .card-top {
             display: flex;
@@ -151,7 +181,7 @@
             width: 46px;
             height: 46px;
             place-items: center;
-            background: rgba(255, 255, 255, 0.07);
+            background: var(--control-fill);
             border: 1px solid var(--line);
             border-radius: 14px;
             font-size: 20px;
@@ -160,7 +190,7 @@
         .badge {
             padding: 7px 10px;
             color: var(--muted);
-            background: rgba(255, 255, 255, 0.05);
+            background: var(--control-fill);
             border: 1px solid var(--line);
             border-radius: 999px;
             font-size: 11px;
@@ -188,10 +218,10 @@
             transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
         }
 
-        .button-primary { color: var(--accent-dark); background: var(--accent); border-color: var(--accent); }
-        .button-secondary { background: rgba(255, 255, 255, 0.05); }
-        .button:hover { transform: translateY(-2px); border-color: rgba(255, 255, 255, 0.4); }
-        .button:focus-visible { outline: 3px solid rgba(131, 230, 195, 0.45); outline-offset: 3px; }
+        .button-primary { color: var(--accent-contrast); background: var(--accent); border-color: var(--accent); }
+        .button-secondary { background: var(--control-fill); }
+        .button:hover { transform: translateY(-2px); border-color: var(--hover-line); }
+        .button:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 3px; }
         footer { margin-top: 34px; color: var(--muted); font-size: 13px; text-align: center; }
 
         @media (max-width: 700px) {
