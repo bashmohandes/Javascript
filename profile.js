@@ -1,6 +1,6 @@
 (() => {
     'use strict';
-    const labels = { pong: 'Pong', sudoku: 'Sudoku', minesweeper: 'Minesweeper', tictactoe: 'Tic-tac-toe' };
+    const labels = { pong: 'Pong', sudoku: 'Sudoku', minesweeper: 'Minesweeper', tictactoe: 'Tic-tac-toe', battletanks: 'Battle Tanks' };
     const profileForm = document.querySelector('#profile-form');
     const currentPasscode = document.createElement('input');
     currentPasscode.name = 'currentPasscode'; currentPasscode.type = 'password'; currentPasscode.minLength = 4; currentPasscode.maxLength = 128; currentPasscode.required = true; currentPasscode.placeholder = 'Current passcode'; currentPasscode.autocomplete = 'current-password'; currentPasscode.setAttribute('aria-label', 'Current passcode');
@@ -11,7 +11,7 @@
         const total = Number(seconds), hours = Math.floor(total / 3600), minutes = Math.floor(total % 3600 / 60), remainder = total % 60;
         return hours ? `${hours}:${String(minutes).padStart(2, '0')}:${String(remainder).padStart(2, '0')}` : `${String(minutes).padStart(2, '0')}:${String(remainder).padStart(2, '0')}`;
     };
-    const detailLabels = { difficulty: 'Difficulty', mode: 'Mode', score: 'Result', mistakes: 'Mistakes', hintsUsed: 'Hints', seconds: 'Time' };
+    const detailLabels = { difficulty: 'Difficulty', mode: 'Mode', score: 'Result', mistakes: 'Mistakes', hintsUsed: 'Hints', seconds: 'Time', winner: 'Winner', turns: 'Turns', shots: 'Shots', hits: 'Hits', accuracy: 'Accuracy %', damageTaken: 'Damage taken' };
     const duration = row => Number.isFinite(Number(row.details?.seconds)) ? formatDuration(row.details.seconds) : '—';
     const details = row => Object.entries(row.details || {}).filter(([key]) => key !== 'seconds').map(([key, value]) => `${detailLabels[key] || key}: ${value}`).join(' · ') || '—';
     async function shareAchievement(item) {
@@ -40,7 +40,7 @@
         const byGame = Object.fromEntries(profile.totals.map(item => [item.game, item]));
         renderAchievements(profile.achievements || []);
         document.querySelector('#stats').innerHTML = Object.keys(labels).map(game => { const row = byGame[game] || {}; return `<div class="stat"><span class="stat-game">${labels[game]}</span><div class="stat-metrics"><div><strong>${row.games_played || 0}</strong><small>Played</small></div><div><strong>${row.wins || 0}</strong><small>Wins</small></div><div><strong>${row.best_score ?? '—'}</strong><small>Best</small></div></div></div>`; }).join('');
-        document.querySelector('#history').innerHTML = profile.recent.length ? profile.recent.map(row => `<tr><td>${labels[row.game]}</td><td>${row.won ? 'Win' : 'Played'}</td><td>${row.score}</td><td>${duration(row)}</td><td>${new Date(row.played_at + 'Z').toLocaleString()}</td></tr>`).join('') : '<tr><td colspan="5" class="empty">Play a game to begin your history.</td></tr>';
+        document.querySelector('#history').innerHTML = profile.recent.length ? profile.recent.map(row => `<tr><td>${labels[row.game]}</td><td>${row.won ? 'Win' : row.game === 'battletanks' ? 'Loss' : 'Played'}</td><td>${row.score}</td><td>${duration(row)}</td><td>${new Date(row.played_at + 'Z').toLocaleString()}</td></tr>`).join('') : '<tr><td colspan="5" class="empty">Play a game to begin your history.</td></tr>';
         const pagination = document.querySelector('#history-pagination');
         pagination.hidden = profile.pagination.totalPages <= 1;
         pagination.dataset.page = profile.pagination.page;

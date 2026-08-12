@@ -123,6 +123,7 @@
         signIn: () => dialog.showModal(),
         record: async result => { if (!currentUser) return null; const recorded = await api('/api/results', { method: 'POST', body: JSON.stringify(result) }); showUnlocks(recorded.unlocked || []); return recorded; },
         achievements: loadAchievements,
+        notifyAchievements: showUnlocks,
         api,
         theme: () => ({ preference: themePreference, resolved: document.documentElement.dataset.theme }),
         setTheme

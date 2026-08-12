@@ -92,7 +92,7 @@ const server = http.createServer(async (request, response) => {
         return;
     }
     if (pathname === '/api/tictactoe/rooms' && request.method === 'GET') return json(response, 200, { rooms: ticRooms.publicRooms() });
-    const achievementList = pathname.match(/^\/api\/achievements\/(pong|sudoku|minesweeper|tictactoe)$/);
+    const achievementList = pathname.match(/^\/api\/achievements\/(pong|sudoku|minesweeper|tictactoe|battletanks)$/);
     if (achievementList && request.method === 'GET') return json(response, 200, { game: achievementList[1], achievements: achievements.list(sessionUser(request)?.id, achievementList[1]) });
     if (pathname.startsWith('/api/')) {
         try {
@@ -113,7 +113,7 @@ const server = http.createServer(async (request, response) => {
                 return json(response, 200, { ok: true }, { 'set-cookie': 'arcade_session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0' });
             }
             if (pathname === '/api/me' && request.method === 'GET') return json(response, 200, { user: sessionUser(request) });
-            const leaderboard = pathname.match(/^\/api\/leaderboards\/(pong|sudoku|minesweeper|tictactoe)$/);
+            const leaderboard = pathname.match(/^\/api\/leaderboards\/(pong|sudoku|minesweeper|tictactoe|battletanks)$/);
             if (leaderboard && request.method === 'GET') return json(response, 200, { game: leaderboard[1], entries: accounts.leaderboard(leaderboard[1]) });
             const user = sessionUser(request);
             if (!user) return json(response, 401, { error: 'Sign in to continue.' });

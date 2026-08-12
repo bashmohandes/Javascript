@@ -1,6 +1,6 @@
 'use strict';
 
-const GAMES = ['pong', 'sudoku', 'minesweeper', 'tictactoe'];
+const GAMES = ['pong', 'sudoku', 'minesweeper', 'tictactoe', 'battletanks'];
 const catalog = [
     { id: 'pong-first-point', game: 'pong', icon: '🏓', title: 'Paddle Me This', condition: 'Finish your first Pong match.', event: 'result', target: 1 },
     { id: 'pong-winner', game: 'pong', icon: '🧱', title: 'The Wall Has Wi-Fi', condition: 'Win a Pong match.', event: 'result', where: { won: true }, target: 1 },
@@ -17,7 +17,11 @@ const catalog = [
     { id: 'tic-first', game: 'tictactoe', icon: '❌', title: 'X Marks the Start', condition: 'Finish a Tic-tac-toe game.', event: 'result', target: 1 },
     { id: 'tic-hard', game: 'tictactoe', icon: '🤖', title: 'Artificial Unintelligence', condition: 'Beat the computer on Hard.', event: 'result', where: { won: true, 'details.mode': 'solo-hard' }, target: 1 },
     { id: 'tic-online', game: 'tictactoe', icon: '📡', title: 'Three Bars, Three Marks', condition: 'Finish an online Tic-tac-toe match.', event: 'result', where: { 'details.mode': 'online' }, target: 1 },
-    { id: 'tic-speed', game: 'tictactoe', icon: '💨', title: 'Blink and You Missed X', condition: 'Win Tic-tac-toe in five moves or fewer.', event: 'result', where: { won: true, 'details.moves': { lte: 5 } }, target: 1 }
+    { id: 'tic-speed', game: 'tictactoe', icon: '💨', title: 'Blink and You Missed X', condition: 'Win Tic-tac-toe in five moves or fewer.', event: 'result', where: { won: true, 'details.moves': { lte: 5 } }, target: 1 },
+    { id: 'tanks-first', game: 'battletanks', icon: '🏁', title: 'Battle Tested', condition: 'Finish a Battle Tanks match.', event: 'result', target: 1 },
+    { id: 'tanks-win', game: 'battletanks', icon: '🏆', title: 'Tank Commander', condition: 'Win a Battle Tanks match.', event: 'result', where: { won: true }, target: 1 },
+    { id: 'tanks-accurate', game: 'battletanks', icon: '🎯', title: 'Deadeye', condition: 'Win with at least 50% accuracy.', event: 'result', where: { won: true, 'details.accuracy': { gte: 50 } }, target: 1 },
+    { id: 'tanks-untouched', game: 'battletanks', icon: '🛡️', title: 'Untouchable', condition: 'Win without taking damage.', event: 'result', where: { won: true, 'details.damageTaken': 0 }, target: 1 }
 ];
 
 function valueAt(object, path) { return path.split('.').reduce((value, key) => value?.[key], object); }
