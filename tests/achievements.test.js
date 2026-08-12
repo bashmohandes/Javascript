@@ -19,7 +19,7 @@ function fixture(t) {
 
 test('catalog has stable unique ids and achievements for every game', () => {
     assert.equal(new Set(catalog.map(item => item.id)).size, catalog.length);
-    assert.deepEqual(new Set(catalog.map(item => item.game)), new Set(['pong', 'sudoku', 'minesweeper', 'tictactoe']));
+    assert.deepEqual(new Set(catalog.map(item => item.game)), new Set(['pong', 'sudoku', 'minesweeper', 'tictactoe', 'battletanks']));
     for (const item of catalog) assert.ok(item.title && item.condition && item.target > 0);
 });
 

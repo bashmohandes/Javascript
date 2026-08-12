@@ -4,7 +4,7 @@ const crypto = require('node:crypto');
 const { promisify } = require('node:util');
 
 const SESSION_DAYS = 30;
-const GAMES = new Set(['pong', 'sudoku', 'minesweeper', 'tictactoe']);
+const GAMES = new Set(['pong', 'sudoku', 'minesweeper', 'tictactoe', 'battletanks']);
 const hashToken = token => crypto.createHash('sha256').update(token).digest('hex');
 const normalizeGamertag = value => String(value || '').trim();
 const scrypt = promisify(crypto.scrypt);
@@ -130,6 +130,22 @@ function integer(value, minimum, maximum, label) {
 
 function validateResult(game, wonValue, details) {
     const won = wonValue === true;
+    if (game === 'battletanks') {
+        if (details.mode !== 'local') throw new Error('Invalid Battle Tanks mode.');
+        const field = (name, minimum, maximum) => {
+            if (typeof details[name] !== 'number' || !Number.isFinite(details[name]) || !Number.isSafeInteger(details[name])) throw new Error(`Invalid Battle Tanks ${name}.`);
+            return integer(details[name], minimum, maximum, `Battle Tanks ${name}`);
+        };
+        const winner = field('winner', 1, 2), turns = field('turns', 2, 200), shots = field('shots', 2, 200);
+        const hits = field('hits', 2, 3), seconds = field('seconds', 1, 7200), damageTaken = field('damageTaken', 0, 100);
+        const credibleHealth = winner === 1 ? damageTaken <= 50 : damageTaken === 100;
+        if (turns !== shots || hits > shots || won !== (winner === 1) || damageTaken % 50 !== 0 || !credibleHealth) throw new Error('Invalid Battle Tanks result.');
+        // Wins rank above losses. Accuracy is worth up to 5,000 points, while
+        // fewer turns break otherwise equal matches: 10,000*win + 5,000*hits/shots + 10*(200-turns).
+        const score = (won ? 10000 : 0) + Math.floor(hits * 5000 / shots) + (200 - turns) * 10;
+        const accuracy = Math.floor(hits * 100 / shots);
+        return { won, score, normalizedDetails: { mode: 'local', winner, turns, shots, hits, accuracy, seconds, damageTaken } };
+    }
     if (game === 'tictactoe') {
         if (!['solo-easy', 'solo-medium', 'solo-hard', 'duo', 'online'].includes(details.mode)) throw new Error('Invalid Tic-tac-toe mode.');
         const seconds = integer(details.seconds, 1, 86400, 'Tic-tac-toe time');
