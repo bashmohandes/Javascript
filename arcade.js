@@ -55,10 +55,36 @@
     buildVersion.className = 'arcade-build-version';
     buildVersion.textContent = 'Build …';
     document.body.append(account, dialog, buildVersion);
+    const game = ({ '/pong/':'pong', '/Sudoku/':'sudoku', '/Minesweeper/':'minesweeper', '/tictactoe/':'tictactoe' })[location.pathname.match(/^\/(?:pong|Sudoku|Minesweeper|tictactoe)\//)?.[0]];
+    let achievementDialog;
+    const shareAchievement = async achievement => {
+        const text = `${achievement.icon} Achievement unlocked: “${achievement.title}” in JavaScript Arcade — ${achievement.condition}`;
+        if (navigator.share) return navigator.share({ title: achievement.title, text, url: location.origin + '/profile.html#achievements' });
+        await navigator.clipboard.writeText(`${text} ${location.origin}/profile.html#achievements`);
+    };
+    const showUnlocks = unlocked => unlocked.forEach((achievement, index) => setTimeout(() => {
+        const toast = document.createElement('aside'); toast.className = 'achievement-toast'; toast.setAttribute('role', 'status');
+        toast.innerHTML = `<span>${achievement.icon}</span><div><small>Achievement unlocked</small><strong>${achievement.title}</strong></div>`;
+        document.body.append(toast); setTimeout(() => toast.remove(), 5200);
+        document.dispatchEvent(new CustomEvent('arcade:achievement', { detail: achievement }));
+    }, index * 450));
+    const loadAchievements = async () => {
+        if (!game || !achievementDialog) return;
+        const result = await api(`/api/achievements/${game}`);
+        achievementDialog.querySelector('.achievement-list').innerHTML = result.achievements.map(item => `<article class="achievement-card ${item.unlocked ? 'is-unlocked' : ''}"><span class="achievement-icon" aria-hidden="true">${item.icon}</span><div><small>${item.unlocked ? `Unlocked ${new Date(item.unlockedAt + 'Z').toLocaleDateString()}` : 'Locked'}</small><strong>${item.title}</strong><p>${item.condition}</p>${item.target > 1 ? `<progress value="${item.progress}" max="${item.target}">${item.progress}/${item.target}</progress><small>${item.progress} / ${item.target}</small>` : ''}</div>${item.unlocked ? `<button type="button" data-share-achievement="${item.id}">Share</button>` : ''}</article>`).join('');
+        achievementDialog.querySelectorAll('[data-share-achievement]').forEach(button => button.addEventListener('click', () => shareAchievement(result.achievements.find(item => item.id === button.dataset.shareAchievement)).catch(() => {})));
+    };
+    if (game) {
+        achievementDialog = document.createElement('dialog'); achievementDialog.className = 'arcade-dialog achievement-dialog';
+        achievementDialog.innerHTML = `<header><div><small>Challenge cabinet</small><h2>Achievements</h2></div><button type="button" aria-label="Close achievements">×</button></header><div class="achievement-list"></div>`;
+        achievementDialog.querySelector('header button').addEventListener('click', () => achievementDialog.close());
+        document.body.append(achievementDialog);
+    }
     api('/api/version').then(result => { buildVersion.textContent = `Build ${result.version}`; }).catch(() => { buildVersion.hidden = true; });
     const render = () => {
         account.replaceChildren();
         account.append(themeControl);
+        if (game) { const achievements = document.createElement('button'); achievements.type = 'button'; achievements.className = 'achievement-nav'; achievements.textContent = 'Achievements'; achievements.addEventListener('click', () => { achievementDialog.showModal(); loadAchievements().catch(() => {}); }); account.append(achievements); }
         const scores = document.createElement('a'); scores.href = `${rootPath}profile.html#leaderboards`; scores.textContent = 'Top scores'; account.append(scores);
         if (currentUser) {
             const profile = document.createElement('a'); profile.href = `${rootPath}profile.html`; profile.textContent = currentUser.gamertag;
@@ -82,7 +108,8 @@
     window.Arcade = {
         user: () => currentUser,
         signIn: () => dialog.showModal(),
-        record: async result => currentUser ? api('/api/results', { method: 'POST', body: JSON.stringify(result) }) : null,
+        record: async result => { if (!currentUser) return null; const recorded = await api('/api/results', { method: 'POST', body: JSON.stringify(result) }); showUnlocks(recorded.unlocked || []); return recorded; },
+        achievements: loadAchievements,
         api,
         theme: () => ({ preference: themePreference, resolved: document.documentElement.dataset.theme }),
         setTheme

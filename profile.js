@@ -14,6 +14,19 @@
     const detailLabels = { difficulty: 'Difficulty', mode: 'Mode', score: 'Result', mistakes: 'Mistakes', hintsUsed: 'Hints', seconds: 'Time' };
     const duration = row => Number.isFinite(Number(row.details?.seconds)) ? formatDuration(row.details.seconds) : '—';
     const details = row => Object.entries(row.details || {}).filter(([key]) => key !== 'seconds').map(([key, value]) => `${detailLabels[key] || key}: ${value}`).join(' · ') || '—';
+    async function shareAchievement(item) {
+        const text = `${item.icon} I unlocked “${item.title}” in JavaScript Arcade — ${item.condition}`;
+        if (navigator.share) return navigator.share({ title: item.title, text, url: location.href.split('#')[0] + '#achievements' });
+        await navigator.clipboard.writeText(`${text} ${location.href.split('#')[0]}#achievements`);
+    }
+    function renderAchievements(items) {
+        const panel = document.querySelector('#achievements'); panel.hidden = false;
+        const unlocked = items.filter(item => item.unlocked).length;
+        document.querySelector('#achievement-count').textContent = `${unlocked} / ${items.length}`;
+        const container = document.querySelector('#profile-achievements');
+        container.innerHTML = items.map(item => `<article class="profile-achievement ${item.unlocked ? '' : 'is-locked'}"><span class="icon" aria-hidden="true">${item.icon}</span><div><small>${labels[item.game]} · ${item.unlocked ? `Unlocked ${new Date(item.unlockedAt + 'Z').toLocaleDateString()}` : 'Locked'}</small><strong>${item.title}</strong><p>${item.condition}</p>${item.target > 1 ? `<progress value="${item.progress}" max="${item.target}"></progress><small>${item.progress} / ${item.target}</small>` : ''}</div>${item.unlocked ? `<button type="button" data-share="${item.id}">Share</button>` : ''}</article>`).join('');
+        container.querySelectorAll('[data-share]').forEach(button => button.addEventListener('click', () => shareAchievement(items.find(item => item.id === button.dataset.share)).catch(() => {})));
+    }
     async function loadProfile(user, page = 1) {
         document.querySelector('#account-panel').hidden = !user; document.querySelector('#stats-panel').hidden = !user;
         if (!user) return;
@@ -22,6 +35,7 @@
         document.querySelector('#profile-note').textContent = `Member since ${new Date(profile.user.createdAt + 'Z').toLocaleDateString()}`;
         document.querySelector('#profile-form').gamertag.value = profile.user.gamertag;
         const byGame = Object.fromEntries(profile.totals.map(item => [item.game, item]));
+        renderAchievements(profile.achievements || []);
         document.querySelector('#stats').innerHTML = Object.keys(labels).map(game => { const row = byGame[game] || {}; return `<div class="stat"><span class="stat-game">${labels[game]}</span><div class="stat-metrics"><div><strong>${row.games_played || 0}</strong><small>Played</small></div><div><strong>${row.wins || 0}</strong><small>Wins</small></div><div><strong>${row.best_score ?? '—'}</strong><small>Best</small></div></div></div>`; }).join('');
         document.querySelector('#history').innerHTML = profile.recent.length ? profile.recent.map(row => `<tr><td>${labels[row.game]}</td><td>${row.won ? 'Win' : 'Played'}</td><td>${row.score}</td><td>${duration(row)}</td><td>${new Date(row.played_at + 'Z').toLocaleString()}</td></tr>`).join('') : '<tr><td colspan="5" class="empty">Play a game to begin your history.</td></tr>';
         const pagination = document.querySelector('#history-pagination');

@@ -26,7 +26,7 @@ function publicUser(row) { return row ? { id: row.id, gamertag: row.gamertag, cr
 function isUniqueConstraint(error) { return String(error.code || '').includes('CONSTRAINT') || /UNIQUE constraint/i.test(error.message); }
 
 class Accounts {
-    constructor(database) { this.database = database; }
+    constructor(database, achievements = null) { this.database = database; this.achievements = achievements; }
 
     validateCredentials(gamertag, passcode) {
         if (!/^[A-Za-z0-9_-]{3,24}$/.test(gamertag)) throw new Error('Gamertag must be 3–24 letters, numbers, underscores, or hyphens.');
@@ -95,7 +95,8 @@ class Accounts {
         const encoded = JSON.stringify(normalizedDetails);
         if (encoded.length > 2000) throw new Error('Game details are too large.');
         const insert = this.database.prepare('INSERT INTO game_results (user_id, game, score, won, details) VALUES (?, ?, ?, ?, ?)').run(userId, game, score, won ? 1 : 0, encoded);
-        return { id: Number(insert.lastInsertRowid), score };
+        const unlocked = this.achievements?.process(userId, game, 'result', { game, won, score, details: normalizedDetails }) || [];
+        return { id: Number(insert.lastInsertRowid), score, unlocked };
     }
 
     profile(userId, pageValue = 1, pageSizeValue = 10) {
@@ -107,7 +108,8 @@ class Accounts {
         const totalPages = Math.max(1, Math.ceil(totalGames / pageSize));
         const currentPage = Math.min(page, totalPages);
         const recent = this.database.prepare('SELECT id, game, score, won, details, played_at FROM game_results WHERE user_id = ? ORDER BY played_at DESC, id DESC LIMIT ? OFFSET ?').all(userId, pageSize, (currentPage - 1) * pageSize).map(row => ({ ...row, won: Boolean(row.won), details: JSON.parse(row.details) }));
-        return { user, totals, recent, pagination: { page: currentPage, pageSize, totalGames, totalPages } };
+        const achievements = this.achievements?.list(userId) || [];
+        return { user, totals, recent, achievements, pagination: { page: currentPage, pageSize, totalGames, totalPages } };
     }
 
     leaderboard(gameValue) {
