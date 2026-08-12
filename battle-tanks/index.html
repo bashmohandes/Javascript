@@ -10,6 +10,16 @@
 <main class="app-shell">
     <header class="topbar"><a class="brand" href="../index.html" aria-label="Back to games"><span class="brand-mark" aria-hidden="true">T</span><span>Battle Tanks</span></a><span class="version-link">Couch duel</span></header>
     <section class="intro" aria-labelledby="page-title"><div><p class="eyebrow">One shot at a time</p><h1 id="page-title">Line up the hit.</h1><p class="intro-copy">Move, set your angle and choose your power. The central wall makes every shot count.</p></div><div class="scoreboard" aria-label="Tank health"><div class="score"><span>Player 1</span><strong id="health-left">100</strong><small>health</small></div><span class="score-divider">—</span><div class="score"><span>Player 2</span><strong id="health-right">100</strong><small>health</small></div></div></section>
+    <section class="online-lobby" aria-label="Play mode and online lobby">
+        <label>Mode <select id="play-mode"><option value="local">Local two-player</option><option value="online">Online multiplayer</option></select></label>
+        <div id="online-controls" hidden>
+            <button id="refresh-rooms" type="button">Browse public rooms</button><select id="public-rooms" aria-label="Public rooms"><option value="">Select a public room</option></select>
+            <button id="create-public" type="button">Create public room</button><input id="private-passcode" type="password" minlength="4" maxlength="32" placeholder="Private passcode" autocomplete="new-password"><button id="create-private" type="button">Create private room</button>
+            <input id="room-code" maxlength="5" pattern="[A-Za-z0-9]{5}" placeholder="Room code"><input id="join-passcode" type="password" maxlength="32" placeholder="Passcode (private only)"><button id="join-room" type="button">Join room</button>
+            <button id="copy-invite" type="button" hidden>Copy invitation link</button><button id="online-ready" type="button" hidden>Ready</button><button id="leave-room" type="button" hidden>Leave room</button>
+            <p id="connection-status" role="status">Offline</p><p id="room-players"></p>
+        </div>
+    </section>
     <section class="game-layout">
         <div class="arena-wrap" id="arena" data-active="0"><canvas id="game" width="960" height="540" aria-label="Battle Tanks arena. Player 1 is active." role="img"></canvas><div class="active-flag" id="active-flag" aria-hidden="true">Player 1 turn</div><button class="arena-share primary-button" id="share-result" type="button" hidden>Share result</button></div>
         <aside class="controls" aria-label="Game controls">
@@ -29,6 +39,6 @@
             <p class="instructions"><strong>Keyboard</strong> <kbd>A</kbd>/<kbd>D</kbd> move · <kbd>W</kbd>/<kbd>S</kbd> aim · <kbd>Q</kbd>/<kbd>E</kbd> power · <kbd>Space</kbd> fire.<br><strong>Touch or pointer</strong> Use the controls, or drag the active tank horizontally in its half.<br>Each tank starts with <strong>100 health</strong>. A direct hit deals 50 damage.</p>
         </aside>
     </section>
-</main><script src="../arcade.js"></script><script src="../scripts/game-colors.js"></script><script src="../scripts/share-result.js"></script><script src="scripts/app.js"></script>
+</main><script src="../arcade.js"></script><script src="../scripts/game-colors.js"></script><script src="../scripts/share-result.js"></script><script src="scripts/game.js"></script><script src="scripts/app.js"></script>
 </body>
 </html>

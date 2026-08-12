@@ -131,20 +131,26 @@ function integer(value, minimum, maximum, label) {
 function validateResult(game, wonValue, details) {
     const won = wonValue === true;
     if (game === 'battletanks') {
-        if (details.mode !== 'local') throw new Error('Invalid Battle Tanks mode.');
+        if (!['local', 'online'].includes(details.mode)) throw new Error('Invalid Battle Tanks mode.');
         const field = (name, minimum, maximum) => {
             if (typeof details[name] !== 'number' || !Number.isFinite(details[name]) || !Number.isSafeInteger(details[name])) throw new Error(`Invalid Battle Tanks ${name}.`);
             return integer(details[name], minimum, maximum, `Battle Tanks ${name}`);
         };
-        const winner = field('winner', 1, 2), turns = field('turns', 2, 200), shots = field('shots', 2, 200);
-        const hits = field('hits', 2, 3), seconds = field('seconds', 1, 7200), damageTaken = field('damageTaken', 0, 100);
-        const credibleHealth = winner === 1 ? damageTaken <= 50 : damageTaken === 100;
-        if (turns !== shots || hits > shots || won !== (winner === 1) || damageTaken % 50 !== 0 || !credibleHealth) throw new Error('Invalid Battle Tanks result.');
+        const winner = field('winner', 1, 2), turns = field('turns', details.mode === 'online' ? 0 : 2, 200), shots = field('shots', details.mode === 'online' ? 0 : 2, 200);
+        const hits = field('hits', details.mode === 'online' ? 0 : 2, 200), seconds = field('seconds', 1, 7200), damageTaken = field('damageTaken', 0, 100);
+        if (turns !== shots || hits > shots || damageTaken % 50 !== 0) throw new Error('Invalid Battle Tanks result.');
+        if (details.mode === 'local' && (won !== (winner === 1) || (winner === 1 ? damageTaken > 50 : damageTaken !== 100))) throw new Error('Invalid Battle Tanks result.');
         // Wins rank above losses. Accuracy is worth up to 5,000 points, while
         // fewer turns break otherwise equal matches: 10,000*win + 5,000*hits/shots + 10*(200-turns).
-        const score = (won ? 10000 : 0) + Math.floor(hits * 5000 / shots) + (200 - turns) * 10;
+        const score = (won ? 10000 : 0) + Math.floor(hits * 5000 / Math.max(1, shots)) + (200 - turns) * 10;
         const accuracy = Math.floor(hits * 100 / shots);
-        return { won, score, normalizedDetails: { mode: 'local', winner, turns, shots, hits, accuracy, seconds, damageTaken } };
+        const normalizedDetails = { mode: details.mode, winner, turns, shots, hits, accuracy, seconds, damageTaken };
+        if (details.mode === 'online') {
+            normalizedDetails.reconnected = details.reconnected === true;
+            normalizedDetails.rematchNumber = integer(details.rematchNumber, 0, 200, 'Battle Tanks rematch number');
+            normalizedDetails.matchId = integer(details.matchId, 1, Number.MAX_SAFE_INTEGER, 'Battle Tanks match ID');
+        }
+        return { won, score, normalizedDetails };
     }
     if (game === 'tictactoe') {
         if (!['solo-easy', 'solo-medium', 'solo-hard', 'duo', 'online'].includes(details.mode)) throw new Error('Invalid Tic-tac-toe mode.');

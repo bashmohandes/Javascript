@@ -6,6 +6,7 @@ const path = require('node:path');
 const { WebSocketServer } = require('ws');
 const { RoomManager } = require('./rooms');
 const { TicTacToeRooms } = require('./tictactoe-rooms');
+const { BattleTanksRooms } = require('./battle-tanks-rooms');
 const { openDatabase } = require('./database');
 const { Accounts } = require('./accounts');
 const { Achievements } = require('./achievements');
@@ -24,6 +25,7 @@ const rooms = new RoomManager({
     roomTimeoutMs: Number(process.env.ROOM_TIMEOUT_MS) || 1800000
 });
 const ticRooms = new TicTacToeRooms({ reconnectMs: Number(process.env.RECONNECT_GRACE_MS) || 15000, roomTimeoutMs: Number(process.env.ROOM_TIMEOUT_MS) || 1800000 });
+const battleRooms = new BattleTanksRooms({ reconnectMs: Number(process.env.RECONNECT_GRACE_MS) || 15000, roomTimeoutMs: Number(process.env.ROOM_TIMEOUT_MS) || 1800000, accounts });
 const mime = {
     '.html': 'text/html; charset=utf-8',
     '.js': 'text/javascript; charset=utf-8',
@@ -92,6 +94,7 @@ const server = http.createServer(async (request, response) => {
         return;
     }
     if (pathname === '/api/tictactoe/rooms' && request.method === 'GET') return json(response, 200, { rooms: ticRooms.publicRooms() });
+    if (pathname === '/api/battle-tanks/rooms' && request.method === 'GET') return json(response, 200, { rooms: battleRooms.publicRooms() });
     const achievementList = pathname.match(/^\/api\/achievements\/(pong|sudoku|minesweeper|tictactoe|battletanks)$/);
     if (achievementList && request.method === 'GET') return json(response, 200, { game: achievementList[1], achievements: achievements.list(sessionUser(request)?.id, achievementList[1]) });
     if (pathname.startsWith('/api/')) {
@@ -155,7 +158,7 @@ const websocketServer = new WebSocketServer({ noServer: true, maxPayload: 4096 }
 server.on('upgrade', (request, socket, head) => {
     let pathname;
     try { pathname = new URL(request.url, 'http://localhost').pathname; } catch { pathname = ''; }
-    if (!['/ws', '/ws/tictactoe'].includes(pathname) || !sameOrigin(request, true)) {
+    if (!['/ws', '/ws/tictactoe', '/ws/battle-tanks'].includes(pathname) || !sameOrigin(request, true)) {
         socket.write('HTTP/1.1 403 Forbidden\r\n\r\n'); socket.destroy(); return;
     }
     websocketServer.handleUpgrade(request, socket, head, client => websocketServer.emit('connection', client, request));
@@ -170,7 +173,9 @@ websocketServer.on('connection', (socket, request) => {
     // terminated on the first heartbeat interval.
     socket.isAlive = true;
     socket.on('pong', () => { socket.isAlive = true; });
+    const socketPath = new URL(request.url, 'http://localhost').pathname;
     if (new URL(request.url, 'http://localhost').pathname === '/ws/tictactoe') { handleTicSocket(socket, request); return; }
+    if (socketPath === '/ws/battle-tanks') { handleBattleTanksSocket(socket, request); return; }
     let membership = null;
     const gamertag = sessionUser(request)?.gamertag || '';
     socket.on('message', raw => {
@@ -211,6 +216,36 @@ websocketServer.on('connection', (socket, request) => {
     });
 });
 
+function handleBattleTanksSocket(socket, request) {
+    let membership=null, commandCount=0, commandWindow=Date.now();
+    const user=sessionUser(request), identity={gamertag:user?.gamertag||'',userId:user?.id||null};
+    const publish=()=>membership&&battleRooms.broadcast(membership.room,{type:'state',state:battleRooms.state(membership.room)});
+    const status=()=>membership&&battleRooms.broadcast(membership.room,{type:'room-status',players:membership.room.players.map(p=>Boolean(p?.connected)),ready:membership.room.players.map(p=>Boolean(p?.ready)),gamertags:membership.room.players.map(p=>p?.gamertag||null),phase:membership.room.game.phase});
+    socket.on('message',raw=>{
+        try{
+            if(raw.length>4096)throw new Error('Message is too large.');const message=JSON.parse(raw.toString());
+            if(!message||typeof message!=='object'||Array.isArray(message))throw new Error('Message payload must be an object.');
+            const known=new Set(['create-room','join-room','resume','ready','move','aim','fire','color','rematch','leave']);if(!known.has(message.type))throw new Error('Unsupported message type.');
+            const now=Date.now();if(now-commandWindow>1000){commandWindow=now;commandCount=0;}if(++commandCount>40)throw new Error('Command rate limit exceeded.');
+            if(membership&&membership.player.socket!==socket)throw new Error('This connection has been replaced by a newer session.');
+            if(!membership&&message.type==='create-room')membership=battleRooms.create(socket,{...message,...identity});
+            else if(!membership&&message.type==='join-room')membership=battleRooms.join(message.roomCode,socket,message.passcode,identity.gamertag,identity.userId);
+            else if(!membership&&message.type==='resume')membership=battleRooms.resume(message.roomCode,message.playerToken,socket);
+            else if(!membership)throw new Error('Create or join a room first.');
+            else if(message.type==='ready')battleRooms.ready(membership.room,membership.player);
+            else if(message.type==='move')battleRooms.move(membership.room,membership.player,message.direction??message.position,message);
+            else if(message.type==='aim')battleRooms.aim(membership.room,membership.player,message);
+            else if(message.type==='fire'){battleRooms.fire(membership.room,membership.player,message);battleRooms.broadcast(membership.room,{type:'shot-fired',state:battleRooms.state(membership.room)});}
+            else if(message.type==='color')battleRooms.color(membership.room,membership.player,message.color);
+            else if(message.type==='rematch')battleRooms.rematch(membership.room,membership.player);
+            else if(message.type==='leave'){battleRooms.disconnect(membership.room,membership.player,socket);battleRooms.broadcast(membership.room,{type:'peer-left',reconnectMs:battleRooms.reconnectMs});membership=null;return;}
+            if(membership&&['create-room','join-room','resume'].includes(message.type)){send(socket,{type:'session',roomCode:membership.room.code,playerToken:membership.player.token,side:membership.player.side,visibility:membership.room.visibility,gamertags:membership.room.players.map(p=>p?.gamertag||null)});if(message.type==='resume')battleRooms.broadcast(membership.room,{type:'peer-reconnected'});}
+            status();if(message.type!=='fire')publish();
+        }catch(error){send(socket,{type:'error',message:error.message});}
+    });
+    socket.on('close',()=>{if(membership&&battleRooms.disconnect(membership.room,membership.player,socket))battleRooms.broadcast(membership.room,{type:'peer-left',reconnectMs:battleRooms.reconnectMs});});
+}
+
 function handleTicSocket(socket, request) {
     let membership = null; const gamertag = sessionUser(request)?.gamertag || '';
     const publish = () => membership && ticRooms.broadcast(membership.room, { type: 'state', state: ticRooms.state(membership.room) });
@@ -236,13 +271,16 @@ function handleTicSocket(socket, request) {
 
 let lastTick = Date.now();
 const simulation = setInterval(() => { const now = Date.now(); rooms.tick((now - lastTick) / 1000, now); lastTick = now; }, 1000 / 60);
+let battleLastTick=Date.now(), battleBroadcastAt=0;
+const battleSimulation=setInterval(()=>{const now=Date.now();battleRooms.update((now-battleLastTick)/1000);battleLastTick=now;if(now-battleBroadcastAt>=40){for(const room of battleRooms.rooms.values())if(room.game.phase==='projectile-flight')battleRooms.broadcast(room,{type:'state',state:battleRooms.state(room)});battleBroadcastAt=now;}},1000/60);
 const broadcast = setInterval(() => rooms.broadcastStates(), 1000 / 30);
 const ticCleanup = setInterval(() => ticRooms.tick(), 1000);
+const battleCleanup = setInterval(() => battleRooms.tick(), 1000);
 const heartbeat = setInterval(() => websocketServer.clients.forEach(socket => { if (!socket.isAlive) return socket.terminate(); socket.isAlive = false; socket.ping(); }), 15000);
 
 server.listen(port, '0.0.0.0', () => console.log(`JavaScript Playground listening on http://0.0.0.0:${port}`));
-function shutdown() { clearInterval(simulation); clearInterval(ticCleanup); clearInterval(broadcast); clearInterval(heartbeat); websocketServer.clients.forEach(socket => socket.close(1001, 'Server shutting down')); server.close(() => { database.close(); process.exit(0); }); }
+function shutdown() { clearInterval(simulation);clearInterval(battleSimulation);clearInterval(battleCleanup); clearInterval(ticCleanup); clearInterval(broadcast); clearInterval(heartbeat); websocketServer.clients.forEach(socket => socket.close(1001, 'Server shutting down')); server.close(() => { database.close(); process.exit(0); }); }
 process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
 
-module.exports = { server, rooms, accounts };
+module.exports = { server, rooms, ticRooms, battleRooms, accounts };

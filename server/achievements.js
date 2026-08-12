@@ -22,6 +22,11 @@ const catalog = [
     { id: 'tanks-win', game: 'battletanks', icon: '🏆', title: 'Tank Commander', condition: 'Win a Battle Tanks match.', event: 'result', where: { won: true }, target: 1 },
     { id: 'tanks-accurate', game: 'battletanks', icon: '🎯', title: 'Deadeye', condition: 'Win with at least 50% accuracy.', event: 'result', where: { won: true, 'details.accuracy': { gte: 50 } }, target: 1 },
     { id: 'tanks-untouched', game: 'battletanks', icon: '🛡️', title: 'Untouchable', condition: 'Win without taking damage.', event: 'result', where: { won: true, 'details.damageTaken': 0 }, target: 1 }
+    ,{ id: 'tanks-online', game: 'battletanks', icon: '📞', title: 'Long-Distance Call', condition: 'Finish an online Battle Tanks match.', event: 'result', where: { 'details.mode': 'online' }, target: 1 }
+    ,{ id: 'tanks-online-win', game: 'battletanks', icon: '🕹️', title: 'Remote Control', condition: 'Win an online match.', event: 'result', where: { won: true, 'details.mode': 'online' }, target: 1 }
+    ,{ id: 'tanks-online-accurate', game: 'battletanks', icon: '📐', title: 'Calculated Trajectory', condition: 'Win online with at least 50% accuracy.', event: 'result', where: { won: true, 'details.mode': 'online', 'details.accuracy': { gte: 50 } }, target: 1 }
+    ,{ id: 'tanks-online-rematch', game: 'battletanks', icon: '↩️', title: 'Return to Sender', condition: 'Win an online rematch.', event: 'result', where: { won: true, 'details.mode': 'online', 'details.rematchNumber': { gte: 1 } }, target: 1 }
+    ,{ id: 'tanks-reconnected', game: 'battletanks', icon: '🔌', title: 'Connection Restored', condition: 'Finish after reconnecting.', event: 'result', where: { 'details.mode': 'online', 'details.reconnected': true }, target: 1 }
 ];
 
 function valueAt(object, path) { return path.split('.').reduce((value, key) => value?.[key], object); }
