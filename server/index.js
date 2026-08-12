@@ -9,6 +9,7 @@ const { TicTacToeRooms } = require('./tictactoe-rooms');
 const { openDatabase } = require('./database');
 const { Accounts } = require('./accounts');
 const { Achievements } = require('./achievements');
+const { clientIp: getClientIp, isPrivatePath, originAllowed, parseCookies } = require('./http-security');
 
 const root = path.resolve(__dirname, '..');
 const port = Number(process.env.PORT) || 8080;
@@ -38,9 +39,7 @@ function json(response, status, body, headers = {}) {
     response.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...headers });
     response.end(JSON.stringify(body));
 }
-function cookies(request) {
-    return Object.fromEntries(String(request.headers.cookie || '').split(';').map(part => part.trim().split('=').map(decodeURIComponent)).filter(pair => pair.length === 2));
-}
+function cookies(request) { return parseCookies(request.headers.cookie); }
 function sessionUser(request) { return accounts.userForToken(cookies(request).arcade_session); }
 function sessionCookie(token, expiresAt) { return `arcade_session=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Strict; Expires=${new Date(expiresAt).toUTCString()}${process.env.COOKIE_SECURE === 'true' ? '; Secure' : ''}`; }
 class RateLimiter {
@@ -62,7 +61,7 @@ const loginLimiter = new RateLimiter(10, 15 * 60 * 1000);
 const loginIpLimiter = new RateLimiter(50, 15 * 60 * 1000);
 const registrationLimiter = new RateLimiter(5, 60 * 60 * 1000);
 const resultLimiter = new RateLimiter(60, 60 * 60 * 1000);
-function clientIp(request) { return trustProxy ? String(request.headers['x-forwarded-for'] || '').split(',')[0].trim() || request.socket.remoteAddress : request.socket.remoteAddress; }
+function clientIp(request) { return getClientIp(request, trustProxy); }
 function throttle(response, retryAfter) { return json(response, 429, { error: 'Too many attempts. Try again later.' }, { 'retry-after': retryAfter }); }
 async function readJson(request) {
     let body = '';
@@ -70,12 +69,17 @@ async function readJson(request) {
     try { return body ? JSON.parse(body) : {}; } catch { throw new Error('Invalid JSON.'); }
 }
 function sameOrigin(request) {
-    const origin = request.headers.origin;
-    return !origin || origin === `${request.headers['x-forwarded-proto'] || 'http'}://${request.headers.host}` || allowedOrigins.includes(origin);
+    return originAllowed(request, allowedOrigins, trustProxy);
 }
 
 const server = http.createServer(async (request, response) => {
-    const pathname = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
+    response.setHeader('x-content-type-options', 'nosniff');
+    response.setHeader('referrer-policy', 'strict-origin-when-cross-origin');
+    response.setHeader('x-frame-options', 'DENY');
+    response.setHeader('permissions-policy', 'camera=(), microphone=(), geolocation=()');
+    let pathname;
+    try { pathname = decodeURIComponent(new URL(request.url, 'http://localhost').pathname); }
+    catch { response.writeHead(400, { 'content-type': 'text/plain; charset=utf-8' }).end('Bad request'); return; }
     if (pathname === '/healthz') {
         response.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
         response.end(JSON.stringify({ status: 'ok', rooms: rooms.rooms.size }));
@@ -131,7 +135,7 @@ const server = http.createServer(async (request, response) => {
             return json(response, clientError ? 400 : 500, { error: clientError ? error.message : 'Server error.' });
         }
     }
-    if (/^\/(?:server|tests|node_modules)(?:\/|$)/.test(pathname) || /^\/(?:package(?:-lock)?\.json|compose\.yaml|Dockerfile|project(?:\.lock)?\.json)$/.test(pathname)) {
+    if (isPrivatePath(pathname)) {
         response.writeHead(404).end('Not found');
         return;
     }
@@ -142,15 +146,16 @@ const server = http.createServer(async (request, response) => {
     } catch { /* handled by readFile */ }
     fs.readFile(filePath, (error, content) => {
         if (error) { response.writeHead(error.code === 'ENOENT' ? 404 : 500).end(error.code === 'ENOENT' ? 'Not found' : 'Server error'); return; }
-        response.writeHead(200, { 'content-type': mime[path.extname(filePath)] || 'application/octet-stream', 'x-content-type-options': 'nosniff' });
+        response.writeHead(200, { 'content-type': mime[path.extname(filePath)] || 'application/octet-stream' });
         response.end(content);
     });
 });
 
 const websocketServer = new WebSocketServer({ noServer: true, maxPayload: 4096 });
 server.on('upgrade', (request, socket, head) => {
-    const origin = request.headers.origin;
-    if (!['/ws', '/ws/tictactoe'].includes(new URL(request.url, 'http://localhost').pathname) || (allowedOrigins.length && !allowedOrigins.includes(origin))) {
+    let pathname;
+    try { pathname = new URL(request.url, 'http://localhost').pathname; } catch { pathname = ''; }
+    if (!['/ws', '/ws/tictactoe'].includes(pathname) || !sameOrigin(request)) {
         socket.write('HTTP/1.1 403 Forbidden\r\n\r\n'); socket.destroy(); return;
     }
     websocketServer.handleUpgrade(request, socket, head, client => websocketServer.emit('connection', client, request));

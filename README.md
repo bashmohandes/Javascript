@@ -101,9 +101,10 @@ TRUST_PROXY=true
 ```
 
 `TRUST_PROXY=true` is appropriate when the container is reachable only through
-the trusted NAS reverse proxy; it lets authentication throttling use the first
-forwarded client address. Leave it false if clients can connect directly to the
-container port and supply their own forwarding headers.
+the trusted NAS reverse proxy; it lets authentication throttling use the
+proxy-adjacent forwarded client address and origin checks use the forwarded
+protocol. Leave it false if clients can connect directly to the container port
+and supply their own forwarding headers.
 
 Authentication attempts are throttled by client address and gamertag, and
 passcode hashing runs asynchronously so it does not block game simulation.
@@ -136,8 +137,9 @@ WebSocket** option; otherwise ensure they forward the `Upgrade` and `Connection`
 headers. Invitation links use the browser's current public host and automatically
 choose `wss://` when the page is served over HTTPS.
 
-Optionally restrict accepted browser origins in `.env` with a comma-separated
-allowlist:
+Browser HTTP and WebSocket requests must use the site's own origin by default.
+To permit additional trusted front-end origins, provide a comma-separated
+allowlist in `.env`:
 
 ```dotenv
 ALLOWED_ORIGINS=https://pong.example.com
