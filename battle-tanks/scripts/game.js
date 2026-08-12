@@ -72,13 +72,20 @@
     }
     function stepPhysics(state, dt = 1 / 120) {
         if (state.phase !== 'projectile-flight' || !state.projectile) return null;
-        const projectile = state.projectile, dx = projectile.vx * dt, dy = projectile.vy * dt + 0.5 * GRAVITY * dt * dt;
-        const steps = Math.max(1, Math.ceil(Math.max(Math.abs(dx), Math.abs(dy)) / 3));
-        for (let index = 1; index <= steps; index += 1) {
-            const fraction = index / steps, hit = collisionAt(state, projectile.x + dx * fraction, projectile.y + dy * fraction);
-            if (hit) { projectile.x += dx * fraction; projectile.y += dy * fraction; return resolveShot(state, hit); }
+        if (!Number.isFinite(dt) || dt <= 0) return null;
+        const projectile = state.projectile;
+        // Follow the parabola in short time slices as well as short distance slices.
+        // Sampling only the straight chord between two distant endpoints can miss a
+        // target below the apex when a browser frame is heavily delayed.
+        const durationSteps = Math.ceil(dt / (1 / 120));
+        const distanceSteps = Math.ceil(Math.max(Math.abs(projectile.vx * dt), Math.abs(projectile.vy * dt + 0.5 * GRAVITY * dt * dt)) / 3);
+        const steps = Math.max(1, durationSteps, distanceSteps), step = dt / steps;
+        for (let index = 0; index < steps; index += 1) {
+            const dx = projectile.vx * step, dy = projectile.vy * step + 0.5 * GRAVITY * step * step;
+            const hit = collisionAt(state, projectile.x + dx, projectile.y + dy);
+            projectile.x += dx; projectile.y += dy; projectile.vy += GRAVITY * step;
+            if (hit) return resolveShot(state, hit);
         }
-        projectile.x += dx; projectile.y += dy; projectile.vy += GRAVITY * dt;
         return null;
     }
     function resetMatch(state) { const fresh = createInitialState(); Object.keys(state).forEach(key => delete state[key]); Object.assign(state, fresh); beginTurn(state, 0); return state; }
