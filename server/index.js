@@ -6,6 +6,7 @@ const path = require('node:path');
 const { WebSocketServer } = require('ws');
 const { RoomManager } = require('./rooms');
 const { TicTacToeRooms } = require('./tictactoe-rooms');
+const { BattleTanksRooms } = require('./battle-tanks-rooms');
 const { openDatabase } = require('./database');
 const { Accounts } = require('./accounts');
 const { Achievements } = require('./achievements');
@@ -24,6 +25,7 @@ const rooms = new RoomManager({
     roomTimeoutMs: Number(process.env.ROOM_TIMEOUT_MS) || 1800000
 });
 const ticRooms = new TicTacToeRooms({ reconnectMs: Number(process.env.RECONNECT_GRACE_MS) || 15000, roomTimeoutMs: Number(process.env.ROOM_TIMEOUT_MS) || 1800000 });
+const tankRooms = new BattleTanksRooms({ reconnectMs: Number(process.env.RECONNECT_GRACE_MS) || 15000, roomTimeoutMs: Number(process.env.ROOM_TIMEOUT_MS) || 1800000, recordResult: (userId, result) => accounts.record(userId, result, { trustedOnline: true }) });
 const mime = {
     '.html': 'text/html; charset=utf-8',
     '.js': 'text/javascript; charset=utf-8',
@@ -92,6 +94,7 @@ const server = http.createServer(async (request, response) => {
         return;
     }
     if (pathname === '/api/tictactoe/rooms' && request.method === 'GET') return json(response, 200, { rooms: ticRooms.publicRooms() });
+    if (pathname === '/api/battle-tanks/rooms' && request.method === 'GET') return json(response, 200, { rooms: tankRooms.publicRooms() });
     const achievementList = pathname.match(/^\/api\/achievements\/(pong|sudoku|minesweeper|tictactoe|battletanks)$/);
     if (achievementList && request.method === 'GET') return json(response, 200, { game: achievementList[1], achievements: achievements.list(sessionUser(request)?.id, achievementList[1]) });
     if (pathname.startsWith('/api/')) {
@@ -155,7 +158,7 @@ const websocketServer = new WebSocketServer({ noServer: true, maxPayload: 4096 }
 server.on('upgrade', (request, socket, head) => {
     let pathname;
     try { pathname = new URL(request.url, 'http://localhost').pathname; } catch { pathname = ''; }
-    if (!['/ws', '/ws/tictactoe'].includes(pathname) || !sameOrigin(request, true)) {
+    if (!['/ws', '/ws/tictactoe', '/ws/battle-tanks'].includes(pathname) || !sameOrigin(request, true)) {
         socket.write('HTTP/1.1 403 Forbidden\r\n\r\n'); socket.destroy(); return;
     }
     websocketServer.handleUpgrade(request, socket, head, client => websocketServer.emit('connection', client, request));
@@ -170,6 +173,7 @@ websocketServer.on('connection', (socket, request) => {
     // terminated on the first heartbeat interval.
     socket.isAlive = true;
     socket.on('pong', () => { socket.isAlive = true; });
+    if (new URL(request.url, 'http://localhost').pathname === '/ws/battle-tanks') { handleTankSocket(socket, request); return; }
     if (new URL(request.url, 'http://localhost').pathname === '/ws/tictactoe') { handleTicSocket(socket, request); return; }
     let membership = null;
     const gamertag = sessionUser(request)?.gamertag || '';
@@ -234,15 +238,41 @@ function handleTicSocket(socket, request) {
     socket.on('close', () => { if (membership && ticRooms.disconnect(membership.room, membership.player, socket)) ticRooms.broadcast(membership.room, { type: 'peer-left', reconnectMs: ticRooms.reconnectMs }); });
 }
 
+function handleTankSocket(socket, request) {
+    let membership = null; const user = sessionUser(request);
+    const publish = () => membership && tankRooms.broadcast(membership.room, { type: 'state', state: tankRooms.state(membership.room) });
+    socket.on('message', raw => {
+        try {
+            const message = JSON.parse(raw.toString());
+            if (!message || typeof message !== 'object' || Array.isArray(message)) throw new Error('Invalid message.');
+            if (membership && membership.player.socket !== socket) throw new Error('This connection has been replaced by a newer session.');
+            if (!membership && message.type === 'create-room') membership = tankRooms.create(socket, { ...message, user });
+            else if (!membership && message.type === 'join-room') membership = tankRooms.join(message.roomCode, socket, message.passcode, user);
+            else if (!membership && message.type === 'resume') membership = tankRooms.resume(message.roomCode, message.playerToken, socket);
+            else if (!membership) throw new Error('Create or join a room first.');
+            else if (message.type === 'ready') tankRooms.ready(membership.room, membership.player);
+            else if (message.type === 'rematch') tankRooms.rematch(membership.room);
+            else if (['move', 'aim', 'fire'].includes(message.type)) tankRooms.command(membership.room, membership.player, message);
+            else if (message.type === 'color') tankRooms.color(membership.room, membership.player, message.color);
+            else if (message.type === 'leave') { tankRooms.disconnect(membership.room, membership.player, socket); membership = null; return; }
+            else throw new Error('Unsupported message type.');
+            if (membership && ['create-room', 'join-room', 'resume'].includes(message.type)) send(socket, { type: 'session', roomCode: membership.room.code, playerToken: membership.player.token, side: membership.player.side, visibility: membership.room.visibility, gamertags: membership.room.players.map(item => item?.gamertag || null) });
+            if (membership) { tankRooms.broadcast(membership.room, { type: 'room-status', players: membership.room.players.map(item => Boolean(item?.connected)), ready: membership.room.players.map(item => Boolean(item?.ready)), gamertags: membership.room.players.map(item => item?.gamertag || null) }); publish(); }
+        } catch (error) { send(socket, { type: 'error', message: error.message }); }
+    });
+    socket.on('close', () => { if (membership && tankRooms.disconnect(membership.room, membership.player, socket)) { tankRooms.broadcast(membership.room, { type: 'peer-left', reconnectMs: tankRooms.reconnectMs }); publish(); } });
+}
+
 let lastTick = Date.now();
 const simulation = setInterval(() => { const now = Date.now(); rooms.tick((now - lastTick) / 1000, now); lastTick = now; }, 1000 / 60);
 const broadcast = setInterval(() => rooms.broadcastStates(), 1000 / 30);
 const ticCleanup = setInterval(() => ticRooms.tick(), 1000);
+const tankSimulation = setInterval(() => { tankRooms.tick(1 / 60); tankRooms.broadcastStates(); }, 1000 / 60);
 const heartbeat = setInterval(() => websocketServer.clients.forEach(socket => { if (!socket.isAlive) return socket.terminate(); socket.isAlive = false; socket.ping(); }), 15000);
 
 server.listen(port, '0.0.0.0', () => console.log(`JavaScript Playground listening on http://0.0.0.0:${port}`));
-function shutdown() { clearInterval(simulation); clearInterval(ticCleanup); clearInterval(broadcast); clearInterval(heartbeat); websocketServer.clients.forEach(socket => socket.close(1001, 'Server shutting down')); server.close(() => { database.close(); process.exit(0); }); }
+function shutdown() { clearInterval(simulation); clearInterval(ticCleanup); clearInterval(tankSimulation); clearInterval(broadcast); clearInterval(heartbeat); websocketServer.clients.forEach(socket => socket.close(1001, 'Server shutting down')); server.close(() => { database.close(); process.exit(0); }); }
 process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
 
-module.exports = { server, rooms, accounts };
+module.exports = { server, rooms, tankRooms, accounts };

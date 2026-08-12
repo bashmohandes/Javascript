@@ -54,15 +54,16 @@ test('achievement progress is isolated between users', async t => {
 test('Battle Tanks catalog is public and signed-in progress unlocks each badge only once', async t => {
     const { accounts, achievements } = fixture(t);
     const anonymous = achievements.list(null, 'battletanks');
-    assert.deepEqual(anonymous.map(item => item.id), ['tanks-first', 'tanks-win', 'tanks-accurate', 'tanks-untouched']);
+    assert.deepEqual(anonymous.map(item => item.id), ['tanks-first', 'tanks-win', 'tanks-accurate', 'tanks-untouched', 'tanks-online']);
     assert.ok(anonymous.every(item => item.progress === 0 && !item.unlocked));
 
     const user = await accounts.create('TankBadges', 'passcode');
     const payload = { game: 'battletanks', won: true, details: { mode: 'local', winner: 1, turns: 4, shots: 4, hits: 2, seconds: 50, damageTaken: 0 } };
     const first = accounts.record(user.id, payload);
-    assert.deepEqual(first.unlocked.map(item => item.id).sort(), anonymous.map(item => item.id).sort());
+    assert.deepEqual(first.unlocked.map(item => item.id).sort(), anonymous.map(item => item.id).filter(id => id !== 'tanks-online').sort());
     const signedIn = achievements.list(user.id, 'battletanks');
-    assert.ok(signedIn.every(item => item.progress === 1 && item.unlocked));
+    assert.ok(signedIn.filter(item => item.id !== 'tanks-online').every(item => item.progress === 1 && item.unlocked));
+    assert.equal(signedIn.find(item => item.id === 'tanks-online').unlocked, false);
     assert.deepEqual(accounts.record(user.id, payload).unlocked, []);
-    assert.ok(achievements.list(user.id, 'battletanks').every(item => item.progress === 1));
+    assert.ok(achievements.list(user.id, 'battletanks').filter(item => item.id !== 'tanks-online').every(item => item.progress === 1));
 });

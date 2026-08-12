@@ -88,11 +88,13 @@ test('validates Battle Tanks results, derives scores, ranks players, and persist
     assert.deepEqual(history.details, { mode: 'local', winner: 1, turns: 4, shots: 4, hits: 2, accuracy: 50, seconds: 40, damageTaken: 0 });
 
     const invalid = [
-        { ...victory, details: { ...victory.details, mode: 'online' } },
         { ...victory, won: false },
         { ...victory, details: { ...victory.details, turns: 3 } },
         { ...victory, details: { ...victory.details, hits: 4 } },
         { ...victory, details: { ...victory.details, damageTaken: 25 } }
     ];
     for (const payload of invalid) assert.throws(() => accounts.record(ace.id, payload), /Invalid Battle Tanks/);
+    assert.throws(() => accounts.record(ace.id, { game: 'battletanks', won: true, details: { mode: 'online', winner: 1, turns: 5, shots: 3, hits: 2, seconds: 30, damageTaken: 50 } }), /Invalid Battle Tanks/);
+    const online = accounts.record(ace.id, { game: 'battletanks', won: true, details: { mode: 'online', winner: 1, turns: 5, shots: 3, hits: 2, seconds: 30, damageTaken: 50 } }, { trustedOnline: true });
+    assert.equal(online.score, 15283);
 });

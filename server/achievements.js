@@ -21,7 +21,8 @@ const catalog = [
     { id: 'tanks-first', game: 'battletanks', icon: '🏁', title: 'Battle Tested', condition: 'Finish a Battle Tanks match.', event: 'result', target: 1 },
     { id: 'tanks-win', game: 'battletanks', icon: '🏆', title: 'Tank Commander', condition: 'Win a Battle Tanks match.', event: 'result', where: { won: true }, target: 1 },
     { id: 'tanks-accurate', game: 'battletanks', icon: '🎯', title: 'Deadeye', condition: 'Win with at least 50% accuracy.', event: 'result', where: { won: true, 'details.accuracy': { gte: 50 } }, target: 1 },
-    { id: 'tanks-untouched', game: 'battletanks', icon: '🛡️', title: 'Untouchable', condition: 'Win without taking damage.', event: 'result', where: { won: true, 'details.damageTaken': 0 }, target: 1 }
+    { id: 'tanks-untouched', game: 'battletanks', icon: '🛡️', title: 'Untouchable', condition: 'Win without taking damage.', event: 'result', where: { won: true, 'details.damageTaken': 0 }, target: 1 },
+    { id: 'tanks-online', game: 'battletanks', icon: '🌐', title: 'Long-Distance Call', condition: 'Finish an online Battle Tanks match.', event: 'result', where: { 'details.mode': 'online' }, target: 1 }
 ];
 
 function valueAt(object, path) { return path.split('.').reduce((value, key) => value?.[key], object); }
