@@ -83,8 +83,10 @@
             const topScore = notification.detail;
             const message = scoreMessages[Math.floor(Math.random() * scoreMessages.length)];
             const leaderboardUrl = `${rootPath}profile.html?game=${encodeURIComponent(topScore.game)}#leaderboards`;
+            const fasterFinish = topScore.previousScore === topScore.newScore
+                ? `<em>Faster finish: ${topScore.previousSeconds}s → ${topScore.newSeconds}s</em>` : '';
             toast.className = 'top-score-toast';
-            toast.innerHTML = `<button type="button" aria-label="Dismiss top score notification">×</button><span class="top-score-confetti" aria-hidden="true">🏆</span><div><small>Top score smashed</small><strong>${message}</strong><p><s>${topScore.previousScore}</s><b aria-label="New score ${topScore.newScore}">${topScore.newScore}</b></p><a href="${leaderboardUrl}">See the top score you broke →</a></div>`;
+            toast.innerHTML = `<button type="button" aria-label="Dismiss top score notification">×</button><span class="top-score-confetti" aria-hidden="true">🏆</span><div><small>Top score smashed</small><strong>${message}</strong><p><s>${topScore.previousScore}</s><b aria-label="New score ${topScore.newScore}">${topScore.newScore}</b></p>${fasterFinish}<a href="${leaderboardUrl}">See the top score you broke →</a></div>`;
         }
         document.body.append(toast);
         document.dispatchEvent(new CustomEvent(`arcade:${notification.type === 'achievement' ? 'achievement' : 'top-score'}`, { detail: notification.detail }));
