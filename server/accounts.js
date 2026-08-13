@@ -94,9 +94,17 @@ class Accounts {
         const { score, won, normalizedDetails } = validateResult(game, result.won, details, options.trustedOnline === true);
         const encoded = JSON.stringify(normalizedDetails);
         if (encoded.length > 2000) throw new Error('Game details are too large.');
+        const previousTop = this.database.prepare(`SELECT users.gamertag, game_results.score
+            FROM game_results JOIN users ON users.id = game_results.user_id
+            WHERE game_results.game = ?
+            ORDER BY game_results.score DESC, COALESCE(json_extract(game_results.details, '$.seconds'), 86401) ASC, game_results.played_at ASC
+            LIMIT 1`).get(game);
         const insert = this.database.prepare('INSERT INTO game_results (user_id, game, score, won, details) VALUES (?, ?, ?, ?, ?)').run(userId, game, score, won ? 1 : 0, encoded);
         const unlocked = this.achievements?.process(userId, game, 'result', { game, won, score, details: normalizedDetails }) || [];
-        return { id: Number(insert.lastInsertRowid), score, unlocked };
+        const topScore = previousTop && score > previousTop.score
+            ? { game, previousScore: previousTop.score, newScore: score, previousHolder: previousTop.gamertag }
+            : null;
+        return { id: Number(insert.lastInsertRowid), score, unlocked, topScore };
     }
 
     profile(userId, pageValue = 1, pageSizeValue = 10) {

@@ -61,5 +61,8 @@
         loadProfile(true, currentPage + (action === 'next' ? 1 : -1));
     });
     profileForm.addEventListener('submit', async event => { event.preventDefault(); const message = document.querySelector('#profile-message'); try { await Arcade.api('/api/profile', { method:'PATCH', body:JSON.stringify(Object.fromEntries(new FormData(event.target))) }); message.textContent = 'Profile updated. Refreshing…'; location.reload(); } catch (error) { message.textContent = error.message; } });
-    loadLeaders('pong');
+    const linkedGame = new URLSearchParams(location.search).get('game');
+    const initialTab = [...document.querySelectorAll('#game-tabs button')].find(button => button.dataset.game === linkedGame) || document.querySelector('#game-tabs button[data-game="pong"]');
+    document.querySelectorAll('#game-tabs button').forEach(button => button.setAttribute('aria-pressed', button === initialTab));
+    loadLeaders(initialTab.dataset.game);
 })();
