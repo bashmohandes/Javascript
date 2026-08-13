@@ -164,7 +164,7 @@ sequenceDiagram
 |---|---|---|---|
 | Endpoint | `/ws` | `/ws/tictactoe` | `/ws/battle-tanks` |
 | Client command | continuous paddle input | discrete cell move | versioned move/aim/fire command |
-| State delivery | 30 Hz snapshots | after actions | 60 Hz simulation snapshots |
+| State delivery | 30 Hz snapshots | after actions | 60 Hz physics; projectile snapshots capped at 25 Hz (typically about 20 Hz because the 40 ms throttle is sampled by a 60 Hz timer) |
 | Result source | validated client report | validated client report | room manager records authenticated players |
 | Shared lifecycle | public/private five-character rooms, ready, rematch, invitation, resume token, reconnection grace, inactivity expiry, heartbeat |
 
@@ -177,14 +177,19 @@ Battle Tanks also associates the user id for trusted online result recording.
 ```mermaid
 flowchart LR
   Internet --> TLS[Reverse proxy: TLS + WebSocket upgrade]
-  TLS --> C[Single unprivileged container :8080]
-  C --> V[(arcade-data volume)]
-  C --> H[/healthz]
-  subgraph Container
-    C --> Static[Static assets]
-    C --> API[REST API]
-    C --> WS[WebSocket server]
+  subgraph Container[Single unprivileged container]
+    C[Node service on port 8080]
+    Static[Static assets]
+    API[REST API]
+    WS[WebSocket server]
+    Health[healthz endpoint]
+    C --> Static
+    C --> API
+    C --> WS
+    C --> Health
   end
+  TLS --> C
+  C --> V[(arcade-data volume)]
 ```
 
 The server blocks private source/data paths, applies response security headers,
