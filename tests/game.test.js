@@ -3,6 +3,23 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createGame, startGame, update, setInput, setColor, point } = require('../server/game');
+const { predictBall } = require('../pong/scripts/motion');
+
+test('predicts smooth online ball motion without mutating its snapshot', () => {
+    const ball = { x: 200, y: 300, r: 10, vx: 400, vy: -100, curveAcceleration: 0, curveTime: 0 };
+    const predicted = predictBall(ball, .05);
+    assert.ok(Math.abs(predicted.x - 220) < 1e-9);
+    assert.ok(Math.abs(predicted.y - 295) < 1e-9);
+    assert.deepEqual(ball, { x: 200, y: 300, r: 10, vx: 400, vy: -100, curveAcceleration: 0, curveTime: 0 });
+});
+
+test('online ball prediction follows curve acceleration, slow fields, and wall bounces', () => {
+    const curved = predictBall({ x: 200, y: 300, r: 10, vx: 400, vy: 0, curveAcceleration: 700, curveTime: .8 }, .05, { movementScale: .72 });
+    assert.ok(Math.abs(curved.x - 214.4) < 1e-9);
+    assert.ok(curved.y > 300 && curved.vy > 30);
+    const bounced = predictBall({ x: 200, y: 12, r: 10, vx: 0, vy: -100, curveAcceleration: 0, curveTime: 0 }, .05);
+    assert.ok(bounced.vy > 0);
+});
 
 test('starts a fresh first-to-seven match', () => {
     const game = createGame(() => 0.25);

@@ -48,6 +48,16 @@
         state.phase = 'projectile-flight'; state.announcement = `Player ${state.activePlayer + 1} fired.`;
         return true;
     }
+    function predictProjectile(projectile, elapsed = 0) {
+        if (!projectile) return null;
+        const seconds = Number.isFinite(elapsed) ? Math.max(0, elapsed) : 0;
+        return {
+            ...projectile,
+            x: projectile.x + projectile.vx * seconds,
+            y: projectile.y + projectile.vy * seconds + 0.5 * GRAVITY * seconds * seconds,
+            vy: projectile.vy + GRAVITY * seconds
+        };
+    }
     function circleRect(x, y, r, rect) { return x + r >= rect.x && x - r <= rect.x + rect.w && y + r >= rect.y && y - r <= rect.y + rect.h; }
     function resolveShot(state, hit) {
         const point = state.projectile && Number.isFinite(state.projectile.x) ? { x: state.projectile.x, y: state.projectile.y } : null;
@@ -97,5 +107,5 @@
     function resetMatch(state) { const fresh = createInitialState(); Object.keys(state).forEach(key => delete state[key]); Object.assign(state, fresh); beginTurn(state, 0); return state; }
     function snapshot(state) { return { phase: state.phase, activePlayer: state.activePlayer, tanks: state.tanks.map(tank => ({ ...tank })), projectile: state.projectile ? { ...state.projectile } : null, winner: state.winner, shots: state.shots, hits: state.hits, impacts: (state.impacts || []).map(impact => ({ ...impact })), impactSerial: state.impactSerial || 0, lastImpact: state.lastImpact ? { ...state.lastImpact } : null, announcement: state.announcement }; }
 
-    return { WIDTH, HEIGHT, GROUND, GRAVITY, TANK_W, TANK_H, PROJECTILE_R, STARTING_HEALTH, DAMAGE, barrier, createInitialState, beginTurn, tankBounds, moveTank, adjustAim, adjustPower, fireProjectile, collisionAt, stepPhysics, resolveShot, resetMatch, snapshot };
+    return { WIDTH, HEIGHT, GROUND, GRAVITY, TANK_W, TANK_H, PROJECTILE_R, STARTING_HEALTH, DAMAGE, barrier, createInitialState, beginTurn, tankBounds, moveTank, adjustAim, adjustPower, fireProjectile, predictProjectile, collisionAt, stepPhysics, resolveShot, resetMatch, snapshot };
 }));
