@@ -38,6 +38,20 @@ test('online ball prediction recomputes slow fields across boundaries and expiry
     }
 });
 
+test('online ball prediction matches authoritative paddle returns', () => {
+    for (const curve of [false, true]) {
+        const authoritative = createGame(() => 0.5);
+        startGame(authoritative); authoritative.serveIn = 0; authoritative.nextPowerUp = Infinity;
+        authoritative.effects[0].curve = curve;
+        Object.assign(authoritative.balls[0], { x: 61, y: authoritative.paddles[0].y + 30, vx: -500, vy: 20 });
+        const source = { ...authoritative.balls[0] }, effects = authoritative.effects.map(effect => ({ ...effect })), paddles = authoritative.paddles.map(paddle => ({ ...paddle }));
+        const predicted = predictBall(source, .05, { snapshotElapsed: authoritative.elapsed, effects, paddles });
+        update(authoritative, .05);
+        for (const property of ['x', 'y', 'vx', 'vy', 'curveAcceleration', 'curveTime']) assert.ok(Math.abs(predicted[property] - authoritative.balls[0][property]) < 1e-9, property);
+        assert.equal(effects[0].curve, curve, 'render prediction must not consume the authoritative effect snapshot');
+    }
+});
+
 test('starts a fresh first-to-seven match', () => {
     const game = createGame(() => 0.25);
     startGame(game);

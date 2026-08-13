@@ -83,7 +83,7 @@ function applyOnlineState(state) {
     setScore(0, state.score[0]); setScore(1, state.score[1]);
     state.paddles.forEach((paddle, side) => Object.assign(paddles[side], paddle));
     balls = state.balls.map(ball => ({ ...ball }));
-    onlineBallSample = state.running && !state.paused ? { balls: balls.map(ball => ({ ...ball })), receivedAt: performance.now(), elapsed: state.elapsed, effects: state.effects.map(effect => ({ ...effect })) } : null;
+    onlineBallSample = state.running && !state.paused ? { balls: balls.map(ball => ({ ...ball })), paddles: state.paddles.map(paddle => ({ ...paddle })), receivedAt: performance.now(), elapsed: state.elapsed, effects: state.effects.map(effect => ({ ...effect })) } : null;
     game.powerUps = state.powerUps.map(powerUp => ({ ...powerUp }));
     if (state.over) { const won = state.winner === online.side; const resultKey = `${online.roomCode}:${state.score.join('-')}:${state.elapsed}`; if (recordedOnlineResult !== resultKey) { recordedOnlineResult = resultKey; window.Arcade?.record({ game: 'pong', won, details: { mode: 'online', score: `${state.score[online.side]}-${state.score[1 - online.side]}`, seconds: Math.max(1, Math.round(state.elapsed)) } }).catch(() => {}); } status.textContent = won ? 'You won the online match!' : 'Your opponent won the online match.'; showOverlay(won ? 'You win!' : 'Opponent wins', `Finished in ${formatDuration(state.elapsed)} · Choose rematch when ready`); shareButton.hidden = false; readyOnlineButton.disabled = false; readyOnlineButton.textContent = 'Ready for rematch'; }
     else if (state.running && !state.paused) overlay.hidden = true;
@@ -261,7 +261,7 @@ function draw() {
     game.powerUps.forEach(drawPowerUp); paddles.forEach(paddle => { ctx.fillStyle = paddle.color; roundedRect(paddle.x, paddle.y, paddle.w, paddle.h, 7); });
     const renderedBalls = game.mode === 'online' && onlineBallSample ? onlineBallSample.balls.map(ball => {
         const elapsed = Math.min((performance.now() - onlineBallSample.receivedAt) / 1000, .075);
-        return predictBall(ball, elapsed, { width: game.width, height: game.height, snapshotElapsed: onlineBallSample.elapsed, effects: onlineBallSample.effects });
+        return predictBall(ball, elapsed, { width: game.width, height: game.height, snapshotElapsed: onlineBallSample.elapsed, effects: onlineBallSample.effects, paddles: onlineBallSample.paddles });
     }) : balls;
     renderedBalls.forEach(ball => { ctx.fillStyle = ball.decoy ? '#cc8290' : '#fffdf8'; ctx.globalAlpha = ball.decoy ? .78 : 1; ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2); ctx.fill(); }); ctx.globalAlpha = 1;
 }
