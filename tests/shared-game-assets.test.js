@@ -42,6 +42,13 @@ test('shared arcade UI keeps mobile navigation above the safe area and displays 
     assert.match(script, /arcade-build-version/);
 });
 
+test('shared arcade navigation stays out of full-screen games', () => {
+    assert.match(read('arcade.css'), /body\.arena-fullscreen \.arcade-account\s*\{[^}]*display:\s*none/);
+    for (const game of ['pong', 'battle-tanks']) {
+        assert.match(read(`${game}/scripts/app.js`), /document\.body\.classList\.toggle\(['"]arena-fullscreen['"],\s*active\)/);
+    }
+});
+
 test('achievement notifications are queued and displayed one at a time', () => {
     const script = read('arcade.js');
     assert.match(script, /unlockQueue\.push\(\.\.\.unlocked\)/);

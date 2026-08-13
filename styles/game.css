@@ -7,6 +7,8 @@ html,body { min-height:100%; }
 body { margin:0; min-height:100vh; min-height:100dvh; color:var(--ink); background:radial-gradient(circle at 12% 8%,rgba(215,107,69,.08),transparent 30rem),var(--paper); font-family:"DM Sans",sans-serif; }
 :root[data-theme="dark"] body { background:radial-gradient(circle at 12% 8%,rgba(215,107,69,.13),transparent 30rem),var(--paper); }
 body.arena-fullscreen { overflow:hidden; }
+.fullscreen-exit { display:none; position:absolute; z-index:6; top:max(12px,env(safe-area-inset-top)); right:max(12px,env(safe-area-inset-right)); min-height:44px; padding:0 16px; border:1px solid rgba(255,255,255,.7); border-radius:999px; color:#fff; background:rgba(15,28,24,.82); font:700 13px/1 system-ui,sans-serif; cursor:pointer; backdrop-filter:blur(7px); }
+.arena-wrap:fullscreen .fullscreen-exit,.arena-wrap.is-fullscreen .fullscreen-exit { display:block; }
 button { color:inherit; font:inherit; }
 .app-shell { width:min(1120px,calc(100% - 40px)); margin:0 auto; padding-bottom:56px; }
 .topbar { height:82px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid rgba(32,53,47,.12); }
