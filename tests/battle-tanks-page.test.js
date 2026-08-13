@@ -22,3 +22,26 @@ test('Battle Tanks resets its impact callout guard for local and synchronized re
     assert.match(app, /\(state\.impactSerial\|\|0\)<lastImpactSerial\)lastImpactSerial=0/, 'a lower synchronized serial should identify a new match');
     assert.match(app, /resetMatch\(state\);lastImpactSerial=0/, 'local resets should immediately clear the impact guard');
 });
+
+test('full-screen games expose an on-screen exit and Battle Tanks turn controls', () => {
+    const tanksPage = read('battle-tanks/index.html');
+    const pongPage = read('pong/index.html');
+    assert.match(tanksPage, /class="fullscreen-controls"[\s\S]*id="fullscreen-fire"/);
+    assert.match(tanksPage, /class="fullscreen-exit"/);
+    assert.match(pongPage, /class="fullscreen-exit"/);
+    assert.match(read('styles/game.css'), /:fullscreen \.fullscreen-exit/);
+});
+
+test('Battle Tanks supports arrow, power, and space keyboard controls', () => {
+    const app = read('battle-tanks/scripts/app.js');
+    for (const key of ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Minus', 'Equal', 'NumpadSubtract', 'NumpadAdd', 'Space']) {
+        assert.ok(app.includes(key), `Battle Tanks should handle ${key}`);
+    }
+});
+
+test('Battle Tanks reverses screen-direction movement for the right-facing tank', () => {
+    const page = read('battle-tanks/index.html');
+    const app = read('battle-tanks/scripts/app.js');
+    assert.match(page, /data-move-direction="left"[\s\S]*data-move-direction="right"/);
+    assert.match(app, /direction==='left'\?\(state\.activePlayer\?'forward':'backward'\):\(state\.activePlayer\?'backward':'forward'\)/);
+});

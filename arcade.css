@@ -4,6 +4,7 @@
    flow spacer preserves each page's own header spacing instead of replacing it. */
 body::before { display:block; height:env(safe-area-inset-top); content:""; }
 .arcade-account { position: fixed; z-index: 1000; top: calc(14px + env(safe-area-inset-top)); right: max(16px, env(safe-area-inset-right)); display: flex; align-items: center; gap: 8px; padding: 7px; color: var(--arcade-nav-ink); background: var(--arcade-nav-bg); border: 1px solid var(--arcade-nav-line); border-radius: 14px; box-shadow: 0 10px 30px var(--arcade-dialog-shadow); font: 600 13px/1.2 system-ui, sans-serif; backdrop-filter:blur(12px); }
+body.arena-fullscreen .arcade-account { display:none; }
 .arcade-account a, .arcade-account button { padding: 8px 11px; color: inherit; background: transparent; border: 0; border-radius: 9px; font: inherit; text-decoration: none; cursor: pointer; }
 .arcade-account button { color: #10271f; background: #83e6c3; }
 .arcade-theme { display:flex; padding:3px; border-radius:9px; background:var(--arcade-dialog-field); }
