@@ -261,8 +261,7 @@ function draw() {
     game.powerUps.forEach(drawPowerUp); paddles.forEach(paddle => { ctx.fillStyle = paddle.color; roundedRect(paddle.x, paddle.y, paddle.w, paddle.h, 7); });
     const renderedBalls = game.mode === 'online' && onlineBallSample ? onlineBallSample.balls.map(ball => {
         const elapsed = Math.min((performance.now() - onlineBallSample.receivedAt) / 1000, .075);
-        const slowed = ((onlineBallSample.effects[0].slowUntil || 0) > onlineBallSample.elapsed && ball.x < game.width / 2) || ((onlineBallSample.effects[1].slowUntil || 0) > onlineBallSample.elapsed && ball.x > game.width / 2);
-        return predictBall(ball, elapsed, { height: game.height, movementScale: slowed ? .72 : 1 });
+        return predictBall(ball, elapsed, { width: game.width, height: game.height, snapshotElapsed: onlineBallSample.elapsed, effects: onlineBallSample.effects });
     }) : balls;
     renderedBalls.forEach(ball => { ctx.fillStyle = ball.decoy ? '#cc8290' : '#fffdf8'; ctx.globalAlpha = ball.decoy ? .78 : 1; ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2); ctx.fill(); }); ctx.globalAlpha = 1;
 }
