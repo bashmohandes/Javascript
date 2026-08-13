@@ -4,6 +4,13 @@ A small collection of browser games and coding exercises, built for fun and
 learning. The modern games share optional arcade accounts, persistent play
 history, profiles, and leaderboards. No browser build step is required.
 
+## Documentation
+
+See the diagram-first [architecture overview](docs/architecture.md) for the game
+topology and subsystem flows. Architectural decisions are indexed in
+[the ADR directory](docs/adr/README.md), with a dedicated guide to
+[online rendering smoothing and prediction](docs/online-rendering.md).
+
 ## Games
 
 | Game | About | Play |
