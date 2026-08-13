@@ -1,0 +1,195 @@
+# Current architecture
+
+The arcade is a build-free browser application plus one Node.js process. The
+process serves the same files used by static hosting, exposes the account API,
+and hosts optional online matches. Classic games are intentionally standalone.
+
+## System topology
+
+```mermaid
+flowchart LR
+  B[Browser] -->|HTTPS: pages, assets, REST| N[Node HTTP server]
+  B <-->|WSS: online matches| N
+  N --> S[(SQLite /app/data/arcade.sqlite)]
+  N --> P[In-memory Pong rooms]
+  N --> T[In-memory Tic-tac-toe rooms]
+  N --> BT[In-memory Battle Tanks rooms]
+  GH[Static host / GitHub Pages] -->|local and solo play only| B
+  RP[HTTPS reverse proxy] --> N
+```
+
+```mermaid
+flowchart TB
+  subgraph Browser
+    Pages[Home, profile, game pages]
+    Arcade[arcade.js: account, theme, results, achievements]
+    Shared[room UI, colors, sharing]
+    Games[game-specific controllers and engines]
+    Store[localStorage: preferences/best times\nsessionStorage: room resume tokens]
+    Pages --> Arcade
+    Pages --> Shared --> Games
+    Arcade --> Games
+    Games --> Store
+  end
+  subgraph Node_process[Node process]
+    HTTP[HTTP routing + static files + security]
+    Accounts[Accounts + result validation/scoring]
+    Achievements[Achievement rules/progress]
+    Rooms[Three room managers]
+    Engines[Pong and Battle Tanks engines]
+    DB[Migration runner]
+    HTTP --> Accounts --> Achievements
+    HTTP --> Rooms --> Engines
+    Accounts --> DB
+    Achievements --> DB
+  end
+  Arcade <-->|JSON REST| HTTP
+  Games <-->|JSON WebSocket| Rooms
+```
+
+## Games and components
+
+| Game | Browser modes / components | Online authority | Platform integration |
+|---|---|---|---|
+| Sudoku | Modern controller with generated boards, notes, hints and solver; separate p5.js classic (`board`, `cell`, `builder`, `solver`, `sketch`) | None | Modern results, scores and achievements |
+| Minesweeper | Modern controller plus tile/grid engine; separate p5.js classic (`sketch`, `tile`) | None | Modern results, browser best times, scores and achievements |
+| Pong | Modern canvas controller + motion prediction; solo, couch duo, online; separate p5.js classic (`board`, `ball`, `sketch`) | Server engine at 60 Hz; snapshots at 30 Hz | Modern results, scores and achievements |
+| Tic-tac-toe | Modern controller, minimax AI, couch duo and online | Room manager validates turns, cells and wins | Results, scores and achievements |
+| Battle Tanks | Shared deterministic engine + canvas controller; local and online | Server validates commands and owns physics, damage, turns and online result recording | Results, scores and achievements |
+
+The coding-challenge folders (`leetcode/`, `codeforces/`, `codewars/`) are
+independent scripts, not arcade games or runtime components.
+
+```mermaid
+flowchart LR
+  Shared[Shared browser shell] --> SU[Sudoku modern]
+  Shared --> MS[Minesweeper modern]
+  Shared --> PO[Pong modern]
+  Shared --> TT[Tic-tac-toe]
+  Shared --> BT[Battle Tanks]
+  P5[p5.js CDN] --> SUC[Sudoku classic]
+  P5 --> MSC[Minesweeper classic]
+  P5 --> POC[Pong classic]
+  PO --> WR[Pong room manager + engine]
+  TT --> TR[Tic-tac-toe room manager]
+  BT --> BR[Battle Tanks room manager + shared engine]
+```
+
+## Accounts, scores and achievements
+
+```mermaid
+sequenceDiagram
+  participant G as Modern game
+  participant A as arcade.js
+  participant H as HTTP API
+  participant AC as Accounts
+  participant AH as Achievements
+  participant DB as SQLite
+  G->>A: record(game, won, details)
+  A->>H: POST /api/results + session cookie
+  H->>AC: record(userId, result)
+  AC->>AC: validate fields; derive score
+  AC->>DB: insert game_results
+  AC->>AH: process(result event)
+  AH->>DB: upsert achievement_progress
+  AC-->>A: score, topScore, unlocked[]
+  A-->>G: toast notifications
+```
+
+Registration/login uses scrypt passcode hashes. A random session token is sent
+only in an HttpOnly, SameSite=Strict cookie; only its SHA-256 hash is stored.
+Profile changes revoke existing sessions and rotate the current one. Public
+leaderboards and achievement catalogs are readable without login; history,
+result recording, and profile updates require a session. API inputs are bounded,
+rate-limited, origin-checked, normalized, and scored by the server.
+
+```mermaid
+erDiagram
+  USERS ||--o{ SESSIONS : has
+  USERS ||--o{ GAME_RESULTS : records
+  USERS ||--o{ ACHIEVEMENT_PROGRESS : earns
+  USERS { integer id PK
+    text gamertag UK
+    text passcode_hash
+  }
+  SESSIONS { text token_hash PK
+    integer user_id FK
+    text expires_at
+  }
+  GAME_RESULTS { integer id PK
+    integer user_id FK
+    text game
+    integer score
+    integer won
+    text details
+  }
+  ACHIEVEMENT_PROGRESS { integer user_id PK,FK
+    text achievement_id PK
+    integer progress
+    text unlocked_at
+  }
+```
+
+## Online gaming
+
+```mermaid
+sequenceDiagram
+  participant C1 as Player 1
+  participant API as Room-list REST API
+  participant WS as Game WebSocket endpoint
+  participant RM as In-memory room manager
+  participant C2 as Player 2
+  C1->>WS: create-room(public/private, passcode)
+  WS->>RM: create
+  WS-->>C1: room code + opaque resume token
+  C2->>API: list public rooms
+  API-->>C2: open public rooms
+  C2->>WS: join-room(code, passcode?)
+  WS->>RM: join
+  WS-->>C2: side + opaque resume token
+  C1->>WS: ready
+  C2->>WS: ready
+  loop match
+    C1->>WS: input / move / aim / fire
+    WS->>RM: validate and advance authoritative state
+    RM-->>C1: state
+    RM-->>C2: state
+  end
+  C2--xWS: disconnect
+  C2->>WS: resume(code, token)
+  WS-->>C1: peer reconnected
+```
+
+| Concern | Pong | Tic-tac-toe | Battle Tanks |
+|---|---|---|---|
+| Endpoint | `/ws` | `/ws/tictactoe` | `/ws/battle-tanks` |
+| Client command | continuous paddle input | discrete cell move | versioned move/aim/fire command |
+| State delivery | 30 Hz snapshots | after actions | 60 Hz simulation snapshots |
+| Result source | validated client report | validated client report | room manager records authenticated players |
+| Shared lifecycle | public/private five-character rooms, ready, rematch, invitation, resume token, reconnection grace, inactivity expiry, heartbeat |
+
+Rooms and resume tokens are ephemeral and vanish on expiry/restart. Account
+sessions are separate from room identity: login adds a gamertag to a room, and
+Battle Tanks also associates the user id for trusted online result recording.
+
+## Deployment and boundaries
+
+```mermaid
+flowchart LR
+  Internet --> TLS[Reverse proxy: TLS + WebSocket upgrade]
+  TLS --> C[Single unprivileged container :8080]
+  C --> V[(arcade-data volume)]
+  C --> H[/healthz]
+  subgraph Container
+    C --> Static[Static assets]
+    C --> API[REST API]
+    C --> WS[WebSocket server]
+  end
+```
+
+The server blocks private source/data paths, applies response security headers,
+checks HTTP/WebSocket origins, caps JSON and WebSocket payloads, and uses a
+heartbeat. Startup applies ordered SQL migrations transactionally. Graceful
+shutdown closes sockets and SQLite. See the [decision index](adr/README.md) for
+the trade-offs behind these boundaries.
+
