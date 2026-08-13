@@ -66,22 +66,41 @@
         if (navigator.share) return navigator.share({ title: achievement.title, text, url });
         await navigator.clipboard.writeText(`${text} ${url}`);
     };
-    const unlockQueue = [];
-    let showingUnlock = false;
-    const showNextUnlock = () => {
-        const achievement = unlockQueue.shift();
-        if (!achievement) { showingUnlock = false; return; }
-        showingUnlock = true;
-        const toast = document.createElement('aside'); toast.className = 'achievement-toast'; toast.setAttribute('role', 'status');
-        toast.innerHTML = `<span>${achievement.icon}</span><div><small>Achievement unlocked</small><strong>${achievement.title}</strong></div>`;
+    const scoreMessages = ['The leaderboard just felt that!', 'New legend status unlocked!', 'That record never stood a chance!', 'History, officially rewritten!'];
+    const notificationQueue = [];
+    let showingNotification = false;
+    const showNextNotification = () => {
+        const notification = notificationQueue.shift();
+        if (!notification) { showingNotification = false; return; }
+        showingNotification = true;
+        const toast = document.createElement('aside');
+        toast.setAttribute('role', 'status'); toast.setAttribute('aria-live', 'polite');
+        if (notification.type === 'achievement') {
+            const achievement = notification.detail;
+            toast.className = 'achievement-toast';
+            toast.innerHTML = `<span>${achievement.icon}</span><div><small>Achievement unlocked</small><strong>${achievement.title}</strong></div>`;
+        } else {
+            const topScore = notification.detail;
+            const message = scoreMessages[Math.floor(Math.random() * scoreMessages.length)];
+            const leaderboardUrl = `${rootPath}profile.html?game=${encodeURIComponent(topScore.game)}#leaderboards`;
+            const fasterFinish = topScore.previousScore === topScore.newScore
+                ? `<em>Faster finish: ${topScore.previousSeconds}s → ${topScore.newSeconds}s</em>` : '';
+            toast.className = 'top-score-toast';
+            toast.innerHTML = `<button type="button" aria-label="Dismiss top score notification">×</button><span class="top-score-confetti" aria-hidden="true">🏆</span><div><small>Top score smashed</small><strong>${message}</strong><p><s>${topScore.previousScore}</s><b aria-label="New score ${topScore.newScore}">${topScore.newScore}</b></p>${fasterFinish}<a href="${leaderboardUrl}">See the top score you broke →</a></div>`;
+        }
         document.body.append(toast);
-        document.dispatchEvent(new CustomEvent('arcade:achievement', { detail: achievement }));
-        setTimeout(() => { toast.remove(); showNextUnlock(); }, 5200);
+        document.dispatchEvent(new CustomEvent(`arcade:${notification.type === 'achievement' ? 'achievement' : 'top-score'}`, { detail: notification.detail }));
+        let timer;
+        const finish = () => { clearTimeout(timer); toast.remove(); showNextNotification(); };
+        toast.querySelector('button')?.addEventListener('click', finish);
+        timer = setTimeout(finish, notification.type === 'achievement' ? 5200 : 10000);
     };
-    const showUnlocks = unlocked => {
-        unlockQueue.push(...unlocked);
-        if (!showingUnlock) showNextUnlock();
+    const enqueueNotifications = notifications => {
+        notificationQueue.push(...notifications);
+        if (!showingNotification) showNextNotification();
     };
+    const showUnlocks = unlocked => enqueueNotifications(unlocked.map(detail => ({ type: 'achievement', detail })));
+    const showTopScore = topScore => { if (topScore) enqueueNotifications([{ type: 'top-score', detail: topScore }]); };
     const loadAchievements = async () => {
         if (!game || !achievementDialog) return;
         const result = await api(`/api/achievements/${game}`);
@@ -122,7 +141,7 @@
     window.Arcade = {
         user: () => currentUser,
         signIn: () => dialog.showModal(),
-        record: async result => { if (!currentUser) return null; const recorded = await api('/api/results', { method: 'POST', body: JSON.stringify(result) }); showUnlocks(recorded.unlocked || []); return recorded; },
+        record: async result => { if (!currentUser) return null; const recorded = await api('/api/results', { method: 'POST', body: JSON.stringify(result) }); showTopScore(recorded.topScore); showUnlocks(recorded.unlocked || []); return recorded; },
         achievements: loadAchievements,
         notifyAchievements: showUnlocks,
         api,

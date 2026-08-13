@@ -94,9 +94,20 @@ class Accounts {
         const { score, won, normalizedDetails } = validateResult(game, result.won, details, options.trustedOnline === true);
         const encoded = JSON.stringify(normalizedDetails);
         if (encoded.length > 2000) throw new Error('Game details are too large.');
+        const topEntry = () => this.database.prepare(`SELECT game_results.id, users.gamertag, game_results.score,
+                COALESCE(json_extract(game_results.details, '$.seconds'), 86401) seconds
+            FROM game_results JOIN users ON users.id = game_results.user_id
+            WHERE game_results.game = ?
+            ORDER BY game_results.score DESC, seconds ASC, game_results.played_at ASC, game_results.id ASC
+            LIMIT 1`).get(game);
+        const previousTop = topEntry();
         const insert = this.database.prepare('INSERT INTO game_results (user_id, game, score, won, details) VALUES (?, ?, ?, ?, ?)').run(userId, game, score, won ? 1 : 0, encoded);
         const unlocked = this.achievements?.process(userId, game, 'result', { game, won, score, details: normalizedDetails }) || [];
-        return { id: Number(insert.lastInsertRowid), score, unlocked };
+        const newTop = previousTop ? topEntry() : null;
+        const topScore = newTop && Number(newTop.id) === Number(insert.lastInsertRowid)
+            ? { game, previousScore: previousTop.score, newScore: score, previousHolder: previousTop.gamertag, previousSeconds: previousTop.seconds, newSeconds: newTop.seconds }
+            : null;
+        return { id: Number(insert.lastInsertRowid), score, unlocked, topScore };
     }
 
     profile(userId, pageValue = 1, pageSizeValue = 10) {
@@ -117,8 +128,8 @@ class Accounts {
         if (!GAMES.has(game)) throw new Error('Unknown game.');
         return this.database.prepare(`SELECT users.gamertag, ranked.score, ranked.won, ranked.details, ranked.played_at
             FROM game_results ranked JOIN users ON users.id = ranked.user_id
-            WHERE ranked.game = ? AND ranked.id = (SELECT best.id FROM game_results best WHERE best.user_id = ranked.user_id AND best.game = ranked.game ORDER BY best.score DESC, COALESCE(json_extract(best.details, '$.seconds'), 86401) ASC, best.played_at ASC LIMIT 1)
-            ORDER BY ranked.score DESC, COALESCE(json_extract(ranked.details, '$.seconds'), 86401) ASC, ranked.played_at ASC LIMIT 20`).all(game).map(row => ({ ...row, won: Boolean(row.won), details: JSON.parse(row.details) }));
+            WHERE ranked.game = ? AND ranked.id = (SELECT best.id FROM game_results best WHERE best.user_id = ranked.user_id AND best.game = ranked.game ORDER BY best.score DESC, COALESCE(json_extract(best.details, '$.seconds'), 86401) ASC, best.played_at ASC, best.id ASC LIMIT 1)
+            ORDER BY ranked.score DESC, COALESCE(json_extract(ranked.details, '$.seconds'), 86401) ASC, ranked.played_at ASC, ranked.id ASC LIMIT 20`).all(game).map(row => ({ ...row, won: Boolean(row.won), details: JSON.parse(row.details) }));
     }
 }
 
