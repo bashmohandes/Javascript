@@ -17,6 +17,7 @@ const connectionState = document.querySelector('#connection-state');
 const readyOnlineButton = document.querySelector('#ready-online');
 const roomList = document.querySelector('#room-list');
 const shareButton = document.querySelector('#share-result');
+const { predictBall } = window.PongMotion;
 
 const game = {
     width: 960, height: 600, running: false, paused: false, over: false, mode: 'solo',
@@ -39,6 +40,7 @@ const powerUpTypes = {
 const CURVE_SHOT_ACCELERATION = 700;
 const CURVE_SHOT_DURATION = 0.8;
 let balls = [];
+let onlineBallSample = null;
 const online = { socket: null, roomCode: '', token: '', side: 0, gamertags: [null, null], connected: false, lastSequence: 0, reconnectTimer: null, intentionalClose: false };
 let recordedOnlineResult = null;
 const formatDuration = seconds => {
@@ -80,7 +82,9 @@ function applyOnlineState(state) {
     game.running = state.running; game.paused = state.paused; game.over = state.over; game.elapsed = state.elapsed; game.score = state.score;
     setScore(0, state.score[0]); setScore(1, state.score[1]);
     state.paddles.forEach((paddle, side) => Object.assign(paddles[side], paddle));
-    balls = state.balls.map(ball => ({ ...ball })); game.powerUps = state.powerUps.map(powerUp => ({ ...powerUp }));
+    balls = state.balls.map(ball => ({ ...ball }));
+    onlineBallSample = state.running && !state.paused ? { balls: balls.map(ball => ({ ...ball })), paddles: state.paddles.map(paddle => ({ ...paddle })), receivedAt: performance.now(), elapsed: state.elapsed, effects: state.effects.map(effect => ({ ...effect })) } : null;
+    game.powerUps = state.powerUps.map(powerUp => ({ ...powerUp }));
     if (state.over) { const won = state.winner === online.side; const resultKey = `${online.roomCode}:${state.score.join('-')}:${state.elapsed}`; if (recordedOnlineResult !== resultKey) { recordedOnlineResult = resultKey; window.Arcade?.record({ game: 'pong', won, details: { mode: 'online', score: `${state.score[online.side]}-${state.score[1 - online.side]}`, seconds: Math.max(1, Math.round(state.elapsed)) } }).catch(() => {}); } status.textContent = won ? 'You won the online match!' : 'Your opponent won the online match.'; showOverlay(won ? 'You win!' : 'Opponent wins', `Finished in ${formatDuration(state.elapsed)} · Choose rematch when ready`); shareButton.hidden = false; readyOnlineButton.disabled = false; readyOnlineButton.textContent = 'Ready for rematch'; }
     else if (state.running && !state.paused) overlay.hidden = true;
 }
@@ -133,7 +137,7 @@ function connectOnline(action) {
     });
 }
 function leaveOnline(notify = true) {
-    clearTimeout(online.reconnectTimer); if (notify) sendOnline({ type: 'leave' }); online.intentionalClose = true; online.socket?.close(); clearSession();
+    clearTimeout(online.reconnectTimer); if (notify) sendOnline({ type: 'leave' }); online.intentionalClose = true; online.socket?.close(); clearSession(); onlineBallSample = null;
     onlineLobby.hidden = false; onlineRoom.hidden = true; resetColorControls(); setConnection('Offline'); refreshRooms(); const url = new URL(location.href); url.searchParams.delete('room'); history.replaceState(null, '', url);
 }
 function onlineInput() { sendOnline({ type: 'input', up: game.keys.has('KeyW') || game.keys.has('ArrowUp'), down: game.keys.has('KeyS') || game.keys.has('ArrowDown'), targetY: null }); }
@@ -255,7 +259,11 @@ function draw() {
     ctx.fillStyle = 'rgba(255,253,248,.12)'; for (let y = 18; y < game.height; y += 34) ctx.fillRect(game.width / 2 - 2, y, 4, 18);
     ctx.strokeStyle = 'rgba(255,253,248,.16)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(game.width / 2, game.height / 2, 82, 0, Math.PI * 2); ctx.stroke();
     game.powerUps.forEach(drawPowerUp); paddles.forEach(paddle => { ctx.fillStyle = paddle.color; roundedRect(paddle.x, paddle.y, paddle.w, paddle.h, 7); });
-    balls.forEach(ball => { ctx.fillStyle = ball.decoy ? '#cc8290' : '#fffdf8'; ctx.globalAlpha = ball.decoy ? .78 : 1; ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2); ctx.fill(); }); ctx.globalAlpha = 1;
+    const renderedBalls = game.mode === 'online' && onlineBallSample ? onlineBallSample.balls.map(ball => {
+        const elapsed = Math.min((performance.now() - onlineBallSample.receivedAt) / 1000, .075);
+        return predictBall(ball, elapsed, { width: game.width, height: game.height, snapshotElapsed: onlineBallSample.elapsed, effects: onlineBallSample.effects, paddles: onlineBallSample.paddles });
+    }) : balls;
+    renderedBalls.forEach(ball => { ctx.fillStyle = ball.decoy ? '#cc8290' : '#fffdf8'; ctx.globalAlpha = ball.decoy ? .78 : 1; ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2); ctx.fill(); }); ctx.globalAlpha = 1;
 }
 function frame(time) { const dt = Math.min((time - game.last) / 1000, .025) || 0; game.last = time; if (game.mode !== 'online' && game.running && !game.paused) update(dt); draw(); requestAnimationFrame(frame); }
 

@@ -3,6 +3,54 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createGame, startGame, update, setInput, setColor, point } = require('../server/game');
+const { predictBall } = require('../pong/scripts/motion');
+
+test('predicts smooth online ball motion without mutating its snapshot', () => {
+    const ball = { x: 200, y: 300, r: 10, vx: 400, vy: -100, curveAcceleration: 0, curveTime: 0 };
+    const predicted = predictBall(ball, .05);
+    assert.ok(Math.abs(predicted.x - 220) < 1e-9);
+    assert.ok(Math.abs(predicted.y - 295) < 1e-9);
+    assert.deepEqual(ball, { x: 200, y: 300, r: 10, vx: 400, vy: -100, curveAcceleration: 0, curveTime: 0 });
+});
+
+test('online ball prediction follows curve acceleration and wall bounces', () => {
+    const curved = predictBall({ x: 200, y: 300, r: 10, vx: 400, vy: 0, curveAcceleration: 700, curveTime: .8 }, .05, { snapshotElapsed: 1, effects: [{ slowUntil: 2 }, {}] });
+    assert.ok(Math.abs(curved.x - 214.4) < 1e-9);
+    assert.ok(curved.y > 300 && curved.vy > 30);
+    const bounced = predictBall({ x: 200, y: 12, r: 10, vx: 0, vy: -100, curveAcceleration: 0, curveTime: 0 }, .05);
+    assert.ok(bounced.vy > 0);
+});
+
+test('online ball prediction recomputes slow fields across boundaries and expiry', () => {
+    for (const scenario of [
+        { x: 475, vx: 120, elapsed: 10, slowUntil: 20 },
+        { x: 300, vx: 120, elapsed: 10, slowUntil: 10.04 }
+    ]) {
+        const authoritative = createGame(() => 0.5);
+        startGame(authoritative); authoritative.serveIn = 0; authoritative.elapsed = scenario.elapsed; authoritative.nextPowerUp = Infinity;
+        Object.assign(authoritative.balls[0], { x: scenario.x, y: 300, vx: scenario.vx, vy: 0 });
+        authoritative.effects[0].slowUntil = scenario.slowUntil;
+        const source = { ...authoritative.balls[0] }, effects = authoritative.effects.map(effect => ({ ...effect }));
+        const predicted = predictBall(source, .1, { snapshotElapsed: scenario.elapsed, effects });
+        update(authoritative, .1);
+        assert.ok(Math.abs(predicted.x - authoritative.balls[0].x) < 1e-9);
+        assert.ok(Math.abs(predicted.y - authoritative.balls[0].y) < 1e-9);
+    }
+});
+
+test('online ball prediction matches authoritative paddle returns', () => {
+    for (const curve of [false, true]) {
+        const authoritative = createGame(() => 0.5);
+        startGame(authoritative); authoritative.serveIn = 0; authoritative.nextPowerUp = Infinity;
+        authoritative.effects[0].curve = curve;
+        Object.assign(authoritative.balls[0], { x: 61, y: authoritative.paddles[0].y + 30, vx: -500, vy: 20 });
+        const source = { ...authoritative.balls[0] }, effects = authoritative.effects.map(effect => ({ ...effect })), paddles = authoritative.paddles.map(paddle => ({ ...paddle }));
+        const predicted = predictBall(source, .05, { snapshotElapsed: authoritative.elapsed, effects, paddles });
+        update(authoritative, .05);
+        for (const property of ['x', 'y', 'vx', 'vy', 'curveAcceleration', 'curveTime']) assert.ok(Math.abs(predicted[property] - authoritative.balls[0][property]) < 1e-9, property);
+        assert.equal(effects[0].curve, curve, 'render prediction must not consume the authoritative effect snapshot');
+    }
+});
 
 test('starts a fresh first-to-seven match', () => {
     const game = createGame(() => 0.25);
