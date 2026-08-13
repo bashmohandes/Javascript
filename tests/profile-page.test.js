@@ -17,3 +17,8 @@ test('profile includes accessible game-history pagination', () => {
     assert.match(profile, /data-page-action="previous"/);
     assert.match(profile, /data-page-action="next"/);
 });
+
+test('leaderboard game filters fit narrow mobile screens', () => {
+    assert.match(profile, /\.tabs\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)\}/);
+    assert.match(profile, /\.tabs button\{min-width:0;[^}]*font-size:13px/);
+});
