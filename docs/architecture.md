@@ -88,7 +88,7 @@ sequenceDiagram
   G->>A: record(game, won, details)
   A->>H: POST /api/results + session cookie
   H->>AC: record(userId, result)
-  AC->>AC: validate fields; derive score
+  AC->>AC: validate fields and derive score
   AC->>DB: insert game_results
   AC->>AH: process(result event)
   AH->>DB: upsert achievement_progress
@@ -192,4 +192,3 @@ checks HTTP/WebSocket origins, caps JSON and WebSocket payloads, and uses a
 heartbeat. Startup applies ordered SQL migrations transactionally. Graceful
 shutdown closes sockets and SQLite. See the [decision index](adr/README.md) for
 the trade-offs behind these boundaries.
-
