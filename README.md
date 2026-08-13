@@ -8,7 +8,8 @@ history, profiles, and leaderboards. No browser build step is required.
 
 See the diagram-first [architecture overview](docs/architecture.md) for the game
 topology and subsystem flows. Architectural decisions are indexed in
-[the ADR directory](docs/adr/README.md).
+[the ADR directory](docs/adr/README.md), with a dedicated guide to
+[online rendering smoothing and prediction](docs/online-rendering.md).
 
 ## Games
 

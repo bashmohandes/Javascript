@@ -171,6 +171,8 @@ sequenceDiagram
 Rooms and resume tokens are ephemeral and vanish on expiry/restart. Account
 sessions are separate from room identity: login adds a gamertag to a room, and
 Battle Tanks also associates the user id for trusted online result recording.
+See [online rendering](online-rendering.md) for snapshot smoothing, client-side
+prediction, safeguards, and alternatives.
 
 ## Deployment and boundaries
 
