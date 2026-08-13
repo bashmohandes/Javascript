@@ -49,10 +49,12 @@ test('shared arcade navigation stays out of full-screen games', () => {
     }
 });
 
-test('achievement notifications are queued and displayed one at a time', () => {
+test('top-score and achievement notifications share one sequential queue', () => {
     const script = read('arcade.js');
-    assert.match(script, /unlockQueue\.push\(\.\.\.unlocked\)/);
-    assert.match(script, /setTimeout\(\(\) => \{ toast\.remove\(\); showNextUnlock\(\); \}, 5200\)/);
+    assert.match(script, /notificationQueue\.push\(\.\.\.notifications\)/);
+    assert.match(script, /showUnlocks = unlocked => enqueueNotifications/);
+    assert.match(script, /showTopScore = topScore => \{ if \(topScore\) enqueueNotifications/);
+    assert.match(script, /showNextNotification\(\)/);
     assert.doesNotMatch(script, /index \* 450/);
 });
 

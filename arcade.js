@@ -66,36 +66,39 @@
         if (navigator.share) return navigator.share({ title: achievement.title, text, url });
         await navigator.clipboard.writeText(`${text} ${url}`);
     };
-    const unlockQueue = [];
-    let showingUnlock = false;
-    const showNextUnlock = () => {
-        const achievement = unlockQueue.shift();
-        if (!achievement) { showingUnlock = false; return; }
-        showingUnlock = true;
-        const toast = document.createElement('aside'); toast.className = 'achievement-toast'; toast.setAttribute('role', 'status');
-        toast.innerHTML = `<span>${achievement.icon}</span><div><small>Achievement unlocked</small><strong>${achievement.title}</strong></div>`;
-        document.body.append(toast);
-        document.dispatchEvent(new CustomEvent('arcade:achievement', { detail: achievement }));
-        setTimeout(() => { toast.remove(); showNextUnlock(); }, 5200);
-    };
-    const showUnlocks = unlocked => {
-        unlockQueue.push(...unlocked);
-        if (!showingUnlock) showNextUnlock();
-    };
     const scoreMessages = ['The leaderboard just felt that!', 'New legend status unlocked!', 'That record never stood a chance!', 'History, officially rewritten!'];
-    const showTopScore = topScore => {
-        if (!topScore) return;
-        document.querySelector('.top-score-toast')?.remove();
+    const notificationQueue = [];
+    let showingNotification = false;
+    const showNextNotification = () => {
+        const notification = notificationQueue.shift();
+        if (!notification) { showingNotification = false; return; }
+        showingNotification = true;
         const toast = document.createElement('aside');
-        toast.className = 'top-score-toast'; toast.setAttribute('role', 'status'); toast.setAttribute('aria-live', 'polite');
-        const message = scoreMessages[Math.floor(Math.random() * scoreMessages.length)];
-        const leaderboardUrl = `${rootPath}profile.html?game=${encodeURIComponent(topScore.game)}#leaderboards`;
-        toast.innerHTML = `<button type="button" aria-label="Dismiss top score notification">×</button><span class="top-score-confetti" aria-hidden="true">🏆</span><div><small>Top score smashed</small><strong>${message}</strong><p><s>${topScore.previousScore}</s><b aria-label="New score ${topScore.newScore}">${topScore.newScore}</b></p><a href="${leaderboardUrl}">See the top score you broke →</a></div>`;
-        toast.querySelector('button').addEventListener('click', () => toast.remove());
+        toast.setAttribute('role', 'status'); toast.setAttribute('aria-live', 'polite');
+        if (notification.type === 'achievement') {
+            const achievement = notification.detail;
+            toast.className = 'achievement-toast';
+            toast.innerHTML = `<span>${achievement.icon}</span><div><small>Achievement unlocked</small><strong>${achievement.title}</strong></div>`;
+        } else {
+            const topScore = notification.detail;
+            const message = scoreMessages[Math.floor(Math.random() * scoreMessages.length)];
+            const leaderboardUrl = `${rootPath}profile.html?game=${encodeURIComponent(topScore.game)}#leaderboards`;
+            toast.className = 'top-score-toast';
+            toast.innerHTML = `<button type="button" aria-label="Dismiss top score notification">×</button><span class="top-score-confetti" aria-hidden="true">🏆</span><div><small>Top score smashed</small><strong>${message}</strong><p><s>${topScore.previousScore}</s><b aria-label="New score ${topScore.newScore}">${topScore.newScore}</b></p><a href="${leaderboardUrl}">See the top score you broke →</a></div>`;
+        }
         document.body.append(toast);
-        document.dispatchEvent(new CustomEvent('arcade:top-score', { detail: topScore }));
-        setTimeout(() => toast.remove(), 10000);
+        document.dispatchEvent(new CustomEvent(`arcade:${notification.type === 'achievement' ? 'achievement' : 'top-score'}`, { detail: notification.detail }));
+        let timer;
+        const finish = () => { clearTimeout(timer); toast.remove(); showNextNotification(); };
+        toast.querySelector('button')?.addEventListener('click', finish);
+        timer = setTimeout(finish, notification.type === 'achievement' ? 5200 : 10000);
     };
+    const enqueueNotifications = notifications => {
+        notificationQueue.push(...notifications);
+        if (!showingNotification) showNextNotification();
+    };
+    const showUnlocks = unlocked => enqueueNotifications(unlocked.map(detail => ({ type: 'achievement', detail })));
+    const showTopScore = topScore => { if (topScore) enqueueNotifications([{ type: 'top-score', detail: topScore }]); };
     const loadAchievements = async () => {
         if (!game || !achievementDialog) return;
         const result = await api(`/api/achievements/${game}`);
