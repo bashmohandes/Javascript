@@ -33,6 +33,23 @@ test('alternative themes customize shared shell and game layouts', () => {
     assert.match(games, /box-shadow:none/);
 });
 
+test('no modern game selects an experience theme or embeds an experience palette', () => {
+    const gameScripts = [
+        'pong/scripts/app.js',
+        'tictactoe/scripts/app.js',
+        'battle-tanks/scripts/app.js',
+        'Sudoku/scripts/app.js',
+        'Minesweeper/scripts/app.js'
+    ];
+
+    for (const file of gameScripts) {
+        const source = fs.readFileSync(file, 'utf8');
+        assert.doesNotMatch(source, /dataset\.arcadeTheme/, `${file} must not select an experience theme`);
+        assert.doesNotMatch(source, /\bpalettes?\s*=\s*\{/, `${file} must not embed an experience palette`);
+        assert.doesNotMatch(source, /(?:playful|cabinet|calm)\s*:\s*\{/, `${file} must not branch on registered themes`);
+    }
+});
+
 test('theme styles own the Battle Tanks canvas palette', () => {
     for (const token of ['sky-top', 'sky-bottom', 'terrain', 'terrain-edge', 'barrier', 'barrier-line', 'ink', 'active', 'aim']) {
         assert.match(games, new RegExp(`--battle-${token}:`));
