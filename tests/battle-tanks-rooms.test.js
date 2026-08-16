@@ -35,3 +35,19 @@ test('online statistics use one explosion result for splash hits and damage take
     assert.equal(host.room.stats[0].damageTaken, affected.find(item => item.tank === 0).healthDamage);
     assert.equal(host.room.stats[1].damageTaken, affected.find(item => item.tank === 1).healthDamage);
 });
+
+test('server validates inventory choices, rejects stale activations, and synchronizes pickup state', () => {
+    const { rooms, host, guest } = started(); const state = host.room.game;
+    state.inventories[0].push('shield'); core.spawnPickup(state, 'health-pack');
+    assert.throws(() => rooms.command(host.room, host.player, { ...command(host.room, 'activate', { itemId: 'shield' }), turnId: 0 }), /stale/i);
+    rooms.command(host.room, host.player, command(host.room, 'activate', { itemId: 'shield' }));
+    assert.equal(state.tanks[0].shield, 45); assert.equal(host.room.turnId, 2); assert.equal(state.activePlayer, 1);
+    rooms.broadcast(host.room, { type: 'state', state: rooms.state(host.room) });
+    assert.deepEqual(host.player.socket.messages.at(-1).state.pickups, guest.player.socket.messages.at(-1).state.pickups);
+    assert.deepEqual(host.player.socket.messages.at(-1).state.activeEffects, guest.player.socket.messages.at(-1).state.activeEffects);
+});
+
+test('online rematch removes authoritative pickup state', () => {
+    const { rooms, host } = started(); host.room.game.pickups.push({ id: 'shield', x: 100, y: 400 }); host.room.game.inventories[0].push('shield'); host.room.game.phase = 'game-over'; rooms.rematch(host.room);
+    assert.deepEqual(host.room.game.pickups, []); assert.deepEqual(host.room.game.inventories, [[], []]);
+});

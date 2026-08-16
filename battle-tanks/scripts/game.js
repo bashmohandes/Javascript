@@ -11,6 +11,18 @@
     const STARTING_HEALTH = 100, DAMAGE = 50, TERRAIN_STEP = 8, BARRIER_CELL = 4;
     const DEFAULT_WEAPON = Object.freeze({ baseDamage: DAMAGE, blastRadius: 52, terrainDamage: 22, powerMultiplier: 1, velocityMultiplier: 0 });
     const DEFAULT_BLAST = Object.freeze({ radius: DEFAULT_WEAPON.blastRadius, depth: DEFAULT_WEAPON.terrainDamage });
+    const PICKUP_SIZE = 22, INVENTORY_LIMIT = 3, MAX_PICKUPS = 3, SPAWN_EVERY_TURNS = 3;
+    // IDs are protocol values: never derive them from labels or array positions.
+    const POWER_UP_CATALOG = Object.freeze({
+        'health-pack': Object.freeze({ id: 'health-pack', label: 'Health pack', kind: 'consumable', effect: 'heal', amount: 35, consumesTurn: true }),
+        shield: Object.freeze({ id: 'shield', label: 'Shield', kind: 'consumable', effect: 'absorb', amount: 45, consumesTurn: true }),
+        invisibility: Object.freeze({ id: 'invisibility', label: 'Invisibility', kind: 'consumable', effect: 'invisible', durationTurns: 2, consumesTurn: true }),
+        'weapon-heavy-shell': Object.freeze({ id: 'weapon-heavy-shell', label: 'Heavy shell', kind: 'weapon', weapon: Object.freeze({ ...DEFAULT_WEAPON, baseDamage: 68, blastRadius: 46 }), consumesTurn: false }),
+        'weapon-wide-blast': Object.freeze({ id: 'weapon-wide-blast', label: 'Wide blast', kind: 'weapon', weapon: Object.freeze({ ...DEFAULT_WEAPON, baseDamage: 42, blastRadius: 76, terrainDamage: 30 }), consumesTurn: false }),
+        'damage-boost': Object.freeze({ id: 'damage-boost', label: 'Damage boost', kind: 'modifier', effect: 'damage', multiplier: 1.35, durationTurns: 2, consumesTurn: true }),
+        'blast-radius-boost': Object.freeze({ id: 'blast-radius-boost', label: 'Blast boost', kind: 'modifier', effect: 'blastRadius', multiplier: 1.3, durationTurns: 2, consumesTurn: true })
+    });
+    const PICKUP_IDS = Object.freeze(Object.keys(POWER_UP_CATALOG));
     // Arena guarantees used by both generation and tests/UI: terrain stays in
     // this vertical band and the centre wall varies without trapping either tank.
     const ARENA_LIMITS = Object.freeze({ terrainMin: 410, terrainMax: 500, barrierWidthMin: 52, barrierWidthMax: 84, barrierHeightMin: 145, barrierHeightMax: 215, sideSpaceMin: 350 });
@@ -26,6 +38,49 @@
         let value = seedValue(seed);
         return function random() { value += 0x6D2B79F5; let result = value; result = Math.imul(result ^ result >>> 15, result | 1); result ^= result + Math.imul(result ^ result >>> 7, result | 61); return ((result ^ result >>> 14) >>> 0) / 4294967296; };
     }
+    function pickupRandom(state, salt = 0) { return seededRandom((state.arena.seed ^ Math.imul((state.spawnSerial || 0) + 1 + salt, 0x9e3779b1)) >>> 0)(); }
+    function pickupBounds(pickup) { return { x: pickup.x - PICKUP_SIZE / 2, y: pickup.y - PICKUP_SIZE, w: PICKUP_SIZE, h: PICKUP_SIZE }; }
+    function rectsOverlap(a, b) { return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y; }
+    function isValidPickupPosition(state, x) {
+        if (!Number.isFinite(x) || x < PICKUP_SIZE * 2 || x > WIDTH - PICKUP_SIZE * 2) return false;
+        const y = terrainHeightAt(state.arena, x), left = terrainHeightAt(state.arena, x - PICKUP_SIZE / 2), right = terrainHeightAt(state.arena, x + PICKUP_SIZE / 2);
+        if (Math.max(Math.abs(y - left), Math.abs(y - right)) > 8) return false;
+        const bounds = { x: x - PICKUP_SIZE / 2, y: y - PICKUP_SIZE, w: PICKUP_SIZE, h: PICKUP_SIZE };
+        if (rectsOverlap(bounds, state.arena.barrier)) return false;
+        if (state.tanks.some(tank => rectsOverlap(bounds, { x: tank.x, y: tank.y, w: TANK_W, h: TANK_H }))) return false;
+        return !(state.pickups || []).some(item => rectsOverlap(bounds, pickupBounds(item)));
+    }
+    function spawnPickup(state, requestedId) {
+        if (!state?.arena || (state.pickups || []).length >= MAX_PICKUPS) return null;
+        const serial = state.spawnSerial || 0, id = POWER_UP_CATALOG[requestedId] ? requestedId : PICKUP_IDS[Math.floor(pickupRandom(state, 91) * PICKUP_IDS.length)];
+        for (let attempt = 0; attempt < 64; attempt += 1) {
+            const x = Math.round(PICKUP_SIZE * 2 + pickupRandom(state, attempt + 1) * (WIDTH - PICKUP_SIZE * 4));
+            if (!isValidPickupPosition(state, x)) continue;
+            const pickup = { serial: serial + 1, id, x, y: terrainHeightAt(state.arena, x) };
+            state.spawnSerial = serial + 1; state.pickups.push(pickup); return pickup;
+        }
+        state.spawnSerial = serial + 1; return null;
+    }
+    function collectPickup(state, player) {
+        const tank = state.tanks[player], inventory = state.inventories[player]; if (!tank || !inventory || inventory.length >= INVENTORY_LIMIT) return [];
+        const bounds = { x: tank.x, y: tank.y, w: TANK_W, h: TANK_H }, collected = [];
+        state.pickups = state.pickups.filter(pickup => { if (inventory.length >= INVENTORY_LIMIT || !rectsOverlap(bounds, pickupBounds(pickup))) return true; inventory.push(pickup.id); collected.push(pickup.id); return false; });
+        if (collected.length) state.announcement = `Player ${player + 1} collected ${POWER_UP_CATALOG[collected[0]].label}.`;
+        return collected;
+    }
+    function expireEffects(state, player) { state.activeEffects[player] = state.activeEffects[player].filter(effect => effect.remainingTurns === undefined || effect.remainingTurns > 0 || effect.remainingAbsorption > 0); return state.activeEffects[player]; }
+    function beginTurnEffects(state, player) { state.activeEffects[player].forEach(effect => { if (Number.isFinite(effect.remainingTurns)) effect.remainingTurns -= 1; }); return expireEffects(state, player); }
+    function activatePowerUp(state, player, itemId) {
+        if (state.phase !== 'aiming' || state.activePlayer !== player) return null;
+        const inventory = state.inventories[player], index = inventory.indexOf(itemId), item = POWER_UP_CATALOG[itemId]; if (index < 0 || !item) return null;
+        inventory.splice(index, 1); const tank = state.tanks[player];
+        if (item.kind === 'weapon') state.equippedWeapons[player] = item.id;
+        else if (item.effect === 'heal') tank.health = Math.min(STARTING_HEALTH, tank.health + item.amount);
+        else if (item.effect === 'absorb') { tank.shield = (tank.shield || 0) + item.amount; state.activeEffects[player].push({ id: item.id, effect: item.effect, remainingAbsorption: item.amount }); }
+        else state.activeEffects[player].push({ id: item.id, effect: item.effect, multiplier: item.multiplier, remainingTurns: item.durationTurns });
+        state.announcement = `Player ${player + 1} activated ${item.label}.`; return { id: item.id, consumesTurn: item.consumesTurn };
+    }
+    function advancePickupSchedule(state) { state.completedTurns = (state.completedTurns || 0) + 1; if (state.completedTurns <= 18 && state.completedTurns % SPAWN_EVERY_TURNS === 0) return spawnPickup(state); return null; }
     function generateArena(seed = Date.now()) {
         const normalizedSeed = seedValue(seed), random = seededRandom(normalizedSeed), count = WIDTH / TERRAIN_STEP + 1;
         let terrain = Array.from({ length: count }, (_, index) => {
@@ -118,7 +173,7 @@
             const attemptedDamage = Math.max(0, Math.round(maximumDamage * clamp(falloff, 0, 1)));
             if (!attemptedDamage) return;
             const absorbedDamage = Math.min(Math.max(0, Number(tank.shield) || 0), attemptedDamage);
-            if (absorbedDamage) tank.shield -= absorbedDamage;
+            if (absorbedDamage) { tank.shield -= absorbedDamage; const shield = state.activeEffects?.[index]?.find(effect => effect.effect === 'absorb'); if (shield) shield.remainingAbsorption = Math.max(0, shield.remainingAbsorption - absorbedDamage); }
             const healthDamage = Math.min(tank.health, attemptedDamage - absorbedDamage);
             tank.health = Math.max(0, tank.health - healthDamage);
             result.affected.push({ tank: index, distance: Math.round(distance * 10) / 10, attemptedDamage, absorbedDamage, healthDamage });
@@ -142,22 +197,22 @@
             { x: 115, angle: 45, power: 60, health: STARTING_HEALTH },
             { x: WIDTH - 115 - TANK_W, angle: 45, power: 60, health: STARTING_HEALTH }
         ];
-        const state = { phase: 'setup', activePlayer: 0, arena, tanks, projectile: null, winner: null, shots: 0, hits: 0, damageTaken: [0, 0], impacts: [], impactSerial: 0, lastImpact: null, startedAt: Date.now(), resultSubmitted: false, announcement: 'Preparing the arena.' };
+        const state = { phase: 'setup', activePlayer: 0, arena, tanks, projectile: null, winner: null, shots: 0, hits: 0, damageTaken: [0, 0], impacts: [], impactSerial: 0, lastImpact: null, pickups: [], inventories: [[], []], equippedWeapons: [null, null], activeEffects: [[], []], spawnSerial: 0, completedTurns: 0, startedAt: Date.now(), resultSubmitted: false, announcement: 'Preparing the arena.' };
         tanks.forEach(tank => { tank.y = tankYAt(state, tank); });
         return state;
     }
-    function beginTurn(state, player = state.activePlayer) { if (state.phase === 'game-over') return false; state.activePlayer = player; state.phase = 'aiming'; state.projectile = null; state.announcement = `Player ${player + 1}: adjust your shot.`; return true; }
-    function moveTank(state, direction, amount = 8) { if (state.phase !== 'aiming') return false; const tank = state.tanks[state.activePlayer], bounds = tankBounds(state, state.activePlayer); tank.x = clamp(tank.x + (direction === 'forward' ? (state.activePlayer ? -amount : amount) : (state.activePlayer ? amount : -amount)), bounds.min, bounds.max); tank.y = tankYAt(state, tank); return true; }
+    function beginTurn(state, player = state.activePlayer) { if (state.phase === 'game-over') return false; state.activePlayer = player; state.phase = 'aiming'; state.projectile = null; beginTurnEffects(state, player); state.announcement = `Player ${player + 1}: adjust your shot.`; return true; }
+    function moveTank(state, direction, amount = 8) { if (state.phase !== 'aiming') return false; const tank = state.tanks[state.activePlayer], bounds = tankBounds(state, state.activePlayer); tank.x = clamp(tank.x + (direction === 'forward' ? (state.activePlayer ? -amount : amount) : (state.activePlayer ? amount : -amount)), bounds.min, bounds.max); tank.y = tankYAt(state, tank); collectPickup(state, state.activePlayer); return true; }
     function adjustAim(state, delta) { if (state.phase !== 'aiming') return false; const tank = state.tanks[state.activePlayer]; tank.angle = clamp(tank.angle + delta, 10, 80); return true; }
     function adjustPower(state, delta) { if (state.phase !== 'aiming') return false; const tank = state.tanks[state.activePlayer]; tank.power = clamp(tank.power + delta, 20, 100); return true; }
-    function fireProjectile(state, weapon = DEFAULT_WEAPON) { if (state.phase !== 'aiming') return false; const tank = state.tanks[state.activePlayer], direction = state.activePlayer ? -1 : 1, radians = tank.angle * Math.PI / 180, speed = 170 + tank.power * 3.2; tank.y = tankYAt(state, tank); state.shots += 1; state.projectile = { x: tank.x + TANK_W / 2 + direction * 32, y: tank.y - 7, vx: Math.cos(radians) * speed * direction, vy: -Math.sin(radians) * speed, owner: state.activePlayer, weapon: projectileWeapon({ weapon }) }; Object.freeze(state.projectile.weapon); state.phase = 'projectile-flight'; state.announcement = `Player ${state.activePlayer + 1} fired.`; return true; }
+    function fireProjectile(state, weapon) { if (state.phase !== 'aiming') return false; const tank = state.tanks[state.activePlayer], direction = state.activePlayer ? -1 : 1, radians = tank.angle * Math.PI / 180, speed = 170 + tank.power * 3.2, equipped = POWER_UP_CATALOG[state.equippedWeapons[state.activePlayer]]?.weapon, effects = state.activeEffects[state.activePlayer], selected = { ...(weapon || equipped || DEFAULT_WEAPON) }; effects.forEach(effect => { if (effect.effect === 'damage') selected.baseDamage = (selected.baseDamage || DAMAGE) * effect.multiplier; if (effect.effect === 'blastRadius') selected.blastRadius = (selected.blastRadius || DEFAULT_WEAPON.blastRadius) * effect.multiplier; }); tank.y = tankYAt(state, tank); state.shots += 1; state.projectile = { x: tank.x + TANK_W / 2 + direction * 32, y: tank.y - 7, vx: Math.cos(radians) * speed * direction, vy: -Math.sin(radians) * speed, owner: state.activePlayer, weapon: projectileWeapon({ weapon: selected }) }; Object.freeze(state.projectile.weapon); state.phase = 'projectile-flight'; state.announcement = `Player ${state.activePlayer + 1} fired.`; return true; }
     function predictProjectile(projectile, elapsed = 0) { if (!projectile) return null; const seconds = Number.isFinite(elapsed) ? Math.max(0, elapsed) : 0; return { ...projectile, x: projectile.x + projectile.vx * seconds, y: projectile.y + projectile.vy * seconds + .5 * GRAVITY * seconds * seconds, vy: projectile.vy + GRAVITY * seconds }; }
     function circleRect(x, y, r, rect) { return x + r >= rect.x && x - r <= rect.x + rect.w && y + r >= rect.y && y - r <= rect.y + rect.h; }
-    function resolveShot(state, hit) { const projectile = state.projectile, point = projectile && Number.isFinite(projectile.x) ? { x: projectile.x, y: projectile.y, type: hit?.type, index: hit?.index } : null; state.projectile = null; if (hit && point) { state.impactSerial = (state.impactSerial || 0) + 1; const explosion = resolveExplosion(state, point, projectile); state.lastImpact = { ...explosion, serial: state.impactSerial }; state.impacts = [...(state.impacts || []), state.lastImpact].slice(-14); if (explosion.affected.some(item => item.healthDamage > 0)) state.hits += 1; } const destroyed = state.tanks.map((tank, index) => tank.health <= 0 ? index : -1).filter(index => index >= 0); if (destroyed.length) { state.phase = 'game-over'; if (destroyed.length === state.tanks.length) { state.winner = null; state.draw = true; state.announcement = 'Draw! Both tanks were destroyed.'; } else { state.winner = 1 - destroyed[0]; state.draw = false; state.announcement = `Player ${state.winner + 1} wins!`; } return hit; } state.activePlayer = 1 - state.activePlayer; state.phase = 'aiming'; const damage = state.lastImpact?.totalDamage || 0; state.announcement = damage ? `${damage} splash damage. Player ${state.activePlayer + 1}'s turn.` : `Shot ended. Player ${state.activePlayer + 1}'s turn.`; return hit; }
+    function resolveShot(state, hit) { const projectile = state.projectile, point = projectile && Number.isFinite(projectile.x) ? { x: projectile.x, y: projectile.y, type: hit?.type, index: hit?.index } : null; state.projectile = null; if (hit && point) { state.impactSerial = (state.impactSerial || 0) + 1; const explosion = resolveExplosion(state, point, projectile); state.lastImpact = { ...explosion, serial: state.impactSerial }; state.impacts = [...(state.impacts || []), state.lastImpact].slice(-14); if (explosion.affected.some(item => item.healthDamage > 0)) state.hits += 1; } const destroyed = state.tanks.map((tank, index) => tank.health <= 0 ? index : -1).filter(index => index >= 0); if (destroyed.length) { state.phase = 'game-over'; if (destroyed.length === state.tanks.length) { state.winner = null; state.draw = true; state.announcement = 'Draw! Both tanks were destroyed.'; } else { state.winner = 1 - destroyed[0]; state.draw = false; state.announcement = `Player ${state.winner + 1} wins!`; } return hit; } advancePickupSchedule(state); state.activePlayer = 1 - state.activePlayer; state.phase = 'aiming'; beginTurnEffects(state, state.activePlayer); const damage = state.lastImpact?.totalDamage || 0; state.announcement = damage ? `${damage} splash damage. Player ${state.activePlayer + 1}'s turn.` : `Shot ended. Player ${state.activePlayer + 1}'s turn.`; return hit; }
     function collisionAt(state, x, y) { if (circleBarrier(x, y, PROJECTILE_R, state.arena.barrier)) return { type: 'barrier' }; for (let index = 0; index < state.tanks.length; index += 1) { const tank = state.tanks[index]; if (circleRect(x, y, PROJECTILE_R, { x: tank.x, y: tank.y, w: TANK_W, h: TANK_H })) return { type: 'tank', index }; } if (y + PROJECTILE_R >= terrainHeightAt(state.arena, x)) return { type: 'terrain' }; if (x + PROJECTILE_R < 0 || x - PROJECTILE_R > WIDTH || y + PROJECTILE_R < 0 || y - PROJECTILE_R > HEIGHT) return { type: 'out-of-bounds' }; return null; }
     function stepPhysics(state, dt = 1 / 120) { if (state.phase !== 'projectile-flight' || !state.projectile || !Number.isFinite(dt) || dt <= 0) return null; const projectile = state.projectile, durationSteps = Math.ceil(dt / (1 / 120)), distanceSteps = Math.ceil(Math.max(Math.abs(projectile.vx * dt), Math.abs(projectile.vy * dt + .5 * GRAVITY * dt * dt)) / 3), steps = Math.max(1, durationSteps, distanceSteps), step = dt / steps; for (let index = 0; index < steps; index += 1) { const dx = projectile.vx * step, dy = projectile.vy * step + .5 * GRAVITY * step * step, hit = collisionAt(state, projectile.x + dx, projectile.y + dy); projectile.x += dx; projectile.y += dy; projectile.vy += GRAVITY * step; if (hit) return resolveShot(state, hit); } return null; }
     function resetMatch(state, seed) { const fresh = createInitialState(seed); Object.keys(state).forEach(key => delete state[key]); Object.assign(state, fresh); beginTurn(state, 0); return state; }
-    function snapshot(state) { return { phase: state.phase, activePlayer: state.activePlayer, arena: { seed: state.arena.seed, terrain: [...state.arena.terrain], barrier: { ...state.arena.barrier, cells: [...state.arena.barrier.cells] } }, tanks: state.tanks.map(tank => ({ ...tank })), projectile: state.projectile ? { ...state.projectile, weapon: state.projectile.weapon ? { ...state.projectile.weapon } : undefined } : null, winner: state.winner, draw: Boolean(state.draw), shots: state.shots, hits: state.hits, damageTaken: [...(state.damageTaken || [0, 0])], impacts: (state.impacts || []).map(impact => ({ ...impact, affected: (impact.affected || []).map(item => ({ ...item })) })), impactSerial: state.impactSerial || 0, lastImpact: state.lastImpact ? { ...state.lastImpact, affected: (state.lastImpact.affected || []).map(item => ({ ...item })) } : null, announcement: state.announcement }; }
+    function snapshot(state) { return { phase: state.phase, activePlayer: state.activePlayer, arena: { seed: state.arena.seed, terrain: [...state.arena.terrain], barrier: { ...state.arena.barrier, cells: [...state.arena.barrier.cells] } }, tanks: state.tanks.map(tank => ({ ...tank })), projectile: state.projectile ? { ...state.projectile, weapon: state.projectile.weapon ? { ...state.projectile.weapon } : undefined } : null, winner: state.winner, draw: Boolean(state.draw), shots: state.shots, hits: state.hits, damageTaken: [...(state.damageTaken || [0, 0])], impacts: (state.impacts || []).map(impact => ({ ...impact, affected: (impact.affected || []).map(item => ({ ...item })) })), impactSerial: state.impactSerial || 0, lastImpact: state.lastImpact ? { ...state.lastImpact, affected: (state.lastImpact.affected || []).map(item => ({ ...item })) } : null, pickups: state.pickups.map(item => ({ ...item })), inventories: state.inventories.map(items => [...items]), equippedWeapons: [...state.equippedWeapons], activeEffects: state.activeEffects.map(effects => effects.map(effect => ({ ...effect }))), spawnSerial: state.spawnSerial, completedTurns: state.completedTurns, announcement: state.announcement }; }
 
-    return { WIDTH, HEIGHT, GRAVITY, TANK_W, TANK_H, PROJECTILE_R, STARTING_HEALTH, DAMAGE, TERRAIN_STEP, BARRIER_CELL, DEFAULT_BLAST, DEFAULT_WEAPON, ARENA_LIMITS, seededRandom, generateArena, terrainHeightAt, tankYAt, barrierOccupiedAt, settleTanks, resolveExplosion, createInitialState, beginTurn, tankBounds, moveTank, adjustAim, adjustPower, fireProjectile, predictProjectile, collisionAt, stepPhysics, resolveShot, resetMatch, snapshot };
+    return { WIDTH, HEIGHT, GRAVITY, TANK_W, TANK_H, PROJECTILE_R, STARTING_HEALTH, DAMAGE, TERRAIN_STEP, BARRIER_CELL, DEFAULT_BLAST, DEFAULT_WEAPON, POWER_UP_CATALOG, PICKUP_IDS, PICKUP_SIZE, INVENTORY_LIMIT, MAX_PICKUPS, SPAWN_EVERY_TURNS, ARENA_LIMITS, seededRandom, generateArena, terrainHeightAt, tankYAt, barrierOccupiedAt, settleTanks, resolveExplosion, isValidPickupPosition, spawnPickup, collectPickup, activatePowerUp, beginTurnEffects, expireEffects, advancePickupSchedule, createInitialState, beginTurn, tankBounds, moveTank, adjustAim, adjustPower, fireProjectile, predictProjectile, collisionAt, stepPhysics, resolveShot, resetMatch, snapshot };
 }));
