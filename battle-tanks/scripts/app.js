@@ -30,13 +30,26 @@ function drawTank(tank,i){
     if(active){ctx.strokeStyle=arenaColors.active;ctx.lineWidth=2;roundedRect(tank.x-7,tank.y-7,TANK_W+14,TANK_H+12,8);ctx.stroke();ctx.setLineDash([7,7]);ctx.strokeStyle=arenaColors.aim;ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(cx+Math.cos(rad)*48*dir,tank.y-Math.sin(rad)*48);ctx.lineTo(cx+Math.cos(rad)*105*dir,tank.y-Math.sin(rad)*105);ctx.stroke();}
     ctx.restore();
 }
+function drawBarrier(barrier){
+    const size=barrier.cellSize,ground=terrainHeightAt(state.arena,barrier.x+barrier.w/2),gradient=ctx.createLinearGradient(0,barrier.y,0,ground);
+    gradient.addColorStop(0,arenaColors.barrier);gradient.addColorStop(.72,arenaColors.barrier);gradient.addColorStop(1,arenaColors.terrain);
+    // Merge adjacent occupied cells into runs. This keeps the authoritative mask
+    // while avoiding visible hairline seams between its small collision cells.
+    const runs=[];for(let row=0;row<barrier.rows;row+=1){let start=-1;for(let column=0;column<=barrier.columns;column+=1){const filled=column<barrier.columns&&barrier.cells[row*barrier.columns+column];if(filled&&start<0)start=column;if(!filled&&start>=0){runs.push({row,start,end:column});start=-1;}}}
+    ctx.fillStyle=gradient;runs.forEach(run=>ctx.fillRect(barrier.x+run.start*size,barrier.y+run.row*size,Math.min(barrier.w,run.end*size)-run.start*size,Math.min(size,barrier.h-run.row*size)));
+    // Recessed courses add structure without drawing a rigid rectangle across
+    // blast holes. Their contrast fades where the wall meets the earth.
+    ctx.fillStyle=arenaColors.barrierLine;ctx.globalAlpha=.42;runs.forEach(run=>{if(run.row&&run.row*size%24<size)ctx.fillRect(barrier.x+run.start*size,barrier.y+run.row*size,Math.min(barrier.w,run.end*size)-run.start*size,2);});ctx.globalAlpha=1;
+    // Trace only exposed material edges, including fresh crater boundaries.
+    ctx.strokeStyle=arenaColors.barrierLine;ctx.globalAlpha=.55;ctx.lineWidth=1.5;ctx.beginPath();for(let row=0;row<barrier.rows;row+=1)for(let column=0;column<barrier.columns;column+=1){if(!barrier.cells[row*barrier.columns+column])continue;const x=barrier.x+column*size,y=barrier.y+row*size,right=Math.min(x+size,barrier.x+barrier.w),bottom=Math.min(y+size,barrier.y+barrier.h),occupied=(c,r)=>c>=0&&r>=0&&c<barrier.columns&&r<barrier.rows&&barrier.cells[r*barrier.columns+c];if(!occupied(column,row-1)){ctx.moveTo(x,y);ctx.lineTo(right,y);}if(!occupied(column-1,row)){ctx.moveTo(x,y);ctx.lineTo(x,bottom);}if(!occupied(column+1,row)){ctx.moveTo(right,y);ctx.lineTo(right,bottom);}}ctx.stroke();ctx.globalAlpha=1;
+}
 function render(){
     const barrier=state.arena.barrier,terrainY=x=>terrainHeightAt(state.arena,x);ctx.clearRect(0,0,WIDTH,HEIGHT);const sky=ctx.createLinearGradient(0,0,0,HEIGHT);sky.addColorStop(0,arenaColors.skyTop);sky.addColorStop(1,arenaColors.skyBottom);ctx.fillStyle=sky;ctx.fillRect(0,0,WIDTH,HEIGHT);
-    ctx.beginPath();ctx.moveTo(0,HEIGHT);ctx.lineTo(0,terrainY(0));state.arena.terrain.forEach((height,index)=>ctx.lineTo(index*TERRAIN_STEP,height));ctx.lineTo(WIDTH,HEIGHT);ctx.closePath();ctx.fillStyle=arenaColors.terrain;ctx.fill();ctx.beginPath();state.arena.terrain.forEach((height,index)=>index?ctx.lineTo(index*TERRAIN_STEP,height):ctx.moveTo(0,height));ctx.strokeStyle=arenaColors.terrainEdge;ctx.lineWidth=7;ctx.stroke();
     // The occupancy mask is authoritative: empty cells are real projectile holes,
-    // not paint layered over an otherwise solid collision rectangle.
-    ctx.fillStyle=arenaColors.barrier;for(let row=0;row<barrier.rows;row+=1)for(let column=0;column<barrier.columns;column+=1)if(barrier.cells[row*barrier.columns+column])ctx.fillRect(barrier.x+column*barrier.cellSize,barrier.y+row*barrier.cellSize,Math.min(barrier.cellSize,barrier.w-column*barrier.cellSize),Math.min(barrier.cellSize,barrier.h-row*barrier.cellSize));
-    ctx.fillStyle=arenaColors.barrierLine;for(let row=0;row<barrier.rows;row+=1)for(let column=0;column<barrier.columns;column+=1){const y=barrier.y+row*barrier.cellSize;if(barrier.cells[row*barrier.columns+column]&&Math.floor(y-barrier.y)%24<barrier.cellSize)ctx.fillRect(barrier.x+column*barrier.cellSize,y,barrier.cellSize,2);}
+    // not paint layered over an otherwise solid collision rectangle. Drawing it
+    // behind the terrain lets the ground naturally cover and soften its footing.
+    drawBarrier(barrier);
+    ctx.beginPath();ctx.moveTo(0,HEIGHT);ctx.lineTo(0,terrainY(0));state.arena.terrain.forEach((height,index)=>ctx.lineTo(index*TERRAIN_STEP,height));ctx.lineTo(WIDTH,HEIGHT);ctx.closePath();ctx.fillStyle=arenaColors.terrain;ctx.fill();ctx.beginPath();state.arena.terrain.forEach((height,index)=>index?ctx.lineTo(index*TERRAIN_STEP,height):ctx.moveTo(0,height));ctx.strokeStyle=arenaColors.terrainEdge;ctx.lineWidth=7;ctx.stroke();
     // Impacts remain a bounded, visual-only flash/scorch; terrain and wall shapes
     // above already come directly from their collision samples.
     (state.impacts||[]).slice(-4).forEach((impact,index)=>{ctx.save();ctx.globalAlpha=.08+index*.04;ctx.fillStyle='#ffcf70';ctx.beginPath();ctx.arc(impact.x,impact.y,5+index,0,Math.PI*2);ctx.fill();ctx.restore();});
