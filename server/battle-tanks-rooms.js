@@ -40,7 +40,7 @@ class BattleTanksRooms {
         // never consulted for terrain or barrier geometry.
         const arenaSeed = Math.floor(this.random() * 0x100000000) >>> 0;
         game.resetMatch(room.game, arenaSeed); room.matchId += 1; room.turnId = 1; room.recorded = false; room.paused = false;
-        room.stats = [{ shots: 0, hits: 0, damageTaken: 0 }, { shots: 0, hits: 0, damageTaken: 0 }]; room.startedAt = Date.now();
+        room.stats = [0, 1].map(() => ({ shots: 0, hits: 0, damageTaken: 0, powerUpsAcquired: 0, powerUpsUsed: 0, powerUpTypesUsed: [], shieldDamageAbsorbed: 0, healthRestored: 0, invisibilityActivations: 0, laserRicochetHits: 0, laserSelfDamage: 0, homingHits: 0, heavyProjectileMaxDamage: 0, poweredHits: 0 })); room.startedAt = Date.now();
     }
     ready(room, player) {
         if (room.game.phase !== 'setup' && room.game.phase !== 'game-over') throw new Error('The match is already in progress.');
@@ -98,7 +98,7 @@ class BattleTanksRooms {
             if (!changed) throw new Error('That weapon has no ammunition.');
         }
         else throw new Error('Unsupported command.');
-        room.touchedAt = Date.now();
+        this.syncPowerStatistics(room); room.touchedAt = Date.now();
         const acquisitions = (room.game.acquisitionEvents || []).filter(event => event.eventId > previousAcquisitionId);
         acquisitions.forEach(event => this.broadcast(room, { type: 'power-up-acquired', matchId: room.matchId, event }));
         if (acquisitions.length) this.broadcastState(room);
@@ -123,11 +123,13 @@ class BattleTanksRooms {
         }
         return state;
     }
-    optionalStatistics(statistics, side) { if (!statistics) return {}; const weapons = statistics.weapons?.[side], splashDamage = statistics.splashDamage?.[side], healing = statistics.healing?.[side], powerUps = statistics.powerUps?.[side]; return { ...(weapons && typeof weapons === 'object' ? { weapons } : {}), ...(Number.isSafeInteger(splashDamage) ? { splashDamage } : {}), ...(Number.isSafeInteger(healing) ? { healing } : {}), ...(Number.isSafeInteger(powerUps) ? { powerUps } : {}) }; }
+    syncPowerStatistics(room) { if (!room.stats || !room.game.statistics) return; const names = ['powerUpsAcquired', 'powerUpsUsed', 'shieldDamageAbsorbed', 'healthRestored', 'invisibilityActivations', 'laserRicochetHits', 'laserSelfDamage', 'homingHits', 'heavyProjectileMaxDamage', 'poweredHits']; room.stats.forEach((target, side) => { for (const name of names) target[name] = room.game.statistics[name][side]; target.powerUpTypesUsed = [...room.game.statistics.powerUpTypesUsed[side]]; }); }
+    optionalStatistics(statistics, side) { if (!statistics) return {}; const result = {}, fields = ['powerUpsAcquired','powerUpsUsed','shieldDamageAbsorbed','healthRestored','invisibilityActivations','laserRicochetHits','laserSelfDamage','homingHits','heavyProjectileMaxDamage','poweredHits']; const weapons = statistics.weapons?.[side]; if (weapons && typeof weapons === 'object') result.weapons = weapons; for (const name of fields) if (Number.isSafeInteger(statistics[name]?.[side])) result[name] = statistics[name][side]; const types = statistics.powerUpTypesUsed?.[side]; result.powerUpTypesUsed = Array.isArray(types) ? [...new Set(types.filter(id => game.POWER_UP_CATALOG[id]))] : []; return result; }
     finish(room) {
+        this.syncPowerStatistics(room);
         if (room.recorded || room.game.phase !== 'game-over') return; room.recorded = true;
         const seconds = Math.max(1, Math.min(7200, Math.round((Date.now() - room.startedAt) / 1000)));
-        room.players.forEach((player, side) => { if (!player?.userId || !this.recordResult) return; const stats = room.stats[side], won = room.game.winner === side; try { this.recordResult(player.userId, { game: 'battletanks', won, details: { mode: 'online', winner: won ? 1 : 2, turns: room.stats[0].shots + room.stats[1].shots, shots: stats.shots, hits: stats.hits, seconds, damageTaken: stats.damageTaken, ...this.optionalStatistics(room.game.statistics, side) } }); } catch { /* A persistence failure must not stop the room simulation. */ } });
+        room.players.forEach((player, side) => { if (!player?.userId || !this.recordResult) return; const stats = room.stats[side], won = room.game.winner === side; try { this.recordResult(player.userId, { game: 'battletanks', won, details: { mode: 'online', winner: won ? 1 : 2, turns: room.stats[0].shots + room.stats[1].shots, shots: stats.shots, hits: stats.hits, seconds, damageTaken: stats.damageTaken, ...this.optionalStatistics(room.game.statistics, side), ...Object.fromEntries(Object.entries(stats).filter(([key]) => !['shots', 'hits', 'damageTaken'].includes(key))) } }); } catch { /* A persistence failure must not stop the room simulation. */ } });
     }
     tick(dt, now = Date.now()) {
         for (const [code, room] of this.rooms) {
@@ -135,7 +137,7 @@ class BattleTanksRooms {
             if (expired || now - room.touchedAt > this.roomTimeoutMs) { this.broadcast(room, { type: 'room-closed', reason: expired ? 'An opponent did not reconnect in time.' : 'Room expired.' }); this.rooms.delete(code); continue; }
             if (room.paused || room.game.phase !== 'projectile-flight') continue;
             const shooter = room.game.activePlayer, impactSerial = room.game.impactSerial || 0, turn = room.turnId;
-            game.stepPhysics(room.game, Math.min(Math.max(dt, 0), .1));
+            game.stepPhysics(room.game, Math.min(Math.max(dt, 0), .1)); this.syncPowerStatistics(room);
             if ((room.game.impactSerial || 0) !== impactSerial) {
                 const affected = room.game.lastImpact?.affected || [];
                 // A hit is one shot that deals health damage by either direct or splash damage;
