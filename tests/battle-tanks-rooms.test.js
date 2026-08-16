@@ -20,8 +20,8 @@ test('pauses on disconnect, resumes securely, and ignores an old socket close', 
 test('expires abandoned rooms after the reconnect grace period', () => { const { rooms, host, guest } = started({ reconnectMs: 10 }); rooms.disconnect(host.room, guest.player); rooms.tick(0, guest.player.disconnectedAt + 11); assert.equal(rooms.rooms.has(host.room.code), false); });
 test('records each authenticated online result once from authoritative state', () => { const results = [], { rooms, host } = started({ recordResult: (id, result) => results.push({ id, result }) }); host.room.stats[0].shots = 2; host.room.stats[0].hits = 2; host.room.stats[1].shots = 1; host.room.stats[1].damageTaken = 100; host.room.game.tanks[1].health = 0; host.room.game.winner = 0; host.room.game.phase = 'game-over'; rooms.finish(host.room); rooms.finish(host.room); assert.equal(results.length, 2); assert.deepEqual(results.map(item => item.result.won), [true, false]); assert.ok(results.every(item => item.result.details.mode === 'online')); });
 test('server projectile collision broadcasts the resolved state and advances once', () => { const { rooms, host, guest } = started(); const target = host.room.game.tanks[1]; host.room.stats[0].shots = 1; host.room.game.projectile = { x: target.x - 20, y: target.y + core.TANK_H / 2, vx: 200, vy: 0, owner: 0 }; host.room.game.phase = 'projectile-flight'; rooms.tick(.2); assert.equal(target.health, 50); assert.equal(host.room.stats[0].hits, 1); assert.equal(host.room.game.activePlayer, 1); for (const player of [host.player, guest.player]) { const update = player.socket.messages.at(-1); assert.equal(update.type, 'state'); assert.equal(update.state.phase, 'aiming'); assert.equal(update.state.turnId, 2); } const turn = host.room.turnId; rooms.tick(.2); assert.equal(host.room.turnId, turn); });
-test('server creates and synchronizes one authoritative arena for both players', () => { const { rooms, host, guest } = started({ random: () => .314159 }); const expected = rooms.state(host.room).arena; rooms.broadcast(host.room, { type: 'state', state: rooms.state(host.room) }); const hostArena = host.player.socket.messages.at(-1).state.arena, guestArena = guest.player.socket.messages.at(-1).state.arena; assert.deepEqual(hostArena, expected); assert.deepEqual(guestArena, expected); assert.deepEqual(expected, core.generateArena(expected.seed)); rooms.command(host.room, host.player, command(host.room, 'aim', { angle: 45, power: 60, arena: { terrain: [0], barrier: { x: 0 } } })); assert.deepEqual(host.room.game.arena, expected); });
-test('both clients receive identical authoritative arena deformation', () => { const { rooms, host, guest } = started({ random: () => .2718 }), barrier = host.room.game.arena.barrier; core.resolveExplosion(host.room.game, { x: 200, y: core.terrainHeightAt(host.room.game.arena, 200) }, { radius: 30, depth: 25 }, 'terrain'); core.resolveExplosion(host.room.game, { x: barrier.x + barrier.w / 2, y: barrier.y + 40 }, { radius: 24, depth: 20 }, 'barrier'); rooms.broadcast(host.room, { type: 'state', state: rooms.state(host.room) }); const hostArena = host.player.socket.messages.at(-1).state.arena, guestArena = guest.player.socket.messages.at(-1).state.arena; assert.deepEqual(hostArena, guestArena); assert.deepEqual(hostArena, core.snapshot(host.room.game).arena); assert.ok(hostArena.barrier.cells.includes(0)); });
+test('server creates and synchronizes one authoritative arena for both players', () => { const { rooms, host, guest } = started({ random: () => .314159 }); const expected = rooms.stateFor(host.room, 0).arena; rooms.broadcastState(host.room); const hostArena = host.player.socket.messages.at(-1).state.arena, guestArena = guest.player.socket.messages.at(-1).state.arena; assert.deepEqual(hostArena, expected); assert.deepEqual(guestArena, expected); assert.deepEqual(expected, core.generateArena(expected.seed)); rooms.command(host.room, host.player, command(host.room, 'aim', { angle: 45, power: 60, arena: { terrain: [0], barrier: { x: 0 } } })); assert.deepEqual(host.room.game.arena, expected); });
+test('both clients receive identical authoritative arena deformation', () => { const { rooms, host, guest } = started({ random: () => .2718 }), barrier = host.room.game.arena.barrier; core.resolveExplosion(host.room.game, { x: 200, y: core.terrainHeightAt(host.room.game.arena, 200) }, { radius: 30, depth: 25 }, 'terrain'); core.resolveExplosion(host.room.game, { x: barrier.x + barrier.w / 2, y: barrier.y + 40 }, { radius: 24, depth: 20 }, 'barrier'); rooms.broadcastState(host.room); const hostArena = host.player.socket.messages.at(-1).state.arena, guestArena = guest.player.socket.messages.at(-1).state.arena; assert.deepEqual(hostArena, guestArena); assert.deepEqual(hostArena, core.snapshot(host.room.game).arena); assert.ok(hostArena.barrier.cells.includes(0)); });
 
 test('online statistics use one explosion result for splash hits and damage taken', () => {
     const { rooms, host } = started(), state = host.room.game, target = state.tanks[1], shooter = state.tanks[0];
@@ -42,7 +42,7 @@ test('server validates inventory choices, rejects stale activations, and synchro
     assert.throws(() => rooms.command(host.room, host.player, { ...command(host.room, 'activate', { itemId: 'shield' }), turnId: 0 }), /stale/i);
     rooms.command(host.room, host.player, command(host.room, 'activate', { itemId: 'shield' }));
     const shield = state.activeEffects[0][0]; assert.deepEqual([shield.remainingTurns, shield.remainingCapacity], [1, 40]); assert.equal(host.room.turnId, 2); assert.equal(state.activePlayer, 1);
-    rooms.broadcast(host.room, { type: 'state', state: rooms.state(host.room) });
+    rooms.broadcastState(host.room);
     assert.deepEqual(host.player.socket.messages.at(-1).state.pickups, guest.player.socket.messages.at(-1).state.pickups);
     assert.deepEqual(host.player.socket.messages.at(-1).state.activeEffects, guest.player.socket.messages.at(-1).state.activeEffects);
 });
@@ -63,4 +63,33 @@ test('server RNG exclusively selects bounded shield values and expires effects',
     assert.equal(shield.remainingCapacity, config.capacityRange.max);
     core.endTurnEffects(host.room.game, 0); core.endTurnEffects(host.room.game, 0); core.endTurnEffects(host.room.game, 0);
     assert.deepEqual(host.room.game.activeEffects[0], []);
+});
+
+test('viewer-aware states conceal an invisible opponent and their launch vectors until barrier crossing', () => {
+    const { rooms, host, guest } = started({ random: () => .5 }), state = host.room.game;
+    state.activeEffects[0].push({ id: 'invisibility', effect: 'invisible', remainingTurns: 2 });
+    rooms.broadcastState(host.room);
+    const owner = host.player.socket.messages.at(-1).state, opponent = guest.player.socket.messages.at(-1).state;
+    assert.equal(owner.tanks[0].x, state.tanks[0].x); assert.equal(owner.tanks[0].angle, state.tanks[0].angle);
+    assert.deepEqual(opponent.tanks[0], { health: 100, concealed: true });
+    rooms.command(host.room, host.player, command(host.room, 'fire')); rooms.broadcastState(host.room);
+    const hidden = guest.player.socket.messages.at(-1).state.projectile;
+    assert.deepEqual(hidden, { owner: 0, concealed: true }); assert.equal('x' in hidden, false); assert.equal('vx' in hidden, false);
+    state.projectile.x = state.arena.barrier.x + state.arena.barrier.w + 1; state.projectile.y = 100;
+    rooms.broadcastState(host.room);
+    const visible = guest.player.socket.messages.at(-1).state.projectile;
+    assert.equal(visible.x, state.projectile.x); assert.equal(visible.vx, state.projectile.vx);
+});
+
+test('concealment survives reconnect, expires by owner turns, resets on rematch, and reveals at game over', () => {
+    const { rooms, host, guest } = started({ random: () => .999999 }), state = host.room.game;
+    state.inventories[0].push('invisibility'); rooms.command(host.room, host.player, command(host.room, 'activate', { itemId: 'invisibility', remainingTurns: 99 }));
+    assert.equal(state.activeEffects[0][0].remainingTurns, 3, 'server chooses one to three owner turns');
+    const replacement = socket(); rooms.disconnect(host.room, guest.player); rooms.resume(host.room.code, guest.player.token, replacement); rooms.broadcastState(host.room);
+    assert.equal(replacement.messages.at(-1).state.tanks[0].concealed, true); assert.equal('x' in replacement.messages.at(-1).state.tanks[0], false);
+    core.endTurnEffects(state, 0); core.endTurnEffects(state, 0); core.endTurnEffects(state, 0);
+    assert.equal(rooms.stateFor(host.room, 1).opponentConcealed, false);
+    state.activeEffects[0].push({ id: 'invisibility', effect: 'invisible', remainingTurns: 2 }); state.phase = 'game-over'; state.winner = 0;
+    assert.equal(rooms.stateFor(host.room, 1).tanks[0].x, state.tanks[0].x, 'game over reveals final positions');
+    rooms.rematch(host.room); assert.deepEqual(state.activeEffects, [[], []]); assert.equal(rooms.stateFor(host.room, 1).opponentConcealed, false);
 });

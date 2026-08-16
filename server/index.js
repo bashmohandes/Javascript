@@ -240,7 +240,7 @@ function handleTicSocket(socket, request) {
 
 function handleTankSocket(socket, request) {
     let membership = null; const user = sessionUser(request);
-    const publish = () => membership && tankRooms.broadcast(membership.room, { type: 'state', state: tankRooms.state(membership.room) });
+    const publish = () => membership && tankRooms.broadcastState(membership.room);
     socket.on('message', raw => {
         try {
             const message = JSON.parse(raw.toString());
