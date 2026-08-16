@@ -32,6 +32,13 @@ test('full-screen games expose an on-screen exit and Battle Tanks turn controls'
     assert.match(read('styles/game.css'), /:fullscreen \.fullscreen-exit/);
 });
 
+test('Battle Tanks preserves its 16:9 arena in viewport and fallback full screen layouts', () => {
+    const styles = read('battle-tanks/styles.css');
+    assert.match(styles, /arena-wrap canvas\{[^}]*height:auto[^}]*aspect-ratio:16\/9/);
+    assert.match(styles, /arena-wrap:fullscreen canvas[^}]*width:min\(100%,177\.78dvh\)[^}]*max-height:100%[^}]*object-fit:contain/);
+    assert.doesNotMatch(styles, /canvas\{[^}]*(?:^|;)height:100%/);
+});
+
 test('Battle Tanks game-over actions do not cover tanks or unsafe iPhone controls', () => {
     const app = read('battle-tanks/scripts/app.js'), styles = read('battle-tanks/styles.css');
     assert.match(app, /arena\.dataset\.phase=state\.phase/);
