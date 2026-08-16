@@ -13,6 +13,20 @@ test('homepage defines distinct light and dark palettes', () => {
     assert.match(homepage, /--page-background:\s*#0d1420;/);
 });
 
+test('light theme brand mark uses a high-contrast gradient behind its white label', () => {
+    const relativeLuminance = hex => {
+        const channels = hex.match(/[\da-f]{2}/gi).map(value => parseInt(value, 16) / 255);
+        const linear = channels.map(value => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4);
+        return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+    };
+    const contrastWithWhite = hex => 1.05 / (relativeLuminance(hex) + 0.05);
+    const stops = [...homepage.matchAll(/--brand-(?:start|end):\s*(#[\da-f]{6})/gi)].map(match => match[1]);
+
+    assert.deepEqual(stops, ['#a50050', '#4c25c7']);
+    assert.ok(stops.every(stop => contrastWithWhite(stop) >= 4.5));
+    assert.match(homepage, /linear-gradient\(135deg, var\(--brand-start\), var\(--brand-end\)\)/);
+});
+
 test('homepage surfaces use theme palette variables', () => {
     assert.match(homepage, /background:[^;}]*var\(--page-background\);/s);
     assert.match(homepage, /background:\s*var\(--panel\);/);

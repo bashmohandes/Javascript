@@ -39,6 +39,8 @@
             --sky-blue: #27b4ff;
             --lime: #8bdc3c;
             --orange: #ff7a3d;
+            --brand-start: #a50050;
+            --brand-end: #4c25c7;
         }
 
         :root[data-theme="dark"] {
@@ -64,6 +66,8 @@
             --sky-blue: #53c3ff;
             --lime: #a4e85f;
             --orange: #ff9363;
+            --brand-start: var(--hot-pink);
+            --brand-end: var(--accent);
         }
 
         * { box-sizing: border-box; }
@@ -122,7 +126,7 @@
             height: 42px;
             place-items: center;
             color: var(--accent-contrast);
-            background: linear-gradient(135deg, var(--hot-pink), var(--accent));
+            background: linear-gradient(135deg, var(--brand-start), var(--brand-end));
             border: 3px solid var(--ink);
             border-radius: 13px;
             box-shadow: 4px 4px 0 var(--ink);
