@@ -118,6 +118,12 @@ class BattleTanksRooms {
         // Health remains public, but no positional or aiming property crosses the trust boundary.
         state.tanks[opponent] = { health: room.game.tanks[opponent].health, concealed: true };
         if (state.activePlayer === opponent) state.announcement = 'Opponent concealed.';
+        // Rays resolve synchronously, so their complete path must be removed just
+        // like a projectile that has not crossed the disclosure boundary. Impact
+        // history contains the same path and must not provide a second side channel.
+        if (state.laserPath?.owner === opponent) state.laserPath = null;
+        state.impacts = state.impacts.map(impact => impact.type === 'laser' && impact.owner === opponent ? { ...impact, path: null } : impact);
+        if (state.lastImpact?.type === 'laser' && state.lastImpact.owner === opponent) state.lastImpact = { ...state.lastImpact, path: null };
         const projectile = room.game.projectile;
         if (projectile?.owner === opponent) {
             const barrier = room.game.arena.barrier;

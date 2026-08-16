@@ -81,6 +81,20 @@ test('viewer-aware states conceal an invisible opponent and their launch vectors
     assert.equal(visible.x, state.projectile.x); assert.equal(visible.vx, state.projectile.vx);
 });
 
+test('viewer-aware states redact an invisible opponent laser path from every history field', () => {
+    const { rooms, host } = started(), state = host.room.game;
+    state.activeEffects[0].push({ id: 'invisibility', effect: 'invisible', remainingTurns: 3 });
+    state.weaponAmmo[0].laser = 1;
+    rooms.command(host.room, host.player, command(host.room, 'select-weapon', { weaponId: 'laser' }));
+    rooms.command(host.room, host.player, command(host.room, 'fire'));
+    const owner = rooms.stateFor(host.room, 0), opponent = rooms.stateFor(host.room, 1);
+    assert.ok(owner.laserPath?.segments.length > 0, 'the owner retains the authoritative laser rendering');
+    assert.equal(opponent.opponentConcealed, true);
+    assert.equal(opponent.laserPath, null);
+    assert.equal(opponent.lastImpact?.path, null);
+    assert.ok(opponent.impacts.filter(impact => impact.type === 'laser' && impact.owner === 0).every(impact => impact.path === null));
+});
+
 test('concealment survives reconnect, expires by owner turns, resets on rematch, and reveals at game over', () => {
     const { rooms, host, guest } = started({ random: () => .999999 }), state = host.room.game;
     state.inventories[0].push('invisibility'); rooms.command(host.room, host.player, command(host.room, 'activate', { itemId: 'invisibility', remainingTurns: 99 }));

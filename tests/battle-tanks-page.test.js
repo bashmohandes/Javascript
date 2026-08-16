@@ -60,6 +60,13 @@ test('Battle Tanks collects pickups along local pointer-drag movement', () => {
     assert.match(app, /pointermove[\s\S]*?tank\.y=tankYAt\(state,tank\);collectPickup\(state,state\.activePlayer\);sync\(\)/);
 });
 
+test('Battle Tanks disables online-only power-ups in local matches and guards activation', () => {
+    const app = read('battle-tanks/scripts/app.js'), core = require('../battle-tanks/scripts/game');
+    assert.equal(core.POWER_UP_CATALOG.invisibility.onlineOnly, true);
+    assert.match(app, /button\.disabled=locked\|\|unavailable/);
+    assert.match(app, /if\(!item\|\|item\.onlineOnly&&mode!==['"]online['"]\)return/);
+});
+
 test('Battle Tanks exposes an accessible, queued, local-only acquisition card', () => {
     const page = read('battle-tanks/index.html'), app = read('battle-tanks/scripts/app.js'), styles = read('battle-tanks/styles.css');
     assert.match(page, /id="power-card"[^>]*role="dialog"/); assert.match(page, /id="dismiss-power-card"[^>]*aria-label="Dismiss power-up card"/); assert.match(page, /id="power-card-live"[^>]*aria-live="polite"/);
