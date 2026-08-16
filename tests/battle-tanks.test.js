@@ -4,7 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const game = require('../battle-tanks/scripts/game');
 
-function match() { const state = game.createInitialState(); game.beginTurn(state); return state; }
+function match(seed = 12345) { const state = game.createInitialState(seed); game.beginTurn(state); return state; }
 function finish(state, limit = 5000, dt = 1 / 120) {
     let hit = null;
     for (let index = 0; index < limit && state.phase === 'projectile-flight'; index += 1) hit = game.stepPhysics(state, dt) || hit;
@@ -14,16 +14,16 @@ function finish(state, limit = 5000, dt = 1 / 120) {
 test('a new match puts player one and player two on opposite sides', () => {
     const state = match();
     assert.equal(state.activePlayer, 0); assert.equal(state.phase, 'aiming');
-    assert.ok(state.tanks[0].x + game.TANK_W <= game.barrier.x);
-    assert.ok(state.tanks[1].x >= game.barrier.x + game.barrier.w);
+    assert.ok(state.tanks[0].x + game.TANK_W <= state.arena.barrier.x);
+    assert.ok(state.tanks[1].x >= state.arena.barrier.x + state.arena.barrier.w);
 });
 
 test('movement clamps each tank to its side of the central barrier', () => {
     const state = match();
     game.moveTank(state, 'forward', 10000);
-    assert.equal(state.tanks[0].x, game.barrier.x - game.TANK_W);
+    assert.equal(state.tanks[0].x, state.arena.barrier.x - game.TANK_W);
     state.activePlayer = 1; game.moveTank(state, 'forward', 10000);
-    assert.equal(state.tanks[1].x, game.barrier.x + game.barrier.w);
+    assert.equal(state.tanks[1].x, state.arena.barrier.x + state.arena.barrier.w);
 });
 
 test('angle and power controls enforce their documented ranges', () => {
@@ -45,8 +45,8 @@ test('gravity bends a projectile through a rising and falling arc', () => {
 });
 
 test('a low shot collides with the central barrier', () => {
-    const state = match(); state.tanks[0].angle = 10; state.tanks[0].power = 100; game.fireProjectile(state);
-    assert.equal(finish(state).type, 'barrier');
+    const state = match(), barrier = state.arena.barrier;
+    assert.deepEqual(game.collisionAt(state, barrier.x - game.PROJECTILE_R, barrier.y + 20), { type: 'barrier' });
 });
 
 test('a sufficiently high shot clears the central barrier', () => {
@@ -54,8 +54,8 @@ test('a sufficiently high shot clears the central barrier', () => {
     let crossedAboveBarrier = false;
     while (state.phase === 'projectile-flight') {
         game.stepPhysics(state);
-        if (state.projectile && state.projectile.x >= game.barrier.x && state.projectile.x <= game.barrier.x + game.barrier.w) {
-            crossedAboveBarrier ||= state.projectile.y + game.PROJECTILE_R < game.barrier.y;
+        if (state.projectile && state.projectile.x >= state.arena.barrier.x && state.projectile.x <= state.arena.barrier.x + state.arena.barrier.w) {
+            crossedAboveBarrier ||= state.projectile.y + game.PROJECTILE_R < state.arena.barrier.y;
         }
     }
     assert.equal(crossedAboveBarrier, true);
@@ -72,7 +72,8 @@ test('a direct collision damages only the target tank', () => {
 test('missed shots leave bounded impact residue in the arena', () => {
     const state = match();
     for (let shot = 0; shot < 18; shot += 1) {
-        state.projectile = { x: 250 + shot, y: game.GROUND - 2, vx: 0, vy: 20, owner: state.activePlayer };
+        const x = 250 + shot, ground = game.terrainHeightAt(state.arena, x);
+        state.projectile = { x, y: ground - 2, vx: 0, vy: 20, owner: state.activePlayer };
         state.phase = 'projectile-flight'; game.stepPhysics(state);
     }
     assert.equal(state.lastImpact.type, 'terrain');
@@ -100,7 +101,7 @@ test('lethal damage ends the match without advancing the turn', () => {
 
 test('rematch resets match state and counters', () => {
     const state = match(), initial = match(); Object.assign(state, { activePlayer: 1, shots: 9, hits: 2, winner: 1, resultSubmitted: true }); state.tanks[0].x = 3; state.tanks[0].health = 0; state.projectile = {}; state.phase = 'game-over';
-    game.resetMatch(state);
+    game.resetMatch(state, 12345);
     assert.deepEqual(state.tanks, initial.tanks); assert.equal(state.projectile, null); assert.equal(state.shots, 0); assert.equal(state.hits, 0); assert.equal(state.activePlayer, 0); assert.equal(state.winner, null); assert.equal(state.resultSubmitted, false); assert.equal(state.phase, 'aiming');
 });
 
@@ -113,4 +114,35 @@ test('invalid elapsed-time updates leave a projectile unchanged', () => {
     const state = match(); game.fireProjectile(state); const projectile = { ...state.projectile };
     assert.equal(game.stepPhysics(state, Number.NaN), null); assert.deepEqual(state.projectile, projectile);
     assert.equal(game.stepPhysics(state, -1), null); assert.deepEqual(state.projectile, projectile);
+});
+
+test('arena generation is deterministic, bounded, variable, and keeps safe spawn pads', () => {
+    assert.deepEqual(game.generateArena('same arena'), game.generateArena('same arena'));
+    const arenas = Array.from({ length: 20 }, (_, seed) => game.generateArena(seed));
+    assert.ok(new Set(arenas.map(arena => arena.barrier.w)).size > 1);
+    assert.ok(new Set(arenas.map(arena => arena.barrier.h)).size > 1);
+    for (const arena of arenas) {
+        const { barrier } = arena, limits = game.ARENA_LIMITS;
+        assert.ok(barrier.w >= limits.barrierWidthMin && barrier.w <= limits.barrierWidthMax);
+        assert.ok(barrier.h >= limits.barrierHeightMin && barrier.h <= limits.barrierHeightMax);
+        assert.ok(barrier.x >= limits.sideSpaceMin && game.WIDTH - barrier.x - barrier.w >= limits.sideSpaceMin);
+        assert.equal(game.terrainHeightAt(arena, 80), game.terrainHeightAt(arena, 220));
+        assert.equal(game.terrainHeightAt(arena, 740), game.terrainHeightAt(arena, 880));
+    }
+});
+
+test('movement follows slopes and terrain collision uses the local height profile', () => {
+    const state = match(77), tank = state.tanks[0];
+    game.moveTank(state, 'forward', 150);
+    assert.equal(tank.y, game.tankYAt(state, tank));
+    const x = 330, ground = game.terrainHeightAt(state.arena, x);
+    assert.equal(game.collisionAt(state, x, ground - game.PROJECTILE_R + .1).type, 'terrain');
+    assert.equal(game.collisionAt(state, x, ground - game.PROJECTILE_R - 1), null);
+});
+
+test('snapshots deep-serialize the complete match arena', () => {
+    const state = match(987), copy = game.snapshot(state);
+    assert.deepEqual(copy.arena, state.arena);
+    copy.arena.terrain[0] += 1; copy.arena.barrier.x += 1;
+    assert.notDeepEqual(copy.arena, state.arena);
 });

@@ -36,7 +36,10 @@ class BattleTanksRooms {
     }
     publicRooms() { return [...this.rooms.values()].filter(room => room.visibility === 'public' && !room.players[1]).sort((a, b) => b.createdAt - a.createdAt).map(room => ({ code: room.code, players: room.players.filter(item => item?.connected).length, host: room.players[0]?.gamertag || 'Guest', createdAt: room.createdAt })); }
     start(room) {
-        game.resetMatch(room.game); room.matchId += 1; room.turnId = 1; room.recorded = false; room.paused = false;
+        // The server alone chooses the arena seed. Client command payloads are
+        // never consulted for terrain or barrier geometry.
+        const arenaSeed = Math.floor(this.random() * 0x100000000) >>> 0;
+        game.resetMatch(room.game, arenaSeed); room.matchId += 1; room.turnId = 1; room.recorded = false; room.paused = false;
         room.stats = [{ shots: 0, hits: 0, damageTaken: 0 }, { shots: 0, hits: 0, damageTaken: 0 }]; room.startedAt = Date.now();
     }
     ready(room, player) {
