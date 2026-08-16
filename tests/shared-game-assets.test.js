@@ -16,6 +16,33 @@ test('competitive games consume shared styles without cross-game imports', () =>
     assert.doesNotMatch(read('tictactoe/index.html'), /(?:src|href)=["'][^"']*pong/i);
 });
 
+test('every modern game consumes the shared playful design language', () => {
+    const games = ['pong', 'tictactoe', 'battle-tanks', 'Sudoku', 'Minesweeper'];
+    const design = read('styles/modern-game.css');
+
+    assert.match(design, /--game-pop:#ff4fa3/);
+    assert.match(design, /\.modern-game \.brand-mark/);
+    assert.match(design, /prefers-reduced-motion:reduce/);
+    for (const game of games) {
+        const html = read(`${game}/index.html`);
+        assert.match(html, /styles\/modern-game\.css/, `${game} should load the modern game design`);
+        assert.match(html, /<body class="modern-game game-[^"]+">/, `${game} should scope the modern design`);
+    }
+});
+
+test('modern arena decoration excludes native and fallback full-screen states', () => {
+    const design = read('styles/modern-game.css');
+
+    assert.match(design, /\.arena-wrap:not\(:fullscreen\):not\(\.is-fullscreen\)/);
+    assert.doesNotMatch(design, /\.modern-game \.arena-wrap,/);
+});
+
+test('modern arena share buttons remain horizontally centered on hover', () => {
+    const design = read('styles/modern-game.css');
+
+    assert.match(design, /\.arena-share\.primary-button:hover\s*\{[^}]*transform:translate\(-50%,2px\)/);
+});
+
 test('online competitive games consume shared room UI behavior', () => {
     for (const game of ['pong', 'tictactoe', 'battle-tanks']) {
         assert.match(read(`${game}/index.html`), /scripts\/online-rooms\.js/);

@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap');
 
 :root { --ink:#21342e; --muted:#718079; --paper:#f4f0e7; --card:#fffdf8; --line:#cbd3cc; --forest:#172f27; --mint:#cde8d8; --hidden-cell:#a9c9b5; --hidden-hover:#c4ddce; --revealed-cell:#fffaf0; --flagged-cell:#f5d9cb; --accent:#df704b; --accent-dark:#b95030; --danger:#b83d39; --count-1:#3975a6; --count-2:#448054; --count-3:#c14d3e; --count-4:#65518f; --count-5:#963e37; --count-6:#277f81; --count-7:#3d4541; }
 :root[data-theme="dark"] { --ink:#edf5f0; --muted:#a6b7ae; --paper:#0f1916; --card:#192620; --line:#405149; --forest:#09110e; --mint:#294438; --hidden-cell:#416b58; --hidden-hover:#527d69; --revealed-cell:#1c2b25; --flagged-cell:#523127; --accent:#f08a65; --accent-dark:#ffad8f; --danger:#d95650; --count-1:#7dbcf0; --count-2:#83c995; --count-3:#ff8d7e; --count-4:#bda7ed; --count-5:#ef9b93; --count-6:#75ced0; --count-7:#c8d4ce; }
