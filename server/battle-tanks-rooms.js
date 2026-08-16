@@ -19,6 +19,7 @@ class BattleTanksRooms {
         if (!isPublic && (secret.length < 4 || secret.length > 32)) throw new Error('Private room passcodes must be 4–32 characters.');
         const player = this.makePlayer(socket, 0, user), code = this.makeCode();
         const room = { code, visibility: isPublic ? 'public' : 'private', passcode: isPublic ? '' : secret, players: [player, null], game: game.createInitialState(), colors: ['#fffdf8', '#d76b45'], matchId: 0, turnId: 0, stats: null, recorded: false, paused: false, createdAt: Date.now(), touchedAt: Date.now(), lastBroadcast: 0 };
+        room.game.onlineMode = true;
         this.rooms.set(code, room); return { room, player };
     }
     join(code, socket, passcode = '', user = null) {

@@ -293,6 +293,19 @@ test('power-up spawning is seeded, bounded, and uses valid exposed terrain', () 
     left.pickups.forEach(item => assert.equal(game.isValidPickupPosition({ ...left, pickups: left.pickups.filter(other => other !== item) }, item.x), true));
 });
 
+test('local pickup scheduling excludes online-only items and continues in long matches', () => {
+    const state = match('long-local-match');
+    assert.equal(game.spawnPickup(state, 'invisibility'), null);
+    for (let turn = 0; turn < 60; turn += 1) {
+        const pickup = game.advancePickupSchedule(state);
+        if (pickup) {
+            assert.notEqual(pickup.id, 'invisibility');
+            state.pickups.length = 0;
+        }
+    }
+    assert.ok(state.spawnSerial > 6, 'pickups should continue spawning after the old 18-turn limit');
+});
+
 test('movement collects overlapping pickups up to the inventory limit', () => {
     const state = match(4), tank = state.tanks[0];
     for (let index = 0; index < 4; index += 1) state.pickups.push({ serial: index, id: 'health-pack', x: tank.x + game.TANK_W / 2, y: tank.y + game.TANK_H });
