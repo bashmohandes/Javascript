@@ -39,8 +39,6 @@
             --sky-blue: #27b4ff;
             --lime: #8bdc3c;
             --orange: #ff7a3d;
-            --brand-start: #a50050;
-            --brand-end: #4c25c7;
         }
 
         :root[data-theme="dark"] {
@@ -66,8 +64,6 @@
             --sky-blue: #53c3ff;
             --lime: #a4e85f;
             --orange: #ff9363;
-            --brand-start: var(--hot-pink);
-            --brand-end: var(--accent);
         }
 
         * { box-sizing: border-box; }
@@ -103,38 +99,6 @@
             mask-image: linear-gradient(to bottom, black, transparent 72%);
             pointer-events: none;
         }
-
-        header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 24px;
-            margin-bottom: clamp(60px, 9vw, 104px);
-        }
-
-        .brand {
-            display: inline-flex;
-            align-items: center;
-            gap: 11px;
-            font-weight: 900;
-            letter-spacing: -0.035em;
-        }
-
-        .brand-mark {
-            display: grid;
-            width: 42px;
-            height: 42px;
-            place-items: center;
-            color: var(--accent-contrast);
-            background: linear-gradient(135deg, var(--brand-start), var(--brand-end));
-            border: 3px solid var(--ink);
-            border-radius: 13px;
-            box-shadow: 4px 4px 0 var(--ink);
-            font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
-            font-size: 14px;
-        }
-
-        .header-note { padding: 9px 14px; color: var(--ink); background: var(--sunshine); border: 2px solid var(--ink); border-radius: 999px; box-shadow: 3px 3px 0 var(--ink); font-size: 13px; font-weight: 850; transform: rotate(2deg); }
 
         .eyebrow {
             display: inline-block;
@@ -318,8 +282,6 @@
 
         @media (max-width: 700px) {
             .shell { width: min(100% - 28px, 1120px); padding-top: 22px; }
-            header { margin-bottom: 72px; }
-            .header-note { display: none; }
             .intro { margin-bottom: 42px; }
             .game-grid { grid-template-columns: 1fr; }
             .card { min-height: 0; border-radius: 22px; }
@@ -335,11 +297,6 @@
 </head>
 <body>
     <main class="shell">
-        <header>
-            <div class="brand"><span class="brand-mark" aria-hidden="true">JS</span> JavaScript Arcade</div>
-            <span class="header-note">Small games, thoughtfully rebuilt.</span>
-        </header>
-
         <section class="hero" aria-labelledby="page-title">
             <p class="eyebrow">Pick a game</p>
             <h1 id="page-title">Your next <span class="pop">high score</span> starts here.</h1>
