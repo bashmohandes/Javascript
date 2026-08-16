@@ -74,13 +74,34 @@ class BattleTanksRooms {
             if (message.type === 'equip' && item.kind !== 'weapon') throw new Error('That item cannot be equipped.');
             if (message.type === 'activate' && item.kind === 'weapon') throw new Error('Equip weapon pickups instead.');
             const result = game.activatePowerUp(room.game, player.side, message.itemId, this.random); if (!result) throw new Error('That item is not available.'); changed = true;
-            if (result.consumesTurn) { game.endTurnEffects(room.game, player.side); game.advancePickupSchedule(room.game); game.beginTurn(room.game, 1 - player.side); room.turnId += 1; }
+            if (result.consumesTurn) {
+                // Activation is not one of invisibility's protected owner turns. Firing does not cancel it.
+                if (result.id !== 'invisibility') game.endTurnEffects(room.game, player.side);
+                game.advancePickupSchedule(room.game); game.beginTurn(room.game, 1 - player.side); room.turnId += 1;
+            }
         }
         else throw new Error('Unsupported command.');
         room.touchedAt = Date.now(); return changed;
     }
     color(room, player, color) { if (!/^#[0-9a-f]{6}$/i.test(color)) throw new Error('Invalid color.'); room.colors[player.side] = color; room.touchedAt = Date.now(); }
-    state(room) { return { ...game.snapshot?.(room.game), phase: room.game.phase, activePlayer: room.game.activePlayer, tanks: room.game.tanks, projectile: room.game.projectile, winner: room.game.winner, announcement: room.paused ? 'Match paused while a player reconnects.' : room.game.announcement, colors: room.colors, matchId: room.matchId, turnId: room.turnId, paused: room.paused, startedAt: room.startedAt || null }; }
+    stateFor(room, viewerSide) {
+        const state = { ...game.snapshot(room.game), colors: [...room.colors], matchId: room.matchId, turnId: room.turnId, paused: room.paused, startedAt: room.startedAt || null };
+        if (room.paused) state.announcement = 'Match paused while a player reconnects.';
+        const opponent = 1 - viewerSide;
+        const concealed = state.phase !== 'game-over' && (room.game.activeEffects?.[opponent] || []).some(effect => effect.effect === 'invisible' && effect.remainingTurns > 0);
+        state.viewerSide = viewerSide; state.opponentConcealed = concealed;
+        if (!concealed) return state;
+        // Health remains public, but no positional or aiming property crosses the trust boundary.
+        state.tanks[opponent] = { health: room.game.tanks[opponent].health, concealed: true };
+        if (state.activePlayer === opponent) state.announcement = 'Opponent concealed.';
+        const projectile = room.game.projectile;
+        if (projectile?.owner === opponent) {
+            const barrier = room.game.arena.barrier;
+            const crossed = opponent === 0 ? projectile.x >= barrier.x + barrier.w : projectile.x <= barrier.x;
+            if (!crossed) state.projectile = { owner: opponent, concealed: true };
+        }
+        return state;
+    }
     finish(room) {
         if (room.recorded || room.game.phase !== 'game-over') return; room.recorded = true;
         const seconds = Math.max(1, Math.min(7200, Math.round((Date.now() - room.startedAt) / 1000)));
@@ -104,13 +125,14 @@ class BattleTanksRooms {
                 room.turnId = turn + 1;
                 if (room.game.phase === 'game-over') this.finish(room);
                 room.lastBroadcast = now;
-                this.broadcast(room, { type: 'state', state: this.state(room) });
+                this.broadcastState(room);
             }
         }
     }
     disconnect(room, player, socket = player.socket) { if (player.socket !== socket) return false; Object.assign(player, { connected: false, socket: null, disconnectedAt: Date.now() }); room.paused = room.game.phase !== 'setup' && room.game.phase !== 'game-over'; room.touchedAt = Date.now(); return true; }
     broadcast(room, message) { const body = JSON.stringify(message); room.players.forEach(item => { if (item?.socket?.readyState === 1) item.socket.send(body); }); }
-    broadcastStates(now = Date.now()) { for (const room of this.rooms.values()) if (room.game.phase === 'projectile-flight' && now - room.lastBroadcast >= 40) { room.lastBroadcast = now; this.broadcast(room, { type: 'state', state: this.state(room) }); } }
+    broadcastState(room) { room.players.forEach((item, side) => { if (item?.socket?.readyState === 1) item.socket.send(JSON.stringify({ type: 'state', state: this.stateFor(room, side) })); }); }
+    broadcastStates(now = Date.now()) { for (const room of this.rooms.values()) if (room.game.phase === 'projectile-flight' && now - room.lastBroadcast >= 40) { room.lastBroadcast = now; this.broadcastState(room); } }
 }
 
 module.exports = { BattleTanksRooms };

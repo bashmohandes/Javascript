@@ -298,7 +298,7 @@ test('activation caps healing and tracks turn-based effects and absorption', () 
     const state = match(5); state.tanks[0].health = 90; state.inventories[0].push('health-pack', 'shield', 'invisibility');
     assert.equal(game.activatePowerUp(state, 0, 'health-pack').consumesTurn, true); assert.equal(state.tanks[0].health, 100);
     game.activatePowerUp(state, 0, 'shield', () => 0); const shield = state.activeEffects[0].find(item => item.effect === 'absorb'); assert.deepEqual([shield.remainingTurns, shield.remainingCapacity], [2, 40]);
-    game.activatePowerUp(state, 0, 'invisibility'); assert.equal(state.activeEffects[0].find(item => item.effect === 'invisible').remainingTurns, 2);
+    game.activatePowerUp(state, 0, 'invisibility', () => .5); assert.equal(state.activeEffects[0].find(item => item.effect === 'invisible').remainingTurns, 2);
     game.beginTurnEffects(state, 0); game.beginTurnEffects(state, 0);
     assert.equal(state.activeEffects[0].some(item => item.effect === 'invisible'), false);
 });

@@ -16,7 +16,7 @@
     const POWER_UP_CATALOG = Object.freeze({
         'health-pack': Object.freeze({ id: 'health-pack', label: 'Health pack', kind: 'consumable', effect: 'heal', amount: 35, consumesTurn: true }),
         shield: Object.freeze({ id: 'shield', label: 'Shield', kind: 'consumable', effect: 'absorb', capacityRange: Object.freeze({ min: 40, max: 60 }), durationRange: Object.freeze({ min: 2, max: 4 }), consumesTurn: true }),
-        invisibility: Object.freeze({ id: 'invisibility', label: 'Invisibility', kind: 'consumable', effect: 'invisible', durationTurns: 2, consumesTurn: true }),
+        invisibility: Object.freeze({ id: 'invisibility', label: 'Invisibility', kind: 'consumable', effect: 'invisible', durationRange: Object.freeze({ min: 1, max: 3 }), consumesTurn: true }),
         'weapon-heavy-shell': Object.freeze({ id: 'weapon-heavy-shell', label: 'Heavy shell', kind: 'weapon', weapon: Object.freeze({ ...DEFAULT_WEAPON, baseDamage: 68, blastRadius: 46 }), consumesTurn: false }),
         'weapon-wide-blast': Object.freeze({ id: 'weapon-wide-blast', label: 'Wide blast', kind: 'weapon', weapon: Object.freeze({ ...DEFAULT_WEAPON, baseDamage: 42, blastRadius: 76, terrainDamage: 30 }), consumesTurn: false }),
         'damage-boost': Object.freeze({ id: 'damage-boost', label: 'Damage boost', kind: 'modifier', effect: 'damage', multiplier: 1.35, durationTurns: 2, consumesTurn: true }),
@@ -89,7 +89,7 @@
         if (item.kind === 'weapon') state.equippedWeapons[player] = item.id;
         else if (item.effect === 'heal') tank.health = Math.min(STARTING_HEALTH, tank.health + item.amount);
         else if (item.effect === 'absorb') state.activeEffects[player].push({ id: item.id, effect: item.effect, remainingTurns: rangedInteger(item.durationRange, authoritativeRandom), remainingCapacity: rangedInteger(item.capacityRange, authoritativeRandom) });
-        else state.activeEffects[player].push({ id: item.id, effect: item.effect, multiplier: item.multiplier, remainingTurns: item.durationTurns });
+        else state.activeEffects[player].push({ id: item.id, effect: item.effect, multiplier: item.multiplier, remainingTurns: item.durationRange ? rangedInteger(item.durationRange, authoritativeRandom) : item.durationTurns });
         state.announcement = `Player ${player + 1} activated ${item.label}.`; return { id: item.id, consumesTurn: item.consumesTurn };
     }
     function advancePickupSchedule(state) { state.completedTurns = (state.completedTurns || 0) + 1; if (state.completedTurns <= 18 && state.completedTurns % SPAWN_EVERY_TURNS === 0) return spawnPickup(state); return null; }
