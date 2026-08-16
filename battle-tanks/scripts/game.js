@@ -25,7 +25,7 @@
     const POWER_UP_CATALOG = Object.freeze({
         'health-pack': Object.freeze({ id: 'health-pack', label: 'Health pack', kind: 'consumable', effect: 'heal', amount: 35, consumesTurn: true }),
         shield: Object.freeze({ id: 'shield', label: 'Shield', kind: 'consumable', effect: 'absorb', capacityRange: Object.freeze({ min: 40, max: 60 }), durationRange: Object.freeze({ min: 2, max: 4 }), consumesTurn: true }),
-        invisibility: Object.freeze({ id: 'invisibility', label: 'Invisibility', kind: 'consumable', effect: 'invisible', durationRange: Object.freeze({ min: 1, max: 3 }), consumesTurn: true }),
+        invisibility: Object.freeze({ id: 'invisibility', label: 'Invisibility', kind: 'consumable', effect: 'invisible', durationRange: Object.freeze({ min: 1, max: 3 }), consumesTurn: true, onlineOnly: true }),
         'weapon-heavy-shell': Object.freeze({ id: 'weapon-heavy-shell', label: 'Heavy shell ammo', kind: 'weapon', weaponId: 'heavy-shell', weapon: WEAPON_REGISTRY['heavy-shell'], consumesTurn: false }),
         'weapon-homing': Object.freeze({ id: 'weapon-homing', label: 'Homing missile ammo', kind: 'weapon', weaponId: 'homing', weapon: WEAPON_REGISTRY.homing, consumesTurn: false }),
         'weapon-laser': Object.freeze({ id: 'weapon-laser', label: 'Ricochet laser ammo', kind: 'weapon', weaponId: 'laser', weapon: WEAPON_REGISTRY.laser, consumesTurn: false }),
