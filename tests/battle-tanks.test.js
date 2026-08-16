@@ -94,6 +94,13 @@ test('a miss resolves and advances exactly one turn', () => {
     assert.equal(game.stepPhysics(state, 1), null); assert.equal(state.activePlayer, 1);
 });
 
+test('an out-of-bounds miss does not announce damage from the previous impact', () => {
+    const state = match(); state.lastImpact = { serial: 1, totalDamage: 50 };
+    state.projectile = { x: -10, y: 100, vx: -100, vy: 0, owner: 0 }; state.phase = 'projectile-flight';
+    game.resolveShot(state, { type: 'out-of-bounds' });
+    assert.equal(state.announcement, "Shot ended. Player 2's turn.");
+});
+
 test('lethal damage ends the match without advancing the turn', () => {
     const state = match(), target = state.tanks[1]; state.tanks[1].health = game.DAMAGE; state.projectile = { x: target.x, y: target.y, vx: 0, vy: 0, owner: 0, weapon: game.DEFAULT_WEAPON }; state.phase = 'projectile-flight';
     game.resolveShot(state, { type: 'tank', index: 1 });
@@ -354,6 +361,15 @@ test('laser snapshots preserve bounded authoritative segments and reflections ca
     const copy = game.snapshot(state); assert.deepEqual(copy.laserPath, path); if (copy.laserPath.segments.length) { copy.laserPath.segments[0].from.x += 1; assert.notEqual(copy.laserPath.segments[0].from.x, path.segments[0].from.x); }
     assert.ok(path.segments.every(segment => segment.hit && Number.isFinite(segment.energy)));
     assert.ok(state.lastImpact.affected.some(hit => hit.tank === 0), 'a reflected segment damages its shooter');
+});
+
+test('laser resolution uses the fired projectile damage modifiers', () => {
+    const state = match(); state.tanks[1] = { ...state.tanks[1], x: 550, y: 100 };
+    state.projectile = { x: 500, y: 110, vx: 1, vy: 0, owner: 0, weapon: { ...game.DEFAULT_WEAPON, id: 'laser', baseDamage: 51 } };
+    state.phase = 'projectile-flight';
+    game.resolveLaser(state, state.projectile);
+    assert.equal(state.tanks[1].health, 49);
+    assert.equal(state.lastImpact.affected[0].attemptedDamage, 51);
 });
 
 test('acquisition events are monotonic, bounded, generated, safe, and reset with a match', () => {

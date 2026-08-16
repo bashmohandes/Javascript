@@ -60,6 +60,11 @@ class BattleTanksRooms {
         if (player.side !== room.game.activePlayer) throw new Error('Wait for your turn.');
         const now = Date.now(); player.commands = player.commands.filter(time => now - time < 1000); if (player.commands.length >= 30) throw new Error('Too many commands.'); player.commands.push(now);
     }
+    recordImpact(room, shooter) {
+        const affected = room.game.lastImpact?.affected || [];
+        if (affected.some(item => item.healthDamage > 0)) room.stats[shooter].hits += 1;
+        affected.forEach(item => { room.stats[item.tank].damageTaken += item.healthDamage; });
+    }
     command(room, player, message) {
         this.checkCommand(room, player, message); let changed = false; const previousAcquisitionId = room.game.acquisitionEventId || 0;
         if (message.type === 'move') { if (!['forward', 'backward'].includes(message.direction)) throw new Error('Invalid movement.'); changed = game.moveTank(room.game, message.direction, 8); }
@@ -73,9 +78,7 @@ class BattleTanksRooms {
             if (changed) room.stats[player.side].shots += 1;
             // Rays resolve in the fire command rather than waiting for tick().
             if (changed && (room.game.impactSerial || 0) !== impactSerial) {
-                const affected = room.game.lastImpact?.affected || [];
-                if (affected.some(item => item.healthDamage > 0)) room.stats[player.side].hits += 1;
-                affected.forEach(item => { room.stats[item.tank].damageTaken += item.healthDamage; });
+                this.recordImpact(room, player.side);
                 room.turnId += 1;
                 if (room.game.phase === 'game-over') this.finish(room);
             }
@@ -139,11 +142,9 @@ class BattleTanksRooms {
             const shooter = room.game.activePlayer, impactSerial = room.game.impactSerial || 0, turn = room.turnId;
             game.stepPhysics(room.game, Math.min(Math.max(dt, 0), .1)); this.syncPowerStatistics(room);
             if ((room.game.impactSerial || 0) !== impactSerial) {
-                const affected = room.game.lastImpact?.affected || [];
                 // A hit is one shot that deals health damage by either direct or splash damage;
                 // self-damage counts too. Shield-only contact is not a hit.
-                if (affected.some(item => item.healthDamage > 0)) room.stats[shooter].hits += 1;
-                affected.forEach(item => { room.stats[item.tank].damageTaken += item.healthDamage; });
+                this.recordImpact(room, shooter);
             }
             if (room.game.phase !== 'projectile-flight') {
                 room.turnId = turn + 1;

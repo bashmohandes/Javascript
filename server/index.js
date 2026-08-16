@@ -267,7 +267,8 @@ let lastTick = Date.now();
 const simulation = setInterval(() => { const now = Date.now(); rooms.tick((now - lastTick) / 1000, now); lastTick = now; }, 1000 / 60);
 const broadcast = setInterval(() => rooms.broadcastStates(), 1000 / 30);
 const ticCleanup = setInterval(() => ticRooms.tick(), 1000);
-const tankSimulation = setInterval(() => { tankRooms.tick(1 / 60); tankRooms.broadcastStates(); }, 1000 / 60);
+let lastTankTick = Date.now();
+const tankSimulation = setInterval(() => { const now = Date.now(); tankRooms.tick((now - lastTankTick) / 1000, now); lastTankTick = now; tankRooms.broadcastStates(now); }, 1000 / 60);
 const heartbeat = setInterval(() => websocketServer.clients.forEach(socket => { if (!socket.isAlive) return socket.terminate(); socket.isAlive = false; socket.ping(); }), 15000);
 
 server.listen(port, '0.0.0.0', () => console.log(`JavaScript Playground listening on http://0.0.0.0:${port}`));
