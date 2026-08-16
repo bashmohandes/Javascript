@@ -122,3 +122,12 @@ th { color: var(--muted); font-size: 11px; letter-spacing: .08em; text-transform
     .profile-achievement button { grid-column: 2; justify-self: start; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
+/* Experience-level palettes and layouts. */
+:root[data-arcade-theme="cabinet"]{--ink:#fff4d0;--muted:#bbb8cc;--page:#090b13;--panel:#15192b;--field:#101321;--stat:#171a2b;--accent:#16e0bd;--pink:#ff3ea5;--yellow:#ffcf4a;--sky:#54a6ff;--mint:#16e0bd;--orange:#ff764d;--button:#ff3ea5;--button-hover:#6f52ff;--shadow:#0008}
+:root[data-arcade-theme="cabinet"][data-color-mode="light"]{--ink:#382c42;--muted:#6a5c6d;--page:#f2dfb6;--panel:#fff3d6;--field:#ead8b1;--stat:#fff8e8;--shadow:#382c4230}
+:root[data-arcade-theme="cabinet"] body{font-family:ui-monospace,"SFMono-Regular",Consolas,monospace}:root[data-arcade-theme="cabinet"] .shell{width:min(1280px,calc(100% - 28px));display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}:root[data-arcade-theme="cabinet"] .hero{grid-column:1/-1;margin-block:38px 22px}:root[data-arcade-theme="cabinet"] .panel{margin:0;border-radius:3px;box-shadow:5px 5px 0 var(--yellow)}:root[data-arcade-theme="cabinet"] #leaderboards{grid-column:1/-1}
+:root[data-arcade-theme="calm"]{--ink:#223a33;--muted:#61746d;--page:#eef4f1;--panel:#f8fbf9;--field:#e5eeea;--stat:#f8fbf9;--accent:#356f61;--pink:#b26454;--yellow:#d9b968;--sky:#668e9b;--mint:#789d90;--orange:#b77a55;--button:#356f61;--button-hover:#28564b;--shadow:#263c3418}
+:root[data-arcade-theme="calm"][data-color-mode="dark"]{--ink:#e5efeb;--muted:#9fb0a9;--page:#111917;--panel:#18231f;--field:#101815;--stat:#18231f;--accent:#79b6a5;--shadow:#0004}
+:root[data-arcade-theme="calm"] body{font-family:Georgia,"Times New Roman",serif}:root[data-arcade-theme="calm"] body::after,:root[data-arcade-theme="calm"] .hero-spark{display:none}:root[data-arcade-theme="calm"] .shell{width:min(960px,calc(100% - 48px))}:root[data-arcade-theme="calm"] .panel{margin-block:42px;border-width:1px;border-radius:2px;box-shadow:none;backdrop-filter:none}
+@media(max-width:800px){:root[data-arcade-theme="cabinet"] .shell{grid-template-columns:1fr}:root[data-arcade-theme="cabinet"] :is(.hero,#leaderboards){grid-column:auto}}
