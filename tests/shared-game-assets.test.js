@@ -37,6 +37,12 @@ test('modern arena decoration excludes native and fallback full-screen states', 
     assert.doesNotMatch(design, /\.modern-game \.arena-wrap,/);
 });
 
+test('modern arena share buttons remain horizontally centered on hover', () => {
+    const design = read('styles/modern-game.css');
+
+    assert.match(design, /\.arena-share\.primary-button:hover\s*\{[^}]*transform:translate\(-50%,2px\)/);
+});
+
 test('online competitive games consume shared room UI behavior', () => {
     for (const game of ['pong', 'tictactoe', 'battle-tanks']) {
         assert.match(read(`${game}/index.html`), /scripts\/online-rooms\.js/);
