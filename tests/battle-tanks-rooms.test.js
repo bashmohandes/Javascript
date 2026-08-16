@@ -93,3 +93,14 @@ test('concealment survives reconnect, expires by owner turns, resets on rematch,
     assert.equal(rooms.stateFor(host.room, 1).tanks[0].x, state.tanks[0].x, 'game over reveals final positions');
     rooms.rematch(host.room); assert.deepEqual(state.activeEffects, [[], []]); assert.equal(rooms.stateFor(host.room, 1).opponentConcealed, false);
 });
+
+test('server alone selects weapons and serializes specialized authoritative state', () => {
+    const { rooms, host } = started(), state = host.room.game;
+    state.weaponAmmo[0].laser = 1;
+    rooms.command(host.room, host.player, command(host.room, 'select-weapon', { weaponId: 'laser', path: [{ x: 0 }], damage: 999, target: 1, weapon: { baseDamage: 999 } }));
+    rooms.command(host.room, host.player, command(host.room, 'fire', { path: [{ x: 0 }], damage: 999, target: 1, weapon: { baseDamage: 999 } }));
+    const wire = rooms.stateFor(host.room, 0);
+    assert.deepEqual(wire.laserPath, core.snapshot(state).laserPath); assert.notDeepEqual(wire.laserPath?.segments, [{ x: 0 }]);
+    assert.ok((wire.lastImpact?.affected || []).every(hit => hit.attemptedDamage <= core.WEAPON_REGISTRY.laser.baseDamage));
+    assert.throws(() => rooms.command(host.room, host.player, command(host.room, 'select-weapon', { weaponId: 'unknown' })), /turn|weapon/i);
+});
