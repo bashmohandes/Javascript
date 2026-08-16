@@ -1,33 +1,46 @@
 (() => {
     'use strict';
-    const THEME_KEY = 'arcade-theme';
-    const THEMES = ['system', 'light', 'dark'];
+    const config = window.ArcadeThemeConfig;
+    const THEMES = config.themes;
+    const COLOR_PREFERENCES = config.colorPreferences;
     const systemTheme = window.matchMedia('(prefers-color-scheme: dark)');
-    const readTheme = () => {
-        try { const saved = localStorage.getItem(THEME_KEY); return THEMES.includes(saved) ? saved : 'system'; }
-        catch { return 'system'; }
+    const readPreference = (key, allowed, fallback) => {
+        try { const saved = localStorage.getItem(key); return allowed.includes(saved) ? saved : fallback; }
+        catch { return fallback; }
     };
-    let themePreference = readTheme();
+    let themePreference = readPreference(config.themeKey, THEMES.map(theme => theme.id), config.defaultTheme);
+    let colorPreference = readPreference(config.colorKey, COLOR_PREFERENCES, 'system');
     const applyTheme = () => {
-        const resolved = themePreference === 'system' ? (systemTheme.matches ? 'dark' : 'light') : themePreference;
+        const resolved = colorPreference === 'system' ? (systemTheme.matches ? 'dark' : 'light') : colorPreference;
+        const theme = THEMES.find(item => item.id === themePreference) || THEMES[0];
+        document.documentElement.dataset.arcadeTheme = theme.id;
+        document.documentElement.dataset.colorMode = resolved;
         document.documentElement.dataset.theme = resolved;
         document.documentElement.style.colorScheme = resolved;
-        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', resolved === 'dark' ? '#111b18' : '#f7f3eb');
+        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme.themeColor[resolved]);
         document.querySelectorAll('[data-theme-option]').forEach(button => {
             const selected = button.dataset.themeOption === themePreference;
-            button.setAttribute('aria-checked', String(selected));
-            button.tabIndex = selected ? 0 : -1;
+            button.setAttribute('aria-pressed', String(selected));
         });
-        document.dispatchEvent(new CustomEvent('arcade:theme', { detail: { preference: themePreference, resolved } }));
+        document.querySelectorAll('[data-color-option]').forEach(button => {
+            const selected = button.dataset.colorOption === colorPreference;
+            button.setAttribute('aria-checked', String(selected)); button.tabIndex = selected ? 0 : -1;
+        });
+        document.dispatchEvent(new CustomEvent('arcade:theme', { detail: { theme: theme.id, preference: colorPreference, colorPreference, resolved, resolvedColorMode: resolved, density: theme.density } }));
     };
     const setTheme = value => {
-        themePreference = THEMES.includes(value) ? value : 'system';
-        try { localStorage.setItem(THEME_KEY, themePreference); } catch { /* The preference still applies for this page. */ }
+        themePreference = THEMES.some(theme => theme.id === value) ? value : config.defaultTheme;
+        try { localStorage.setItem(config.themeKey, themePreference); } catch { /* The preference still applies for this page. */ }
+        applyTheme();
+    };
+    const setColorPreference = value => {
+        colorPreference = COLOR_PREFERENCES.includes(value) ? value : 'system';
+        try { localStorage.setItem(config.colorKey, colorPreference); } catch { /* The preference still applies for this page. */ }
         applyTheme();
     };
     applyTheme();
-    systemTheme.addEventListener?.('change', () => { if (themePreference === 'system') applyTheme(); });
-    window.addEventListener('storage', event => { if (event.key === THEME_KEY) { themePreference = readTheme(); applyTheme(); } });
+    systemTheme.addEventListener?.('change', () => { if (colorPreference === 'system') applyTheme(); });
+    window.addEventListener('storage', event => { if ([config.themeKey, config.colorKey].includes(event.key)) { themePreference = readPreference(config.themeKey, THEMES.map(theme => theme.id), config.defaultTheme); colorPreference = readPreference(config.colorKey, COLOR_PREFERENCES, 'system'); applyTheme(); } });
     let currentUser = null;
     const api = async (url, options = {}) => {
         const response = await fetch(url, { ...options, headers: { 'content-type': 'application/json', ...options.headers } });
@@ -47,17 +60,13 @@
     const account = document.createElement('nav');
     account.className = 'arcade-account'; account.setAttribute('aria-label', 'Arcade account and appearance');
     topbarInner.append(home, account); topbar.append(topbarInner);
-    const themeControl = document.createElement('div');
-    themeControl.className = 'arcade-theme'; themeControl.setAttribute('role', 'radiogroup'); themeControl.setAttribute('aria-label', 'Appearance');
-    themeControl.innerHTML = THEMES.map(theme => `<button type="button" role="radio" data-theme-option="${theme}" aria-checked="false">${theme[0].toUpperCase()}${theme.slice(1)}</button>`).join('');
-    themeControl.addEventListener('click', event => { if (event.target.dataset.themeOption) setTheme(event.target.dataset.themeOption); });
-    themeControl.addEventListener('keydown', event => {
-        if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
-        event.preventDefault();
-        const offset = event.key === 'ArrowRight' ? 1 : -1;
-        const next = THEMES[(THEMES.indexOf(themePreference) + offset + THEMES.length) % THEMES.length];
-        setTheme(next); themeControl.querySelector(`[data-theme-option="${next}"]`).focus();
-    });
+    const appearanceButton = document.createElement('button'); appearanceButton.type = 'button'; appearanceButton.className = 'arcade-appearance-button'; appearanceButton.textContent = 'Appearance';
+    const appearanceDialog = document.createElement('dialog'); appearanceDialog.className = 'arcade-dialog arcade-appearance-dialog';
+    appearanceDialog.innerHTML = `<form method="dialog"><header><div><small>Make it yours</small><h2>Appearance</h2></div><button value="close" aria-label="Close appearance settings">×</button></header><p class="arcade-appearance-intro">Choose an experience and a color mode. Your choice follows you across the arcade.</p><div class="arcade-theme-grid">${THEMES.map(theme => `<button type="button" data-theme-option="${theme.id}" aria-pressed="false"><span class="arcade-theme-preview preview-${theme.id}" aria-hidden="true"><i></i><i></i><i></i></span><strong>${theme.name}</strong><small>${theme.description}</small></button>`).join('')}</div><fieldset><legend>Color mode</legend><div class="arcade-color-modes" role="radiogroup">${COLOR_PREFERENCES.map(mode => `<button type="button" role="radio" data-color-option="${mode}" aria-checked="false">${mode[0].toUpperCase()}${mode.slice(1)}</button>`).join('')}</div></fieldset><div class="arcade-appearance-footer"><p class="arcade-appearance-status" role="status" aria-live="polite"></p><button type="button" class="arcade-appearance-reset">Reset defaults</button></div></form>`;
+    const announceAppearance = () => { const theme = THEMES.find(item => item.id === themePreference); appearanceDialog.querySelector('.arcade-appearance-status').textContent = `${theme.name} theme, ${colorPreference} color mode selected.`; };
+    appearanceDialog.addEventListener('click', event => { if (event.target.closest('[data-theme-option]')) { setTheme(event.target.closest('[data-theme-option]').dataset.themeOption); announceAppearance(); } if (event.target.dataset.colorOption) { setColorPreference(event.target.dataset.colorOption); announceAppearance(); } if (event.target.classList.contains('arcade-appearance-reset')) { setTheme(config.defaultTheme); setColorPreference('system'); announceAppearance(); } });
+    appearanceDialog.querySelector('.arcade-color-modes').addEventListener('keydown', event => { if (!['ArrowLeft','ArrowRight'].includes(event.key)) return; event.preventDefault(); const offset=event.key==='ArrowRight'?1:-1; const next=COLOR_PREFERENCES[(COLOR_PREFERENCES.indexOf(colorPreference)+offset+COLOR_PREFERENCES.length)%COLOR_PREFERENCES.length]; setColorPreference(next); appearanceDialog.querySelector(`[data-color-option="${next}"]`).focus(); announceAppearance(); });
+    appearanceButton.addEventListener('click', () => { applyTheme(); appearanceDialog.showModal(); });
     const dialog = document.createElement('dialog'); dialog.className = 'arcade-dialog';
     dialog.innerHTML = `<form class="arcade-auth" method="dialog"><h2>Arcade account</h2><p>Use one gamertag to save play history and scores across every game.</p><label>Gamertag<input name="gamertag" minlength="3" maxlength="24" pattern="[A-Za-z0-9_-]+" autocomplete="username" required></label><label>Passcode<input name="passcode" type="password" minlength="4" maxlength="128" autocomplete="current-password" required></label><p class="arcade-auth-message" role="status"></p><div class="arcade-auth-actions"><button value="login">Sign in</button><button value="register" class="secondary">Create account</button><button value="cancel" class="secondary" formnovalidate>Cancel</button></div></form>`;
     const buildVersion = document.createElement('footer');
@@ -65,7 +74,7 @@
     buildVersion.textContent = 'Build …';
     document.body.classList.add('arcade-has-topbar');
     document.body.prepend(topbar);
-    document.body.append(dialog, buildVersion);
+    document.body.append(dialog, appearanceDialog, buildVersion);
     const gamePath = location.pathname.match(/\/(pong|Sudoku|Minesweeper|tictactoe|battle-tanks)\//)?.[1];
     const game = ({ pong:'pong', Sudoku:'sudoku', Minesweeper:'minesweeper', tictactoe:'tictactoe', 'battle-tanks':'battletanks' })[gamePath];
     let achievementDialog;
@@ -127,7 +136,7 @@
     api('/api/version').then(result => { buildVersion.textContent = `Build ${result.version}`; }).catch(() => { buildVersion.hidden = true; });
     const render = () => {
         account.replaceChildren();
-        account.append(themeControl);
+        account.append(appearanceButton);
         if (game) { const achievements = document.createElement('button'); achievements.type = 'button'; achievements.className = 'achievement-nav'; achievements.textContent = 'Achievements'; achievements.addEventListener('click', () => { achievementDialog.showModal(); loadAchievements().catch(() => {}); }); account.append(achievements); }
         const scores = document.createElement('a'); scores.href = `${rootPath}profile.html#leaderboards`; scores.textContent = 'Top scores'; account.append(scores);
         if (currentUser) {
@@ -156,8 +165,10 @@
         achievements: loadAchievements,
         notifyAchievements: showUnlocks,
         api,
-        theme: () => ({ preference: themePreference, resolved: document.documentElement.dataset.theme }),
-        setTheme
+        appearance: () => ({ theme: themePreference, colorPreference, resolvedColorMode: document.documentElement.dataset.colorMode }),
+        theme: () => ({ theme: themePreference, preference: colorPreference, resolved: document.documentElement.dataset.colorMode }),
+        setTheme,
+        setColorPreference
     };
     api('/api/me').then(result => { currentUser = result.user; render(); }).catch(render);
 })();

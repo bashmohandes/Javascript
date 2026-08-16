@@ -22,7 +22,7 @@ flowchart LR
 flowchart TB
   subgraph Browser
     Pages[Home, profile, game pages]
-    Arcade[arcade.js: account, theme, results, achievements]
+    Arcade[arcade.js: account, appearance, results, achievements]
     Shared[room UI, colors, sharing]
     Games[game-specific controllers and engines]
     Store[localStorage: preferences/best times\nsessionStorage: room resume tokens]
@@ -46,6 +46,19 @@ flowchart TB
   Arcade <-->|JSON REST| HTTP
   Games <-->|JSON WebSocket| Rooms
 ```
+
+## Appearance system
+
+`theme-init.js` applies appearance before first paint and publishes the shared
+theme registry. Experience (`playful`, `cabinet`, or `calm`) is independent
+from the `system`/`light`/`dark` color preference. `arcade.js` renders the
+appearance dialog, persists changes, synchronizes tabs, and emits the
+`arcade:theme` event for DOM and canvas games. Shared component and layout
+tokens live in `arcade.css` and `styles/modern-game.css`; homepage and profile
+styles consume the same root attributes for their page-specific layouts.
+
+See [ADR 0008](adr/0008-experience-theming-system.md) for the decision and
+extension constraints.
 
 ## Games and components
 

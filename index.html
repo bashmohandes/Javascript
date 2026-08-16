@@ -293,6 +293,23 @@
             .button, .card { transition: none; }
             .card:hover, .card:nth-child(even):hover { transform: none; }
         }
+        /* Experience themes share semantic page tokens while expressing distinct layouts. */
+        :root[data-arcade-theme="cabinet"] { --ink:#fff4d0;--muted:#bbb8cc;--panel:#15192b;--accent:#16e0bd;--accent-contrast:#07120f;--page-background:#090b13;--page-glow-start:#ff3ea526;--page-glow-end:#6f52ff24;--card-shadow:#0008;--control-fill:#ffffff0a;--hover-line:#ffcf4a;--focus-ring:#16e0bd88;--default-glow:#ff3ea528;--blue-glow:#54a6ff26;--purple-glow:#6f52ff28;--sunshine:#ffcf4a;--hot-pink:#ff3ea5;--sky-blue:#54a6ff;--lime:#16e0bd;--orange:#ff764d; }
+        :root[data-arcade-theme="cabinet"][data-color-mode="light"] { --ink:#382c42;--muted:#6a5c6d;--panel:#fff3d6;--page-background:#f2dfb6;--card-shadow:#382c4230;--control-fill:#382c420a; }
+        :root[data-arcade-theme="cabinet"] body { font-family:ui-monospace,"SFMono-Regular",Consolas,monospace; }
+        :root[data-arcade-theme="cabinet"] .shell { width:min(1280px,calc(100% - 28px));padding-top:22px; }
+        :root[data-arcade-theme="cabinet"] .game-grid { grid-template-columns:repeat(3,minmax(0,1fr));gap:14px; }
+        :root[data-arcade-theme="cabinet"] .card { min-height:260px;padding:24px;border-radius:3px;box-shadow:5px 5px 0 var(--sunshine); }
+        :root[data-arcade-theme="cabinet"] .card-top { margin-bottom:32px; }
+        :root[data-arcade-theme="calm"] { --ink:#223a33;--muted:#61746d;--panel:#f8fbf9;--accent:#356f61;--accent-contrast:#fff;--page-background:#eef4f1;--page-glow-start:transparent;--page-glow-end:transparent;--card-shadow:#263c3418;--control-fill:#5270680a;--hover-line:#527068;--focus-ring:#668e9b66;--default-glow:transparent;--blue-glow:transparent;--purple-glow:transparent;--sunshine:#d9b968;--hot-pink:#b26454;--sky-blue:#668e9b;--lime:#789d90;--orange:#b77a55; }
+        :root[data-arcade-theme="calm"][data-color-mode="dark"] { --ink:#e5efeb;--muted:#9fb0a9;--panel:#18231f;--page-background:#111917;--card-shadow:#0004;--control-fill:#ffffff08; }
+        :root[data-arcade-theme="calm"] body { font-family:Georgia,"Times New Roman",serif; }
+        :root[data-arcade-theme="calm"] .shell { width:min(1040px,calc(100% - 48px));padding-top:58px; }
+        :root[data-arcade-theme="calm"] .shell::before,:root[data-arcade-theme="calm"] .hero-spark { display:none; }
+        :root[data-arcade-theme="calm"] .game-grid { grid-template-columns:1fr;gap:32px; }
+        :root[data-arcade-theme="calm"] .card { min-height:0;border-width:1px;border-radius:2px;box-shadow:none;backdrop-filter:none; }
+        @media(max-width:900px){:root[data-arcade-theme="cabinet"] .game-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+        @media(max-width:650px){:root[data-arcade-theme] .game-grid{grid-template-columns:1fr}:root[data-arcade-theme="calm"] .shell{width:min(100% - 28px,1040px)}}
     </style>
 </head>
 <body>

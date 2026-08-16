@@ -11,3 +11,4 @@ All records describe the current system retrospectively and have status
 6. [Preserve classic games beside modern games](0006-classic-and-modern.md)
 7. [Same-origin deployment and layered HTTP security](0007-same-origin-security.md)
 
+8. [Separate experience themes from color modes](0008-experience-theming-system.md)
