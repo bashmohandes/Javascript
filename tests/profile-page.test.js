@@ -15,7 +15,8 @@ test('profile defines light and dark theme palettes', () => {
 });
 
 test('profile uses the playful arcade shell and card language', () => {
-    assert.match(profile, /class="brand-mark"[^>]*>JS</);
+    assert.match(profile, /src="arcade\.js"/);
+    assert.doesNotMatch(profile, /class="profile-nav"/);
     assert.match(profile, /class="hero-spark"/);
     assert.match(styles, /\.panel\s*\{[^}]*border:\s*3px solid var\(--ink\);[^}]*box-shadow:/s);
     assert.match(styles, /\.panel::before/);

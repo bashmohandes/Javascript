@@ -59,12 +59,13 @@ test('competitive games consume the same shared color palette', () => {
     }
 });
 
-test('shared arcade UI keeps mobile navigation above the safe area and displays the build version', () => {
+test('shared arcade UI uses one safe-area-aware responsive top bar and displays the build version', () => {
     const styles = read('arcade.css');
     const script = read('arcade.js');
-    assert.match(styles, /body::before\s*{[^}]*height:env\(safe-area-inset-top\)/);
-    assert.match(styles, /top:\s*calc\(14px \+ env\(safe-area-inset-top\)\)/);
-    assert.match(styles, /bottom:\s*max\(10px, env\(safe-area-inset-bottom\)\)/);
+    assert.match(styles, /\.arcade-topbar\s*{[^}]*env\(safe-area-inset-top\)/);
+    assert.match(styles, /\.arcade-topbar-inner\s*{[^}]*justify-content:space-between/);
+    assert.match(styles, /@media \(max-width: 760px\)[^{]*{[^}]*\.arcade-topbar-inner\s*{[^}]*flex-direction:column/);
+    assert.match(script, /document\.body\.prepend\(topbar\)/);
     assert.match(script, /api\/version/);
     assert.match(script, /arcade-build-version/);
 });
