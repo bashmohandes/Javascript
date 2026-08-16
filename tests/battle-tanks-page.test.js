@@ -57,3 +57,39 @@ test('Battle Tanks exposes an accessible, queued, local-only acquisition card', 
     assert.match(app, /powerCardQueue/); assert.match(app, /highestPresentedEventId/); assert.match(app, /presentationMatchId/); assert.match(app, /room=mode==='online'\?\(onlineSession\?\.roomCode\|\|'pending'\):'local'/); assert.match(app, /sessionStorage\.setItem\(`battle-tanks-presented-/); assert.match(app, /powerCard\.style\.animation='none';void powerCard\.offsetWidth;powerCard\.style\.removeProperty\('animation'\)/); assert.match(app, /function dismissPowerCard/); assert.doesNotMatch(app, /sendOnline\([^)]*dismiss/i);
     assert.match(styles, /prefers-reduced-motion:reduce[\s\S]*power-card/); assert.match(styles, /:fullscreen \.power-card-layer/); assert.match(styles, /@keyframes power-card-play/);
 });
+
+test('Battle Tanks snapshots are versioned and unsupported synchronized state leaves safely', () => {
+    const game = require('../battle-tanks/scripts/game');
+    assert.equal(game.snapshot(game.createInitialState(7)).stateVersion, game.STATE_VERSION);
+    const app = read('battle-tanks/scripts/app.js');
+    assert.match(app, /function isSupportedState/);
+    assert.match(app, /incoming\.stateVersion===STATE_VERSION/);
+    assert.match(app, /unsupported game state version[\s\S]*leaveRoom\(false\)/i);
+});
+
+test('Battle Tanks rendering helpers tolerate redacted opponents and optional projectile details', () => {
+    const app = read('battle-tanks/scripts/app.js');
+    for (const helper of ['renderArena', 'renderTanks', 'renderProjectiles', 'renderPickups', 'renderEffects', 'syncArenaHud', 'syncTankHud', 'syncEffectsHud']) assert.ok(app.includes(`function ${helper}`), `${helper} should remain independently guarded`);
+    assert.match(app, /tank=state\.tanks\?\.\[active\]\|\|\{\}/);
+    assert.match(app, /sample\.concealed/);
+    assert.match(app, /Number\.isFinite\(sample\.vx\)/);
+    assert.match(app, /WEAPON_REGISTRY\[projectile\.weaponId\]\?projectile\.weaponId:'shell'/);
+});
+
+test('Battle Tanks instructions and accessible controls cover expanded combat', () => {
+    const page = read('battle-tanks/index.html');
+    for (const phrase of ['splash damage', 'carve craters', 'Drive over', 'Weapon selector', 'shields absorb', 'online rooms only']) assert.ok(page.includes(phrase), `instructions should mention ${phrase}`);
+    for (const name of ['Move left', 'Move right', 'Lower firing angle', 'Raise firing angle', 'Decrease launch power', 'Increase launch power', 'Select weapon in full screen', 'Exit full screen']) assert.ok(page.includes(`aria-label="${name}"`), `${name} needs an accessible name`);
+    assert.match(page, /id="pickup-announcement"[^>]*aria-live="polite"/);
+});
+
+test('Battle Tanks keeps reset, rematch, reconnect, results, callouts, and themes wired', () => {
+    const app = read('battle-tanks/scripts/app.js');
+    assert.match(app, /resetMatch\(state\);lastImpactSerial=0/);
+    assert.match(app, /sendOnline\(\{type:'rematch'\}\)/);
+    assert.match(app, /type:'resume',\.\.\.onlineSession/);
+    assert.match(app, /Arcade\.record\(\{game:'battletanks'/);
+    assert.match(app, /callout\.classList\.add\('show'\)/);
+    assert.match(app, /arcade:theme[\s\S]*updateArenaTheme/);
+    assert.match(app, /fullscreen-fire[\s\S]*fullscreen-weapon|fullscreen-weapon[\s\S]*fullscreen-fire/);
+});
