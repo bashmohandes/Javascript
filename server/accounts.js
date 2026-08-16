@@ -156,7 +156,19 @@ function validateResult(game, wonValue, details, trustedOnline = false) {
         // fewer turns break otherwise equal matches: 10,000*win + 5,000*hits/shots + 10*(200-turns).
         const score = (won ? 10000 : 0) + Math.floor(hits * 5000 / shots) + (200 - turns) * 10;
         const accuracy = Math.floor(hits * 100 / shots);
-        return { won, score, normalizedDetails: { mode: details.mode, winner, turns, shots, hits, accuracy, seconds, damageTaken } };
+        // Expanded clients may report these counters, while older result payloads
+        // remain valid. Unknown weapon ids and malformed optional fields are
+        // rejected rather than being persisted as untrusted achievement data.
+        const optional = {};
+        if (details.weapons !== undefined) {
+            if (!details.weapons || typeof details.weapons !== 'object' || Array.isArray(details.weapons)) throw new Error('Invalid Battle Tanks weapons.');
+            const allowed = new Set(['shell', 'wide-blast', 'heavy-shell', 'homing', 'laser']), weapons = {};
+            for (const [id, count] of Object.entries(details.weapons)) { if (!allowed.has(id) || !Number.isSafeInteger(count) || count < 0 || count > shots) throw new Error('Invalid Battle Tanks weapons.'); weapons[id] = count; }
+            if (Object.values(weapons).reduce((sum, count) => sum + count, 0) > shots) throw new Error('Invalid Battle Tanks weapons.');
+            optional.weapons = weapons;
+        }
+        for (const [name, maximum] of [['splashDamage', 20000], ['healing', 20000], ['powerUps', 200]]) if (details[name] !== undefined) optional[name] = field(name, 0, maximum);
+        return { won, score, normalizedDetails: { mode: details.mode, winner, turns, shots, hits, accuracy, seconds, damageTaken, ...optional } };
     }
     if (game === 'tictactoe') {
         if (!['solo-easy', 'solo-medium', 'solo-hard', 'duo', 'online'].includes(details.mode)) throw new Error('Invalid Tic-tac-toe mode.');

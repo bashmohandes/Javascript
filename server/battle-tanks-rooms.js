@@ -123,10 +123,11 @@ class BattleTanksRooms {
         }
         return state;
     }
+    optionalStatistics(statistics, side) { if (!statistics) return {}; const weapons = statistics.weapons?.[side], splashDamage = statistics.splashDamage?.[side], healing = statistics.healing?.[side], powerUps = statistics.powerUps?.[side]; return { ...(weapons && typeof weapons === 'object' ? { weapons } : {}), ...(Number.isSafeInteger(splashDamage) ? { splashDamage } : {}), ...(Number.isSafeInteger(healing) ? { healing } : {}), ...(Number.isSafeInteger(powerUps) ? { powerUps } : {}) }; }
     finish(room) {
         if (room.recorded || room.game.phase !== 'game-over') return; room.recorded = true;
         const seconds = Math.max(1, Math.min(7200, Math.round((Date.now() - room.startedAt) / 1000)));
-        room.players.forEach((player, side) => { if (!player?.userId || !this.recordResult) return; const stats = room.stats[side], won = room.game.winner === side; try { this.recordResult(player.userId, { game: 'battletanks', won, details: { mode: 'online', winner: won ? 1 : 2, turns: room.stats[0].shots + room.stats[1].shots, shots: stats.shots, hits: stats.hits, seconds, damageTaken: stats.damageTaken } }); } catch { /* A persistence failure must not stop the room simulation. */ } });
+        room.players.forEach((player, side) => { if (!player?.userId || !this.recordResult) return; const stats = room.stats[side], won = room.game.winner === side; try { this.recordResult(player.userId, { game: 'battletanks', won, details: { mode: 'online', winner: won ? 1 : 2, turns: room.stats[0].shots + room.stats[1].shots, shots: stats.shots, hits: stats.hits, seconds, damageTaken: stats.damageTaken, ...this.optionalStatistics(room.game.statistics, side) } }); } catch { /* A persistence failure must not stop the room simulation. */ } });
     }
     tick(dt, now = Date.now()) {
         for (const [code, room] of this.rooms) {
