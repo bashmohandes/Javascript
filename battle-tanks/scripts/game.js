@@ -172,9 +172,14 @@
     function applyDamage(state, tankIndex, amount, source = 'unknown') {
         const tank = state.tanks[tankIndex], attemptedDamage = Math.max(0, Math.round(Number(amount) || 0));
         if (!tank || !attemptedDamage) return { tank: tankIndex, source, attemptedDamage, absorbedDamage: 0, healthDamage: 0 };
-        const shield = state.activeEffects?.[tankIndex]?.find(effect => effect.effect === 'absorb' && effect.remainingTurns > 0 && effect.remainingCapacity > 0);
-        const absorbedDamage = Math.min(shield?.remainingCapacity || 0, attemptedDamage);
-        if (shield) shield.remainingCapacity -= absorbedDamage;
+        let absorbedDamage = 0;
+        for (const shield of state.activeEffects?.[tankIndex] || []) {
+            if (shield.effect !== 'absorb' || shield.remainingTurns <= 0 || shield.remainingCapacity <= 0) continue;
+            const absorbedByShield = Math.min(shield.remainingCapacity, attemptedDamage - absorbedDamage);
+            shield.remainingCapacity -= absorbedByShield;
+            absorbedDamage += absorbedByShield;
+            if (absorbedDamage === attemptedDamage) break;
+        }
         const healthDamage = Math.min(tank.health, attemptedDamage - absorbedDamage);
         tank.health = Math.max(0, tank.health - healthDamage);
         if (state.damageTaken) state.damageTaken[tankIndex] += healthDamage;

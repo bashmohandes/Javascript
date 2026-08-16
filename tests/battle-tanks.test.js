@@ -251,6 +251,18 @@ test('applyDamage sends shield overflow to health and removes exhausted capacity
     assert.equal(state.tanks[1].health, 80); assert.deepEqual(state.activeEffects[1], []);
 });
 
+test('applyDamage consumes multiple active shields before damaging health', () => {
+    const state = match();
+    state.activeEffects[1].push(
+        { id: 'shield-1', effect: 'absorb', remainingTurns: 3, remainingCapacity: 10 },
+        { id: 'shield-2', effect: 'absorb', remainingTurns: 2, remainingCapacity: 30 }
+    );
+    const result = game.applyDamage(state, 1, 25, 'combined shields');
+    assert.deepEqual(result, { tank: 1, source: 'combined shields', attemptedDamage: 25, absorbedDamage: 25, healthDamage: 0 });
+    assert.equal(state.tanks[1].health, 100);
+    assert.deepEqual(state.activeEffects[1], [{ id: 'shield-2', effect: 'absorb', remainingTurns: 2, remainingCapacity: 15 }]);
+});
+
 test('simultaneous destruction is an explicit draw', () => {
     const state = match(), left = state.tanks[0], right = state.tanks[1];
     right.x = left.x + game.TANK_W + 2; right.y = left.y; left.health = 10; right.health = 10;
