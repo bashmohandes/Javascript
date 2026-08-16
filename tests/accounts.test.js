@@ -95,19 +95,21 @@ test('validates Battle Tanks results, derives scores, ranks players, and persist
     const victory = { game: 'battletanks', won: true, details: { mode: 'local', winner: 1, turns: 4, shots: 4, hits: 2, seconds: 40, damageTaken: 0 } };
     const result = accounts.record(ace.id, { ...victory, score: 999999 });
     assert.equal(result.score, 14460, 'client-provided scores must not be trusted');
-    accounts.record(rival.id, { game: 'battletanks', won: true, details: { mode: 'local', winner: 1, turns: 5, shots: 5, hits: 2, seconds: 20, damageTaken: 50 } });
-    assert.deepEqual(accounts.leaderboard('battletanks').map(row => row.gamertag), ['TankAce', 'TankRival']);
+    accounts.record(rival.id, { game: 'battletanks', won: true, details: { mode: 'local', winner: 1, turns: 5, shots: 5, hits: 4, seconds: 20, damageTaken: 37 } });
+    assert.deepEqual(accounts.leaderboard('battletanks').map(row => row.gamertag), ['TankRival', 'TankAce']);
+    assert.deepEqual(accounts.leaderboard('battletanks')[0].details, { mode: 'local', winner: 1, turns: 5, shots: 5, hits: 4, accuracy: 80, seconds: 20, damageTaken: 37 });
     const history = accounts.profile(ace.id).recent.find(row => row.game === 'battletanks');
     assert.deepEqual(history.details, { mode: 'local', winner: 1, turns: 4, shots: 4, hits: 2, accuracy: 50, seconds: 40, damageTaken: 0 });
 
     const invalid = [
         { ...victory, won: false },
         { ...victory, details: { ...victory.details, turns: 3 } },
-        { ...victory, details: { ...victory.details, hits: 4 } },
-        { ...victory, details: { ...victory.details, damageTaken: 25 } }
+        { ...victory, details: { ...victory.details, hits: 5 } },
+        { ...victory, details: { ...victory.details, damageTaken: 100 } },
+        { ...victory, won: false, details: { ...victory.details, winner: 2, damageTaken: 99 } }
     ];
     for (const payload of invalid) assert.throws(() => accounts.record(ace.id, payload), /Invalid Battle Tanks/);
     assert.throws(() => accounts.record(ace.id, { game: 'battletanks', won: true, details: { mode: 'online', winner: 1, turns: 5, shots: 3, hits: 2, seconds: 30, damageTaken: 50 } }), /Invalid Battle Tanks/);
-    const online = accounts.record(ace.id, { game: 'battletanks', won: true, details: { mode: 'online', winner: 1, turns: 5, shots: 3, hits: 2, seconds: 30, damageTaken: 50 } }, { trustedOnline: true });
+    const online = accounts.record(ace.id, { game: 'battletanks', won: true, details: { mode: 'online', winner: 1, turns: 5, shots: 3, hits: 2, seconds: 30, damageTaken: 63 } }, { trustedOnline: true });
     assert.equal(online.score, 15283);
 });
