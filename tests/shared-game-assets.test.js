@@ -59,12 +59,24 @@ test('competitive games consume the same shared color palette', () => {
     }
 });
 
-test('shared arcade UI keeps mobile navigation above the safe area and displays the build version', () => {
+test('Sudoku visually separates boxes and highlights the active box', () => {
+    const styles = read('Sudoku/styles.css');
+    const script = read('Sudoku/scripts/app.js');
+    assert.match(styles, /--box-line:/);
+    assert.match(styles, /\.cell:nth-child\(3n\)\s*{[^}]*3px solid var\(--box-line\)/);
+    assert.match(styles, /\.cell\.same-box\s*{/);
+    assert.match(script, /sameBox\([^)]*\)\) cell\.classList\.add\('same-box'\)/);
+});
+
+test('shared arcade UI uses one safe-area-aware responsive top bar and displays the build version', () => {
     const styles = read('arcade.css');
     const script = read('arcade.js');
-    assert.match(styles, /body::before\s*{[^}]*height:env\(safe-area-inset-top\)/);
-    assert.match(styles, /top:\s*calc\(14px \+ env\(safe-area-inset-top\)\)/);
-    assert.match(styles, /bottom:\s*max\(10px, env\(safe-area-inset-bottom\)\)/);
+    assert.match(styles, /\.arcade-topbar\s*{[^}]*env\(safe-area-inset-top\)/);
+    assert.match(styles, /body:not\(\.arcade-has-topbar\)::before\s*{[^}]*height:env\(safe-area-inset-top\)/);
+    assert.match(styles, /\.arcade-topbar-inner\s*{[^}]*justify-content:space-between/);
+    assert.match(styles, /@media \(max-width: 760px\)[^{]*{[^}]*\.arcade-topbar-inner\s*{[^}]*flex-direction:column/);
+    assert.match(script, /document\.body\.prepend\(topbar\)/);
+    assert.match(script, /classList\.add\('arcade-has-topbar'\)/);
     assert.match(script, /api\/version/);
     assert.match(script, /arcade-build-version/);
 });

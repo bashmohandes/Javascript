@@ -1,9 +1,13 @@
 :root { --arcade-nav-ink:#20352f; --arcade-nav-bg:rgba(255,253,248,.94); --arcade-nav-line:rgba(32,53,47,.18); --arcade-dialog-bg:#fffdf8; --arcade-dialog-muted:#6d7d76; --arcade-dialog-field:#f3eee5; --arcade-dialog-shadow:#20352f33; }
 :root[data-theme="dark"] { --arcade-nav-ink:#f3f7f4; --arcade-nav-bg:rgba(17,27,24,.94); --arcade-nav-line:rgba(255,255,255,.16); --arcade-dialog-bg:#17231f; --arcade-dialog-muted:#aab8b1; --arcade-dialog-field:#0e1714; --arcade-dialog-shadow:#0009; }
-/* Keep the first page control below notched and Dynamic Island status bars. A
-   flow spacer preserves each page's own header spacing instead of replacing it. */
-body::before { display:block; height:env(safe-area-inset-top); content:""; }
-.arcade-account { position: fixed; z-index: 1000; top: calc(14px + env(safe-area-inset-top)); right: max(16px, env(safe-area-inset-right)); display: flex; align-items: center; gap: 8px; padding: 7px; color: var(--arcade-nav-ink); background: var(--arcade-nav-bg); border: 1px solid var(--arcade-nav-line); border-radius: 14px; box-shadow: 0 10px 30px var(--arcade-dialog-shadow); font: 600 13px/1.2 system-ui, sans-serif; backdrop-filter:blur(12px); }
+/* A shared navigation surface keeps account controls clear of page headers. */
+body:not(.arcade-has-topbar)::before { display:block; height:env(safe-area-inset-top); content:""; }
+.arcade-topbar { position:relative; z-index:1000; width:100%; padding:calc(12px + env(safe-area-inset-top)) max(18px,env(safe-area-inset-right)) 12px max(18px,env(safe-area-inset-left)); color:var(--arcade-nav-ink); background:var(--arcade-nav-bg); border-bottom:1px solid var(--arcade-nav-line); box-shadow:0 8px 28px color-mix(in srgb,var(--arcade-dialog-shadow) 45%,transparent); font:700 13px/1.2 system-ui,sans-serif; backdrop-filter:blur(18px); }
+.arcade-topbar-inner { display:flex; align-items:center; justify-content:space-between; gap:24px; width:min(1120px,100%); min-height:48px; margin:0 auto; }
+.arcade-home { display:inline-flex; flex:0 0 auto; align-items:center; gap:11px; color:inherit; font-size:15px; font-weight:900; letter-spacing:-.025em; text-decoration:none; }
+.arcade-home-mark { display:grid; width:38px; height:38px; place-items:center; color:#fff; background:linear-gradient(135deg,#ff4fa3,#6c3bff); border:2px solid var(--arcade-nav-ink); border-radius:12px; box-shadow:3px 3px 0 var(--arcade-nav-ink); font:900 12px ui-monospace,"SFMono-Regular",Consolas,monospace; }
+.arcade-account { display:flex; align-items:center; justify-content:flex-end; gap:8px; min-width:0; }
+body.arena-fullscreen .arcade-topbar { display:none; }
 body.arena-fullscreen .arcade-account { display:none; }
 .arcade-account a, .arcade-account button { padding: 8px 11px; color: inherit; background: transparent; border: 0; border-radius: 9px; font: inherit; text-decoration: none; cursor: pointer; }
 .arcade-account button { color: #10271f; background: #83e6c3; }
@@ -36,8 +40,8 @@ body.arena-fullscreen .arcade-account { display:none; }
 .result-share-actions button { min-width: 110px; padding: 11px 16px; border: 0; border-radius: 10px; font: 700 14px system-ui; cursor: pointer; }
 .result-share-cancel { color: #f7f8fc; background: rgba(255,255,255,.09); }
 .result-share-confirm { color: #10271f; background: #83e6c3; }
-@media (max-width: 650px) { .arcade-account { top: auto; right: 10px; bottom: max(10px, env(safe-area-inset-bottom)); position: fixed; } }
-@media (max-width: 520px) { .arcade-account > a:first-of-type { display:none; } .arcade-account { max-width:calc(100% - 20px); } }
+@media (max-width: 760px) { .arcade-topbar-inner { align-items:flex-start; flex-direction:column; gap:11px; } .arcade-account { width:100%; justify-content:flex-start; overflow-x:auto; padding:2px 3px 5px; scrollbar-width:none; } .arcade-account::-webkit-scrollbar { display:none; } }
+@media (max-width: 520px) { .arcade-topbar { padding-inline:12px; } .arcade-home > span:last-child { font-size:14px; } .arcade-account > a:first-of-type { display:none; } .arcade-account a,.arcade-account button { white-space:nowrap; } }
 @media (max-width: 480px) { .result-share-content { padding: 17px; } .result-share-actions button { flex: 1; } }
 .arcade-build-version { margin: 24px auto calc(18px + env(safe-area-inset-bottom)); padding: 0 16px; color: var(--arcade-dialog-muted); font: 12px/1.4 system-ui, sans-serif; text-align: center; }
 .achievement-dialog { width:min(720px,calc(100% - 28px)); max-height:min(760px,calc(100vh - 40px)); }
