@@ -22,6 +22,12 @@ test('profile uses the playful arcade shell and card language', () => {
     assert.match(styles, /\.panel::before/);
 });
 
+test('profile controls do not restyle the shared top bar', () => {
+    assert.match(styles, /\.shell :where\(input, select, button\)/);
+    assert.match(styles, /\.shell button\s*\{/);
+    assert.doesNotMatch(styles, /(?:^|\n)button\s*\{/);
+});
+
 test('profile includes accessible game-history pagination', () => {
     assert.match(profile, /id="history-pagination" aria-label="Game history pages"/);
     assert.match(profile, /data-page-action="previous"/);
