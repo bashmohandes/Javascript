@@ -116,7 +116,8 @@
             if (isGiven) cell.classList.add('given');
             if (selected) {
                 if (selected.row === rowIndex && selected.column === columnIndex) cell.classList.add('selected');
-                else if (selected.row === rowIndex || selected.column === columnIndex || sameBox(selected.row, selected.column, rowIndex, columnIndex)) cell.classList.add('related');
+                else if (sameBox(selected.row, selected.column, rowIndex, columnIndex)) cell.classList.add('same-box');
+                else if (selected.row === rowIndex || selected.column === columnIndex) cell.classList.add('related');
                 if (value && value === selectedValue) cell.classList.add('same');
             }
             if (solvingCell?.row === rowIndex && solvingCell?.column === columnIndex) {

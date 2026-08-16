@@ -63,6 +63,7 @@
     const buildVersion = document.createElement('footer');
     buildVersion.className = 'arcade-build-version';
     buildVersion.textContent = 'Build …';
+    document.body.classList.add('arcade-has-topbar');
     document.body.prepend(topbar);
     document.body.append(dialog, buildVersion);
     const gamePath = location.pathname.match(/\/(pong|Sudoku|Minesweeper|tictactoe|battle-tanks)\//)?.[1];
