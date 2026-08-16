@@ -57,9 +57,23 @@ such as newly received input or an authoritative scoring event.
 
 ## Battle Tanks
 
-Only a projectile in flight is extrapolated. Each state message replaces the
-authoritative UI state and stores a projectile copy plus receipt time. Rendering
-uses the closed-form ballistic position for at most 100 ms:
+Generated terrain samples and variable barrier cells arrive in the match
+snapshot and are rendered as collision geometry, including authoritative
+craters and removed cells. Specialized projectile metadata selects a renderer,
+but mechanics remain on the server.
+
+Battle Tanks keeps five categories separate:
+
+| Category | Examples and ownership |
+|---|---|
+| Authoritative gameplay state | Arena geometry, tanks, pickups, inventories, effects, weapons, projectiles, damage, statistics, and phase; owned by the room server online. |
+| Viewer-redacted synchronized state | A per-recipient snapshot with concealed tank coordinates/aim and unsafe projectile origins omitted before serialization. |
+| Short-lived interpolation or prediction state | Immutable projectile render samples and receipt times, capped at 100 ms and replaced by every snapshot. |
+| Replay-safe presentation events | Ordered, bounded acquisition events with stable match-scoped IDs and browser-local dismissal guards. |
+| Pure cosmetics | Particles, flashes, scorch marks, camera effects and callouts; never collision or result inputs. |
+
+Only an ordinary, unconcealed ballistic projectile may use closed-form visual
+extrapolation for at most 100 ms:
 
 ```text
 x(t)  = x₀ + vx·t
@@ -67,18 +81,17 @@ y(t)  = y₀ + vy·t + ½g·t²
 vy(t) = vy + g·t
 ```
 
-```mermaid
-flowchart LR
-  Snapshot[Projectile snapshot] --> Copy[Immutable render sample]
-  Clock[Monotonic sample age capped at 100 ms] --> Ballistic[Ballistic projection]
-  Copy --> Ballistic --> Draw[Draw projectile]
-  Snapshot --> State[Authoritative tanks, health, phase and impacts]
-```
+Each snapshot replaces the render sample. Clients must never extrapolate homing
+guidance, laser reflections, terrain destruction, damage, or pickup acquisition
+in a way treated as authoritative. The server resolves collisions and sends an
+immediate corrected state, preventing duplicate impacts or incorrect turns.
 
-The renderer does not run collision detection or resolve a shot. The server
-broadcasts an immediate resolved state on collision, turn change, or game over;
-that snapshot removes the predicted projectile and applies authoritative damage
-and impact effects. This avoids duplicate impacts and incorrect client turns.
+While an invisible opponent's projectile remains on its concealed side, its
+position and velocity are omitted. Once it crosses the authoritative disclosure
+boundary, the next snapshot introduces it at its current position. Rendering
+starts there without deriving a launch point, backfilling a trail, or
+reconstructing the hidden path. Reconnect uses the same current viewer-specific
+snapshot rather than replaying concealed history.
 
 ## Optimizations and safeguards
 

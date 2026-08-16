@@ -187,6 +187,48 @@ Battle Tanks also associates the user id for trusted online result recording.
 See [online rendering](online-rendering.md) for snapshot smoothing, client-side
 prediction, safeguards, and alternatives.
 
+## Battle Tanks boundaries and flow
+
+Battle Tanks uses one deterministic mechanics core with deliberately narrow adapters:
+
+| Component | Responsibility |
+|---|---|
+| `battle-tanks/scripts/game.js` | Versioned match state, seeded generation, fixed-step mechanics, collision and deformation, registry-driven weapons and power-ups, damage/effects, and bounded transition statistics. It contains no DOM, transport, or account trust decisions. |
+| `server/battle-tanks-rooms.js` | Authoritative online command validation and orchestration, fixed-step ticking, room lifecycle, trusted result creation, and viewer-specific serialization/redaction. |
+| `battle-tanks/scripts/app.js` | Canvas rendering, local input/simulation, bounded visual prediction, room commands, accessibility, controls, and replay-safe presentation-event handling. Card dismissal remains browser-local. |
+| `server/accounts.js` | Result-schema trust boundary: rejects invalid modes, identifiers, bounds, and untrusted online submissions, then normalizes versioned result details. |
+| `server/achievements.js` | Declarative evaluator for normalized result transitions and cumulative progress; it does not accept UI-authored claims. |
+
+```mermaid
+sequenceDiagram
+  participant C as Browser app
+  participant R as Battle Tanks room
+  participant G as Mechanics core
+  participant A as Accounts
+  participant H as Achievements
+  C->>R: bounded move / aim / power / select / use / fire command
+  R->>R: validate room, side, phase, turn, ID and sequence
+  loop fixed simulation steps
+    R->>G: advance authoritative match
+  end
+  R->>R: serialize separately for each viewer
+  R-->>C: redacted versioned snapshot + ordered acquisition events
+  Note over R,C: concealed projectile remains omitted until crossing the disclosure boundary
+  C--xR: disconnect
+  C->>R: resume with opaque room token
+  R-->>C: current snapshot and bounded replay-safe events
+  G-->>R: completion and bounded per-player aggregates
+  R->>A: trusted online result
+  A->>A: validate and normalize result schema
+  A->>H: normalized result event
+  H->>H: evaluate per-match and cumulative rules
+```
+
+Reconnect sends current state, not a full event-history replay. The same core
+runs local matches in the browser, but only the room server is authoritative for
+online state and statistics. See [ADR 0009](adr/0009-authoritative-battle-tanks-simulation.md)
+and the [player-facing rules](battle-tanks.md).
+
 ## Deployment and boundaries
 
 ```mermaid
