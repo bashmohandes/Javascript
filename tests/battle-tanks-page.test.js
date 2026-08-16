@@ -55,6 +55,14 @@ test('Battle Tanks supports arrow, power, and space keyboard controls', () => {
     }
 });
 
+test('Battle Tanks continuously moves while a movement key is held', () => {
+    const app = read('battle-tanks/scripts/app.js');
+    assert.match(app, /function startHeldMovement/);
+    assert.match(app, /setInterval\([^]*?act\(movementAction\(code\)\)[^]*?,70\)/);
+    assert.match(app, /keyup[^]*?stopHeldMovement/);
+    assert.match(app, /blur['"],stopAllHeldMovement/);
+});
+
 test('Battle Tanks reverses screen-direction movement for the right-facing tank', () => {
     const page = read('battle-tanks/index.html');
     const app = read('battle-tanks/scripts/app.js');
