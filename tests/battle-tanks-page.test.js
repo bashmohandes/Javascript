@@ -45,3 +45,8 @@ test('Battle Tanks reverses screen-direction movement for the right-facing tank'
     assert.match(page, /data-move-direction="left"[\s\S]*data-move-direction="right"/);
     assert.match(app, /direction==='left'\?\(state\.activePlayer\?'forward':'backward'\):\(state\.activePlayer\?'backward':'forward'\)/);
 });
+
+test('Battle Tanks collects pickups along local pointer-drag movement', () => {
+    const app = read('battle-tanks/scripts/app.js');
+    assert.match(app, /pointermove[\s\S]*?tank\.y=tankYAt\(state,tank\);collectPickup\(state,state\.activePlayer\);sync\(\)/);
+});

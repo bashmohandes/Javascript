@@ -68,7 +68,14 @@
         if (collected.length) state.announcement = `Player ${player + 1} collected ${POWER_UP_CATALOG[collected[0]].label}.`;
         return collected;
     }
-    function expireEffects(state, player) { state.activeEffects[player] = state.activeEffects[player].filter(effect => effect.remainingTurns === undefined || effect.remainingTurns > 0 || effect.remainingAbsorption > 0); return state.activeEffects[player]; }
+    function expireEffects(state, player) {
+        state.activeEffects[player] = state.activeEffects[player].filter(effect => {
+            if (Number.isFinite(effect.remainingAbsorption)) return effect.remainingAbsorption > 0;
+            if (Number.isFinite(effect.remainingTurns)) return effect.remainingTurns > 0;
+            return false;
+        });
+        return state.activeEffects[player];
+    }
     function beginTurnEffects(state, player) { state.activeEffects[player].forEach(effect => { if (Number.isFinite(effect.remainingTurns)) effect.remainingTurns -= 1; }); return expireEffects(state, player); }
     function activatePowerUp(state, player, itemId) {
         if (state.phase !== 'aiming' || state.activePlayer !== player) return null;

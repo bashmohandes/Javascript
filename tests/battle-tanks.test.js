@@ -284,6 +284,15 @@ test('activation caps healing and tracks turn-based effects and absorption', () 
     assert.equal(state.activeEffects[0].some(item => item.effect === 'invisible'), false);
 });
 
+test('fully depleted shields expire instead of remaining as a zero-capacity effect', () => {
+    const state = match(51), tank = state.tanks[0]; state.inventories[0].push('shield');
+    game.activatePowerUp(state, 0, 'shield');
+    game.resolveExplosion(state, { x: tank.x, y: tank.y, type: 'tank' }, { owner: 1, weapon: game.DEFAULT_WEAPON });
+    assert.equal(tank.shield, 0); assert.equal(state.activeEffects[0][0].remainingAbsorption, 0);
+    game.expireEffects(state, 0);
+    assert.deepEqual(state.activeEffects[0], []);
+});
+
 test('rematch clears every pickup, inventory, weapon, and active effect', () => {
     const state = match(6); state.pickups.push({ id: 'shield', x: 200, y: 400 }); state.inventories[0].push('shield'); state.equippedWeapons[0] = 'weapon-heavy-shell'; state.activeEffects[0].push({ id: 'invisibility', remainingTurns: 1 });
     game.resetMatch(state, 6);
