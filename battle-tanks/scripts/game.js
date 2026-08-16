@@ -33,13 +33,30 @@
         // Repeated neighbourhood averaging produces broad, traversable hills rather than noise.
         for (let pass = 0; pass < 5; pass += 1) terrain = terrain.map((height, index, values) => (values[Math.max(0, index - 1)] + height * 2 + values[Math.min(values.length - 1, index + 1)]) / 4);
         terrain = terrain.map(height => Math.round(clamp(height, ARENA_LIMITS.terrainMin, ARENA_LIMITS.terrainMax) * 10) / 10);
-        // Flat safe pads cover the complete initial footprint and a useful movement margin.
-        const flatten = (from, to) => { const level = terrain[Math.round((from + to) / (2 * TERRAIN_STEP))]; for (let x = from; x <= to; x += TERRAIN_STEP) terrain[Math.round(x / TERRAIN_STEP)] = level; };
-        flatten(56, 248); flatten(712, 904);
+        // Flat safe pads cover the complete initial footprint and a useful movement
+        // margin. Smoothstep shoulders join each pad to the existing hills so a
+        // tank cannot encounter a cliff at the edge of its spawn region.
+        const flattenPad = (from, to, shoulder = 64) => {
+            const fromIndex = from / TERRAIN_STEP, toIndex = to / TERRAIN_STEP;
+            const leftIndex = Math.max(0, (from - shoulder) / TERRAIN_STEP), rightIndex = Math.min(terrain.length - 1, (to + shoulder) / TERRAIN_STEP);
+            const level = terrain[Math.round((fromIndex + toIndex) / 2)], leftHeight = terrain[leftIndex], rightHeight = terrain[rightIndex];
+            const smoothstep = value => value * value * (3 - 2 * value);
+            for (let index = leftIndex; index < fromIndex; index += 1) { const blend = smoothstep((index - leftIndex) / (fromIndex - leftIndex)); terrain[index] = leftHeight * (1 - blend) + level * blend; }
+            for (let index = fromIndex; index <= toIndex; index += 1) terrain[index] = level;
+            for (let index = toIndex + 1; index <= rightIndex; index += 1) { const blend = smoothstep((index - toIndex) / (rightIndex - toIndex)); terrain[index] = level * (1 - blend) + rightHeight * blend; }
+        };
+        flattenPad(56, 248); flattenPad(712, 904);
+        terrain = terrain.map(height => Math.round(height * 10) / 10);
         const w = Math.round(ARENA_LIMITS.barrierWidthMin + random() * (ARENA_LIMITS.barrierWidthMax - ARENA_LIMITS.barrierWidthMin));
         const xMin = ARENA_LIMITS.sideSpaceMin, xMax = WIDTH - ARENA_LIMITS.sideSpaceMin - w;
         const x = Math.round(xMin + random() * (xMax - xMin));
-        const surface = terrain[Math.round((x + w / 2) / TERRAIN_STEP)];
+        const heightAt = position => { const sample = position / TERRAIN_STEP, left = Math.floor(sample), mix = sample - left; return terrain[left] * (1 - mix) + terrain[Math.min(terrain.length - 1, left + 1)] * mix; };
+        // Sink the wall down to the lowest ground (largest canvas Y) across its
+        // entire footprint. It may overlap higher terrain, but can never float
+        // above a valley and leave a projectile-sized passage underneath.
+        const footprint = [heightAt(x), heightAt(x + w)];
+        for (let sampleX = Math.ceil(x / TERRAIN_STEP) * TERRAIN_STEP; sampleX < x + w; sampleX += TERRAIN_STEP) footprint.push(heightAt(sampleX));
+        const surface = Math.max(...footprint);
         const h = Math.round(ARENA_LIMITS.barrierHeightMin + random() * (ARENA_LIMITS.barrierHeightMax - ARENA_LIMITS.barrierHeightMin));
         return { seed: normalizedSeed, terrain, barrier: { x, y: surface - h, w, h } };
     }

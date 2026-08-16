@@ -131,6 +131,25 @@ test('arena generation is deterministic, bounded, variable, and keeps safe spawn
     }
 });
 
+test('spawn pads blend into nearby terrain without abrupt tank-height jumps', () => {
+    const arena = game.generateArena(97252);
+    for (const [from, to] of [[0, 320], [640, game.WIDTH]]) {
+        for (let x = from + game.TERRAIN_STEP; x <= to; x += game.TERRAIN_STEP) {
+            const change = Math.abs(game.terrainHeightAt(arena, x) - game.terrainHeightAt(arena, x - game.TERRAIN_STEP));
+            assert.ok(change < 12, `terrain changed ${change}px between ${x - game.TERRAIN_STEP} and ${x}`);
+        }
+    }
+});
+
+test('barrier bottom reaches the terrain across its complete footprint', () => {
+    const state = match(33298), { barrier } = state.arena, bottom = barrier.y + barrier.h;
+    for (let x = barrier.x; x <= barrier.x + barrier.w; x += 1) {
+        assert.ok(bottom >= game.terrainHeightAt(state.arena, x), `barrier floats above terrain at ${x}`);
+    }
+    const x = barrier.x + barrier.w / 2;
+    assert.deepEqual(game.collisionAt(state, x, bottom - game.PROJECTILE_R), { type: 'barrier' });
+});
+
 test('movement follows slopes and terrain collision uses the local height profile', () => {
     const state = match(77), tank = state.tanks[0];
     game.moveTank(state, 'forward', 150);
