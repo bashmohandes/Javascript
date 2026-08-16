@@ -165,3 +165,45 @@ test('snapshots deep-serialize the complete match arena', () => {
     copy.arena.terrain[0] += 1; copy.arena.barrier.x += 1;
     assert.notDeepEqual(copy.arena, state.arena);
 });
+
+test('terrain explosions carve projectile-sized craters in bounded samples', () => {
+    const state = match(321), x = 240, before = [...state.arena.terrain];
+    game.resolveExplosion(state, { x, y: game.terrainHeightAt(state.arena, x) - game.PROJECTILE_R }, { radius: 24, depth: 30 }, 'terrain');
+    const center = Math.round(x / game.TERRAIN_STEP);
+    assert.ok(state.arena.terrain[center] > before[center]);
+    assert.equal(state.arena.terrain[center - 4], before[center - 4]);
+    assert.equal(state.arena.terrain[center + 4], before[center + 4]);
+});
+
+test('barrier explosions remove collision material and permit a later projectile', () => {
+    const state = match(654), barrier = state.arena.barrier, point = { x: barrier.x + barrier.w / 2, y: barrier.y + 45 };
+    assert.equal(game.collisionAt(state, point.x, point.y).type, 'barrier');
+    game.resolveExplosion(state, point, { radius: 22, depth: 10 }, 'barrier');
+    assert.equal(game.barrierOccupiedAt(barrier, point.x, point.y), false);
+    assert.equal(game.collisionAt(state, point.x, point.y), null, 'the next projectile can traverse the authoritative hole');
+});
+
+test('tanks settle down when a crater removes their support', () => {
+    const state = match(777), tank = state.tanks[0], oldY = tank.y, x = tank.x + game.TANK_W / 2;
+    game.resolveExplosion(state, { x, y: game.terrainHeightAt(state.arena, x) - game.PROJECTILE_R }, { radius: 40, depth: 26 }, 'terrain');
+    assert.ok(tank.y > oldY);
+    assert.equal(tank.y, game.tankYAt(state, tank));
+});
+
+test('edge craters clamp deformation to valid arena samples', () => {
+    const state = match(888), length = state.arena.terrain.length;
+    assert.doesNotThrow(() => game.resolveExplosion(state, { x: -10, y: 450 }, { radius: 40, depth: 1000 }, 'terrain'));
+    assert.equal(state.arena.terrain.length, length);
+    assert.ok(state.arena.terrain.every(height => height >= 0 && height <= game.HEIGHT));
+    assert.equal(Object.hasOwn(state.arena.terrain, '-1'), false);
+});
+
+test('reset creates an explicit boundary that discards all deformation', () => {
+    const state = match(999), original = game.generateArena(999), barrier = state.arena.barrier;
+    game.resolveExplosion(state, { x: 120, y: game.terrainHeightAt(state.arena, 120) }, { radius: 30, depth: 30 }, 'terrain');
+    game.resolveExplosion(state, { x: barrier.x + barrier.w / 2, y: barrier.y + 30 }, { radius: 24, depth: 20 }, 'barrier');
+    game.resetMatch(state, 999);
+    assert.deepEqual(state.arena, original);
+    assert.equal(state.impacts.length, 0);
+    assert.equal(state.impactSerial, 0);
+});
