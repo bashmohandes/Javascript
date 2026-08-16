@@ -50,3 +50,10 @@ test('Battle Tanks collects pickups along local pointer-drag movement', () => {
     const app = read('battle-tanks/scripts/app.js');
     assert.match(app, /pointermove[\s\S]*?tank\.y=tankYAt\(state,tank\);collectPickup\(state,state\.activePlayer\);sync\(\)/);
 });
+
+test('Battle Tanks exposes an accessible, queued, local-only acquisition card', () => {
+    const page = read('battle-tanks/index.html'), app = read('battle-tanks/scripts/app.js'), styles = read('battle-tanks/styles.css');
+    assert.match(page, /id="power-card"[^>]*role="dialog"/); assert.match(page, /id="dismiss-power-card"[^>]*aria-label="Dismiss power-up card"/); assert.match(page, /id="power-card-live"[^>]*aria-live="polite"/);
+    assert.match(app, /powerCardQueue/); assert.match(app, /highestPresentedEventId/); assert.match(app, /presentationMatchId/); assert.match(app, /sessionStorage\.setItem\(`battle-tanks-presented-/); assert.match(app, /function dismissPowerCard/); assert.doesNotMatch(app, /sendOnline\([^)]*dismiss/i);
+    assert.match(styles, /prefers-reduced-motion:reduce[\s\S]*power-card/); assert.match(styles, /:fullscreen \.power-card-layer/); assert.match(styles, /@keyframes power-card-play/);
+});

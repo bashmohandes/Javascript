@@ -355,3 +355,18 @@ test('laser snapshots preserve bounded authoritative segments and reflections ca
     assert.ok(path.segments.every(segment => segment.hit && Number.isFinite(segment.energy)));
     assert.ok(state.lastImpact.affected.some(hit => hit.tank === 0), 'a reflected segment damages its shooter');
 });
+
+test('acquisition events are monotonic, bounded, generated, safe, and reset with a match', () => {
+    const state = match('acquisitions'), tank = state.tanks[0];
+    for (let index = 0; index < game.ACQUISITION_HISTORY_LIMIT + 3; index += 1) {
+        state.inventories[0].length = 0;
+        state.pickups = [{ serial: index, id: index === 0 ? 'shield' : 'health-pack', x: tank.x + game.TANK_W / 2, y: tank.y + game.TANK_H }];
+        game.collectPickup(state, 0);
+    }
+    assert.equal(state.acquisitionEventId, game.ACQUISITION_HISTORY_LIMIT + 3);
+    assert.equal(state.acquisitionEvents.length, game.ACQUISITION_HISTORY_LIMIT);
+    assert.deepEqual(state.acquisitionEvents.map(event => event.eventId), [4, 5, 6, 7, 8, 9, 10, 11]);
+    const shieldState = match('shield-event'); shieldState.pickups = [{ id: 'shield', x: shieldState.tanks[0].x + game.TANK_W / 2, y: shieldState.tanks[0].y + game.TANK_H }]; game.collectPickup(shieldState, 0);
+    const event = shieldState.acquisitionEvents[0]; assert.ok(event.generatedValues.capacity >= 40 && event.generatedValues.capacity <= 60); assert.ok(event.generatedValues.durationTurns >= 2 && event.generatedValues.durationTurns <= 4); assert.equal('x' in event, false);
+    game.resetMatch(state); assert.equal(state.acquisitionEventId, 0); assert.deepEqual(state.acquisitionEvents, []);
+});

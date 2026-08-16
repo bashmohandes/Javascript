@@ -104,3 +104,13 @@ test('server alone selects weapons and serializes specialized authoritative stat
     assert.ok((wire.lastImpact?.affected || []).every(hit => hit.attemptedDamage <= core.WEAPON_REGISTRY.laser.baseDamage));
     assert.throws(() => rooms.command(host.room, host.player, command(host.room, 'select-weapon', { weaponId: 'unknown' })), /turn|weapon/i);
 });
+
+test('both sockets immediately receive the same safe authoritative acquisition and reconnect IDs', () => {
+    const { rooms, host, guest } = started(), state = host.room.game, tank = state.tanks[0];
+    state.pickups = [{ id: 'invisibility', x: tank.x + 8 + core.TANK_W / 2, y: core.terrainHeightAt(state.arena, tank.x + 8 + core.TANK_W / 2) }];
+    rooms.command(host.room, host.player, command(host.room, 'move', { direction: 'forward', card: { x: 999, effectDescription: 'cheat' } }));
+    const messages = [host.player, guest.player].map(player => player.socket.messages.find(message => message.type === 'power-up-acquired'));
+    assert.deepEqual(messages[0], messages[1]); assert.equal(messages[0].event.powerUpType, 'invisibility'); assert.equal('x' in messages[0].event, false); assert.equal(JSON.stringify(messages[0]).includes('999'), false);
+    const replacement = socket(); rooms.disconnect(host.room, guest.player); rooms.resume(host.room.code, guest.player.token, replacement); rooms.broadcastState(host.room);
+    const snapshot = replacement.messages.at(-1).state; assert.equal(snapshot.acquisitionEventId, messages[0].event.eventId); assert.equal(JSON.stringify(snapshot.acquisitionEvents).includes('angle'), false);
+});
