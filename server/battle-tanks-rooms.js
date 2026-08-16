@@ -61,7 +61,7 @@ class BattleTanksRooms {
         const now = Date.now(); player.commands = player.commands.filter(time => now - time < 1000); if (player.commands.length >= 30) throw new Error('Too many commands.'); player.commands.push(now);
     }
     command(room, player, message) {
-        this.checkCommand(room, player, message); let changed = false;
+        this.checkCommand(room, player, message); let changed = false; const previousAcquisitionId = room.game.acquisitionEventId || 0;
         if (message.type === 'move') { if (!['forward', 'backward'].includes(message.direction)) throw new Error('Invalid movement.'); changed = game.moveTank(room.game, message.direction, 8); }
         else if (message.type === 'aim') {
             if (!Number.isFinite(message.angle) || !Number.isFinite(message.power)) throw new Error('Invalid aim.');
@@ -98,7 +98,11 @@ class BattleTanksRooms {
             if (!changed) throw new Error('That weapon has no ammunition.');
         }
         else throw new Error('Unsupported command.');
-        room.touchedAt = Date.now(); return changed;
+        room.touchedAt = Date.now();
+        const acquisitions = (room.game.acquisitionEvents || []).filter(event => event.eventId > previousAcquisitionId);
+        acquisitions.forEach(event => this.broadcast(room, { type: 'power-up-acquired', matchId: room.matchId, event }));
+        if (acquisitions.length) this.broadcastState(room);
+        return changed;
     }
     color(room, player, color) { if (!/^#[0-9a-f]{6}$/i.test(color)) throw new Error('Invalid color.'); room.colors[player.side] = color; room.touchedAt = Date.now(); }
     stateFor(room, viewerSide) {
