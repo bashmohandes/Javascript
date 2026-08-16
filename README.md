@@ -20,11 +20,30 @@ topology and subsystem flows. Architectural decisions are indexed in
 | **Minesweeper** | A responsive mine-clearing puzzle with three field sizes, flags, keyboard controls, and saved best times. | [Play modern Minesweeper](https://bashmohandes.github.io/Javascript/Minesweeper/) |
 | **Minesweeper Classic** | The original p5.js experiment, preserved alongside the new game. | [Play Minesweeper Classic](https://bashmohandes.github.io/Javascript/Minesweeper/classic/) |
 | **Pong** | Responsive solo, couch co-op, and public or private online multiplayer Pong. | [Play Pong](https://bashmohandes.github.io/Javascript/pong/) |
-| **Battle Tanks** | Turn-based local and authoritative online artillery duels with movement, aiming, and a central barrier. | [Play Battle Tanks](https://bashmohandes.github.io/Javascript/battle-tanks/) |
+| **Battle Tanks** | Local and authoritative online artillery duels across generated, destructible arenas with pickups, effects, and specialized weapons. | [Play Battle Tanks](https://bashmohandes.github.io/Javascript/battle-tanks/) |
 
 ## Battle Tanks controls and online play
 
-Use A/D to move, W/S to aim, Q/E to change power, and Space to fire. Tanks remain on their own side of the central barrier and alternate turns after each projectile resolves. Online matches use the same public/private room, invitation, ready, reconnection, and rematch flow as Pong and Tic-tac-toe. The Node server owns movement bounds, projectile physics, collisions, damage, turns, and results; a static GitHub Pages preview supports local play only.
+Battle Tanks generates seeded hills, valleys, and variable barriers. Explosions
+change terrain and deal distance- and weapon-based splash damage, including
+self-damage. Collect pickups by driving over them, then use the inventory for
+health packs, shields, temporary boosts, online-only invisibility, or ammunition
+for wide-blast, heavy, homing, and reflected-laser weapons; the default shell is
+unlimited. Acquisition cards are replay-safe notifications. Dismissing one is
+local to the browser and does not pause a match.
+
+Use `A`/`D` or arrow keys to move, `W`/`S` or up/down to aim, `Q`/`E` or
+minus/plus to change power, and Space to fire. Pointer and touch users can use
+the on-screen controls and, during local play, drag the active tank. The weapon
+selector and full-screen overlay expose weapon, fire, movement, aim, power, and
+exit controls.
+
+Local and online modes use the same deterministic mechanics core. Online rooms
+are server-authoritative and redact invisible opponents and concealed projectile
+origins; local mode is browser-authoritative and does not permit invisibility.
+See the [complete Battle Tanks gameplay rules](docs/battle-tanks.md),
+[architecture](docs/architecture.md#battle-tanks-boundaries-and-flow), and
+[ADR 0009](docs/adr/0009-authoritative-battle-tanks-simulation.md).
 
 The repository also contains solutions and experiments from LeetCode,
 Codeforces, and Codewars.
@@ -227,9 +246,12 @@ Then open one of these URLs:
 
 ## Battle Tanks controls and rules
 
-- Player 1 and Player 2 alternate turns on the same device. Use the on-screen controls, or use `A`/`D` to move, `W`/`S` to aim, `Q`/`E` to change power, and <kbd>Space</kbd> to fire.
-- On a touch or pointer device, drag the active tank horizontally within its side of the arena.
-- Each tank starts with 100 health. A direct hit removes 50 health; terrain, the central barrier, and missed shots end the turn without damage. The first player to reduce the other tank to zero wins.
+Battle Tanks supports keyboard, pointer, touch, and full-screen controls. Its
+seeded arenas, radial damage, destructible geometry, pickup inventory, timed
+effects, ammunition, specialized weapons, draw behavior, and online hidden
+information rules are defined in the
+[Battle Tanks gameplay rules](docs/battle-tanks.md). Detailed constants live in
+that player-facing source of truth rather than being duplicated here.
 
 ## License
 

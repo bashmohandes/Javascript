@@ -12,3 +12,4 @@ All records describe the current system retrospectively and have status
 7. [Same-origin deployment and layered HTTP security](0007-same-origin-security.md)
 
 8. [Separate experience themes from color modes](0008-experience-theming-system.md)
+9. [Authoritative deterministic Battle Tanks simulation](0009-authoritative-battle-tanks-simulation.md) — **Accepted**; one versioned mechanics core powers local play and viewer-redacted, server-authoritative online rooms.

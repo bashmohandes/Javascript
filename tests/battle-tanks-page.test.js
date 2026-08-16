@@ -102,3 +102,29 @@ test('Battle Tanks keeps reset, rematch, reconnect, results, callouts, and theme
     assert.match(app, /arcade:theme[\s\S]*updateArenaTheme/);
     assert.match(app, /fullscreen-fire[\s\S]*fullscreen-weapon|fullscreen-weapon[\s\S]*fullscreen-fire/);
 });
+
+test('Battle Tanks documentation links, controls, protocol ids, and achievement ids stay synchronized', () => {
+    const adrIndex = read('docs/adr/README.md');
+    const docs = ['docs/README.md', 'docs/architecture.md', 'docs/online-rendering.md', 'docs/battle-tanks.md', 'README.md'];
+    assert.match(adrIndex, /0009-authoritative-battle-tanks-simulation\.md/);
+    assert.match(read('battle-tanks/index.html'), /href="\.\.\/docs\/battle-tanks\.md"/);
+
+    for (const file of docs.concat('docs/adr/README.md')) {
+        const content = read(file), directory = path.dirname(path.join(root, file));
+        for (const match of content.matchAll(/\[[^\]]+\]\(([^)#]+)(?:#[^)]+)?\)/g)) {
+            if (/^(?:https?:|#)/.test(match[1])) continue;
+            assert.ok(fs.existsSync(path.resolve(directory, match[1])), `${file} has missing link ${match[1]}`);
+        }
+    }
+
+    const rules = read('docs/battle-tanks.md'), core = require('../battle-tanks/scripts/game');
+    for (const key of ['A', 'D', 'W', 'S', 'Q', 'E', 'Space', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Minus', 'Equal']) {
+        const documented = key.startsWith('Arrow') ? { ArrowLeft: '←', ArrowRight: '→', ArrowUp: '↑', ArrowDown: '↓' }[key] : key === 'Minus' ? '−' : key === 'Equal' ? '+' : key;
+        assert.ok(rules.includes(documented), `rules should document ${key}`);
+        assert.ok(read('battle-tanks/scripts/app.js').includes(key), `app should implement ${key}`);
+    }
+    for (const id of Object.keys(core.WEAPON_REGISTRY)) assert.match(rules, new RegExp(`\\b${id}\\b`));
+    for (const id of Object.keys(core.POWER_UP_CATALOG)) assert.ok(rules.includes(`\`${id}\``), `rules should document power-up ${id}`);
+    const achievementIds = require('../server/achievements').catalog.filter(item => item.game === 'battletanks').map(item => item.id);
+    for (const id of achievementIds) assert.ok(rules.includes(`\`${id}\``), `rules should document achievement ${id}`);
+});
