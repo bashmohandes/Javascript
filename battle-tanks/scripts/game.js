@@ -6,8 +6,10 @@
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
     'use strict';
 
-    const STATE_VERSION = 1;
-    const WIDTH = 960, HEIGHT = 540, GRAVITY = 210;
+    const STATE_VERSION = 2;
+    // CSS scales this larger logical world to the available screen, retaining
+    // considerably more travel space and detail in full screen mode.
+    const WIDTH = 1440, HEIGHT = 810, GRAVITY = 210;
     const TANK_W = 58, TANK_H = 30, PROJECTILE_R = 6;
     const STARTING_HEALTH = 100, DAMAGE = 50, TERRAIN_STEP = 8, BARRIER_CELL = 4;
     // Weapon ids are protocol values.  Labels are deliberately presentation-only.
@@ -15,12 +17,12 @@
         shell: Object.freeze({ id: 'shell', label: 'Standard shell', strategy: 'ballistic', launch: Object.freeze({ baseSpeed: 170, powerSpeed: 3.2, mass: 1 }), baseDamage: DAMAGE, blastRadius: 52, terrainDamage: 22, powerMultiplier: 1, velocityMultiplier: 0, ammo: Object.freeze({ unlimited: true, perPickup: 0 }) }),
         'wide-blast': Object.freeze({ id: 'wide-blast', label: 'Wide blast shell', strategy: 'ballistic', launch: Object.freeze({ baseSpeed: 165, powerSpeed: 3, mass: 1.1 }), baseDamage: 42, blastRadius: 76, terrainDamage: 30, powerMultiplier: 1, velocityMultiplier: 0, ammo: Object.freeze({ unlimited: false, perPickup: 2 }) }),
         'heavy-shell': Object.freeze({ id: 'heavy-shell', label: 'Heavy shell', strategy: 'ballistic', launch: Object.freeze({ baseSpeed: 145, powerSpeed: 2.35, mass: 2.2, maximumPower: 100 }), baseDamage: 72, blastRadius: 70, terrainDamage: 38, powerMultiplier: 1, velocityMultiplier: 0, ammo: Object.freeze({ unlimited: false, perPickup: 2 }) }),
-        homing: Object.freeze({ id: 'homing', label: 'Homing missile', strategy: 'homing', launch: Object.freeze({ baseSpeed: 135, powerSpeed: 2.25, mass: 1.15 }), baseDamage: 46, blastRadius: 58, terrainDamage: 25, powerMultiplier: 1, velocityMultiplier: 0, ammo: Object.freeze({ unlimited: false, perPickup: 2 }), homing: Object.freeze({ acquisitionRange: 700, targetInvisible: false, lockDelay: .18, turnRate: Math.PI * .72, acceleration: 75, unavailable: 'ballistic' }) }),
-        laser: Object.freeze({ id: 'laser', label: 'Ricochet laser', strategy: 'ray', launch: Object.freeze({ baseSpeed: 0, powerSpeed: 0, mass: 0 }), baseDamage: 38, blastRadius: 1, terrainDamage: 0, powerMultiplier: 1, velocityMultiplier: 0, ammo: Object.freeze({ unlimited: false, perPickup: 2 }), ray: Object.freeze({ maxBounces: 5, maxDistance: 1800, energyRetention: .68, minimumEnergy: .12 }) })
+        homing: Object.freeze({ id: 'homing', label: 'Homing missile', strategy: 'homing', launch: Object.freeze({ baseSpeed: 135, powerSpeed: 2.25, mass: 1.15 }), baseDamage: 46, blastRadius: 58, terrainDamage: 25, powerMultiplier: 1, velocityMultiplier: 0, ammo: Object.freeze({ unlimited: false, perPickup: 2 }), homing: Object.freeze({ acquisitionRange: 1050, targetInvisible: false, lockDelay: .18, turnRate: Math.PI * .72, acceleration: 75, unavailable: 'ballistic' }) }),
+        laser: Object.freeze({ id: 'laser', label: 'Ricochet laser', strategy: 'ray', launch: Object.freeze({ baseSpeed: 0, powerSpeed: 0, mass: 0 }), baseDamage: 38, blastRadius: 1, terrainDamage: 0, powerMultiplier: 1, velocityMultiplier: 0, ammo: Object.freeze({ unlimited: false, perPickup: 2 }), ray: Object.freeze({ maxBounces: 5, maxDistance: 2700, energyRetention: .68, minimumEnergy: .12 }) })
     });
     const DEFAULT_WEAPON = WEAPON_REGISTRY.shell;
     const DEFAULT_BLAST = Object.freeze({ radius: DEFAULT_WEAPON.blastRadius, depth: DEFAULT_WEAPON.terrainDamage });
-    const PICKUP_SIZE = 22, INVENTORY_LIMIT = 3, MAX_PICKUPS = 3, SPAWN_EVERY_TURNS = 3;
+    const PICKUP_SIZE = 36, INVENTORY_LIMIT = 3, MAX_PICKUPS = 3, SPAWN_EVERY_TURNS = 3;
     // IDs are protocol values: never derive them from labels or array positions.
     const POWER_UP_CATALOG = Object.freeze({
         'health-pack': Object.freeze({ id: 'health-pack', label: 'Health pack', kind: 'consumable', effect: 'heal', amount: 35, consumesTurn: true }),
@@ -42,7 +44,7 @@
     });
     // Arena guarantees used by both generation and tests/UI: terrain stays in
     // this vertical band and the centre wall varies without trapping either tank.
-    const ARENA_LIMITS = Object.freeze({ terrainMin: 410, terrainMax: 500, barrierWidthMin: 52, barrierWidthMax: 84, barrierHeightMin: 145, barrierHeightMax: 215, sideSpaceMin: 350 });
+    const ARENA_LIMITS = Object.freeze({ terrainMin: 650, terrainMax: 750, barrierWidthMin: 68, barrierWidthMax: 108, barrierHeightMin: 190, barrierHeightMax: 285, sideSpaceMin: 570 });
     const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
     function seedValue(seed) {
@@ -127,7 +129,7 @@
         const normalizedSeed = seedValue(seed), random = seededRandom(normalizedSeed), count = WIDTH / TERRAIN_STEP + 1;
         let terrain = Array.from({ length: count }, (_, index) => {
             const x = index * TERRAIN_STEP;
-            return 458 + Math.sin(x / 92 + random() * 1.4) * 24 + (random() - .5) * 30;
+            return 700 + Math.sin(x / 118 + random() * 1.4) * 28 + (random() - .5) * 34;
         });
         // Repeated neighbourhood averaging produces broad, traversable hills rather than noise.
         for (let pass = 0; pass < 5; pass += 1) terrain = terrain.map((height, index, values) => (values[Math.max(0, index - 1)] + height * 2 + values[Math.min(values.length - 1, index + 1)]) / 4);
@@ -144,7 +146,7 @@
             for (let index = fromIndex; index <= toIndex; index += 1) terrain[index] = level;
             for (let index = toIndex + 1; index <= rightIndex; index += 1) { const blend = smoothstep((index - toIndex) / (rightIndex - toIndex)); terrain[index] = level * (1 - blend) + rightHeight * blend; }
         };
-        flattenPad(56, 248); flattenPad(712, 904);
+        flattenPad(72, 328, 80); flattenPad(WIDTH - 328, WIDTH - 72, 80);
         terrain = terrain.map(height => Math.round(height * 10) / 10);
         const w = Math.round(ARENA_LIMITS.barrierWidthMin + random() * (ARENA_LIMITS.barrierWidthMax - ARENA_LIMITS.barrierWidthMin));
         const xMin = ARENA_LIMITS.sideSpaceMin, xMax = WIDTH - ARENA_LIMITS.sideSpaceMin - w;

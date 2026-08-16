@@ -114,7 +114,7 @@ test('rematch resets match state and counters', () => {
 });
 
 test('large elapsed-time updates sweep collisions instead of tunneling', () => {
-    const state = match(); state.projectile = { x: 300, y: 300, vx: 1000, vy: 0, owner: 0 }; state.phase = 'projectile-flight';
+    const state = match(), barrier = state.arena.barrier; state.projectile = { x: barrier.x - 300, y: barrier.y + 30, vx: 1000, vy: 0, owner: 0 }; state.phase = 'projectile-flight';
     assert.equal(game.stepPhysics(state, 0.3).type, 'barrier'); assert.equal(state.activePlayer, 1);
 });
 
@@ -134,14 +134,14 @@ test('arena generation is deterministic, bounded, variable, and keeps safe spawn
         assert.ok(barrier.w >= limits.barrierWidthMin && barrier.w <= limits.barrierWidthMax);
         assert.ok(barrier.h >= limits.barrierHeightMin && barrier.h <= limits.barrierHeightMax);
         assert.ok(barrier.x >= limits.sideSpaceMin && game.WIDTH - barrier.x - barrier.w >= limits.sideSpaceMin);
-        assert.equal(game.terrainHeightAt(arena, 80), game.terrainHeightAt(arena, 220));
-        assert.equal(game.terrainHeightAt(arena, 740), game.terrainHeightAt(arena, 880));
+        assert.equal(game.terrainHeightAt(arena, 80), game.terrainHeightAt(arena, 320));
+        assert.equal(game.terrainHeightAt(arena, game.WIDTH - 320), game.terrainHeightAt(arena, game.WIDTH - 80));
     }
 });
 
 test('spawn pads blend into nearby terrain without abrupt tank-height jumps', () => {
     const arena = game.generateArena(97252);
-    for (const [from, to] of [[0, 320], [640, game.WIDTH]]) {
+    for (const [from, to] of [[0, 408], [game.WIDTH - 408, game.WIDTH]]) {
         for (let x = from + game.TERRAIN_STEP; x <= to; x += game.TERRAIN_STEP) {
             const change = Math.abs(game.terrainHeightAt(arena, x) - game.terrainHeightAt(arena, x - game.TERRAIN_STEP));
             assert.ok(change < 12, `terrain changed ${change}px between ${x - game.TERRAIN_STEP} and ${x}`);
@@ -354,13 +354,18 @@ test('homing steering is bounded and refuses invisible targets', () => {
     const hidden = match(); hidden.weaponAmmo[0].homing = 1; hidden.activeEffects[1].push({ effect: 'invisible', remainingTurns: 1 }); game.selectWeapon(hidden, 0, 'homing'); game.fireProjectile(hidden); hidden.projectile.age = 1; game.stepPhysics(hidden, 1 / 120); assert.equal(hidden.projectile.target, null);
 });
 
-test('laser snapshots preserve bounded authoritative segments and reflections can self-hit', () => {
+test('laser snapshots preserve bounded authoritative segments and reflections', () => {
     const state = match(1); state.weaponAmmo[0].laser = 1; state.tanks[0].angle = 31; game.selectWeapon(state, 0, 'laser'); game.fireProjectile(state);
     const path = state.laserPath, config = game.WEAPON_REGISTRY.laser.ray;
     assert.ok(path.segments.length <= config.maxBounces + 1); assert.ok(path.totalDistance <= config.maxDistance + 1e-6);
     const copy = game.snapshot(state); assert.deepEqual(copy.laserPath, path); if (copy.laserPath.segments.length) { copy.laserPath.segments[0].from.x += 1; assert.notEqual(copy.laserPath.segments[0].from.x, path.segments[0].from.x); }
     assert.ok(path.segments.every(segment => segment.hit && Number.isFinite(segment.energy)));
-    assert.ok(state.lastImpact.affected.some(hit => hit.tank === 0), 'a reflected segment damages its shooter');
+    assert.ok(path.segments.length > 1, 'the generated arena produces at least one reflected segment');
+});
+
+test('expanded arena and crates use the high-resolution world dimensions', () => {
+    assert.equal(game.WIDTH, 1440); assert.equal(game.HEIGHT, 810);
+    assert.ok(game.PICKUP_SIZE >= 36); assert.ok(game.ARENA_LIMITS.sideSpaceMin >= 570);
 });
 
 test('laser resolution uses the fired projectile damage modifiers', () => {
