@@ -49,7 +49,7 @@ test('server validates inventory choices, rejects stale activations, and synchro
 
 test('online rematch removes authoritative pickup state', () => {
     const { rooms, host } = started(); host.room.game.pickups.push({ id: 'shield', x: 100, y: 400 }); host.room.game.inventories[0].push('shield'); host.room.game.phase = 'game-over'; rooms.rematch(host.room);
-    assert.deepEqual(host.room.game.pickups, []); assert.deepEqual(host.room.game.inventories, [[], []]);
+    assert.deepEqual(host.room.game.pickups, []); assert.deepEqual(host.room.game.inventories, [[], []]); assert.equal(host.room.game.onlineMode, true);
 });
 
 
