@@ -33,6 +33,19 @@ updates, cross-tab synchronization, browser theme color, public API, and the
 `arcade:theme` event. CSS is layered into experience tokens, shared components,
 page layouts, and game-specific rendering.
 
+Theme-owned game rendering values are exposed as CSS custom properties in the
+theme styles. Canvas code reads that interface from computed styles and must
+not select an experience or contain per-theme palettes. A new experience can
+therefore implement game-specific tokens alongside its shared tokens without
+requiring a game-code branch.
+
+This contract applies to every modern game. DOM-rendered games (Tic-tac-toe,
+Sudoku, and Minesweeper) consume the CSS cascade directly. Canvas-rendered games
+(Pong and Battle Tanks) expose scoped `.game-pong` and `.game-battle-tanks`
+token interfaces and refresh their computed values on `arcade:theme`. Player
+colors and synchronized gameplay colors are game state, not experience-theme
+palettes, and remain independent so matches render consistently for all peers.
+
 Layout themes may change shell width, grids, panel placement, typography,
 spacing, borders, and decoration. They must preserve semantic DOM order,
 keyboard focus order, game rules, required controls, and responsive access to
