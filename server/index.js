@@ -252,7 +252,7 @@ function handleTankSocket(socket, request) {
             else if (!membership) throw new Error('Create or join a room first.');
             else if (message.type === 'ready') tankRooms.ready(membership.room, membership.player);
             else if (message.type === 'rematch') tankRooms.rematch(membership.room);
-            else if (['move', 'aim', 'fire', 'activate', 'equip'].includes(message.type)) tankRooms.command(membership.room, membership.player, message);
+            else if (['move', 'aim', 'fire', 'activate', 'equip', 'select-weapon'].includes(message.type)) tankRooms.command(membership.room, membership.player, message);
             else if (message.type === 'color') tankRooms.color(membership.room, membership.player, message.color);
             else if (message.type === 'leave') { tankRooms.disconnect(membership.room, membership.player, socket); membership = null; return; }
             else throw new Error('Unsupported message type.');

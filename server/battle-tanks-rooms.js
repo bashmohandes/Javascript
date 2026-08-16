@@ -67,7 +67,19 @@ class BattleTanksRooms {
             if (!Number.isFinite(message.angle) || !Number.isFinite(message.power)) throw new Error('Invalid aim.');
             const tank = room.game.tanks[player.side], angle = Math.round(message.angle), power = Math.round(message.power);
             if (angle < 10 || angle > 80 || power < 20 || power > 100) throw new Error('Invalid aim.'); tank.angle = angle; tank.power = power; changed = true;
-        } else if (message.type === 'fire') { changed = game.fireProjectile(room.game); if (changed) room.stats[player.side].shots += 1; }
+        } else if (message.type === 'fire') {
+            const impactSerial = room.game.impactSerial || 0;
+            changed = game.fireProjectile(room.game);
+            if (changed) room.stats[player.side].shots += 1;
+            // Rays resolve in the fire command rather than waiting for tick().
+            if (changed && (room.game.impactSerial || 0) !== impactSerial) {
+                const affected = room.game.lastImpact?.affected || [];
+                if (affected.some(item => item.healthDamage > 0)) room.stats[player.side].hits += 1;
+                affected.forEach(item => { room.stats[item.tank].damageTaken += item.healthDamage; });
+                room.turnId += 1;
+                if (room.game.phase === 'game-over') this.finish(room);
+            }
+        }
         else if (message.type === 'activate' || message.type === 'equip') {
             if (typeof message.itemId !== 'string' || !game.POWER_UP_CATALOG[message.itemId]) throw new Error('Invalid inventory item.');
             const item = game.POWER_UP_CATALOG[message.itemId];
@@ -79,6 +91,11 @@ class BattleTanksRooms {
                 if (result.id !== 'invisibility') game.endTurnEffects(room.game, player.side);
                 game.advancePickupSchedule(room.game); game.beginTurn(room.game, 1 - player.side); room.turnId += 1;
             }
+        }
+        else if (message.type === 'select-weapon') {
+            if (typeof message.weaponId !== 'string' || !game.WEAPON_REGISTRY[message.weaponId]) throw new Error('Invalid weapon.');
+            changed = game.selectWeapon(room.game, player.side, message.weaponId);
+            if (!changed) throw new Error('That weapon has no ammunition.');
         }
         else throw new Error('Unsupported command.');
         room.touchedAt = Date.now(); return changed;

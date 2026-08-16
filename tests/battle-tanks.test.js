@@ -322,3 +322,36 @@ test('rematch clears every pickup, inventory, weapon, and active effect', () => 
     game.resetMatch(state, 6);
     assert.deepEqual([state.pickups, state.inventories, state.equippedWeapons, state.activeEffects], [[], [[], []], [null, null], [[], []]]); assert.equal(state.effectSerial, 0);
 });
+
+test('weapon registry defines complete, id-driven launch, damage, terrain, ammo, and strategies', () => {
+    const expected = { shell: 'ballistic', 'wide-blast': 'ballistic', 'heavy-shell': 'ballistic', homing: 'homing', laser: 'ray' };
+    for (const [id, strategy] of Object.entries(expected)) {
+        const weapon = game.WEAPON_REGISTRY[id];
+        assert.equal(weapon.id, id); assert.equal(weapon.strategy, strategy);
+        assert.ok(Number.isFinite(weapon.launch.mass)); assert.ok(Number.isFinite(weapon.baseDamage));
+        assert.ok(Number.isFinite(weapon.blastRadius)); assert.ok(Number.isFinite(weapon.terrainDamage));
+        assert.equal(typeof weapon.ammo.unlimited, 'boolean');
+    }
+    const standard = game.WEAPON_REGISTRY.shell, heavy = game.WEAPON_REGISTRY['heavy-shell'];
+    assert.ok(heavy.launch.mass > standard.launch.mass); assert.ok(heavy.launch.powerSpeed < standard.launch.powerSpeed);
+    assert.ok(heavy.baseDamage > standard.baseDamage); assert.ok(heavy.blastRadius > standard.blastRadius); assert.ok(heavy.terrainDamage > standard.terrainDamage);
+    assert.equal(heavy.launch.maximumPower, 100);
+});
+
+test('homing steering is bounded and refuses invisible targets', () => {
+    const state = match(); state.weaponAmmo[0].homing = 1; game.selectWeapon(state, 0, 'homing'); game.fireProjectile(state);
+    const before = Math.atan2(state.projectile.vy, state.projectile.vx), rate = game.WEAPON_REGISTRY.homing.homing.turnRate;
+    state.projectile.age = game.WEAPON_REGISTRY.homing.homing.lockDelay; state.projectile.x = state.tanks[1].x - 200; state.projectile.y = state.tanks[1].y - 100;
+    game.stepPhysics(state, 1 / 120); const after = Math.atan2(state.projectile.vy, state.projectile.vx);
+    assert.ok(Math.abs(Math.atan2(Math.sin(after - before), Math.cos(after - before))) <= rate / 120 + 1e-9);
+    const hidden = match(); hidden.weaponAmmo[0].homing = 1; hidden.activeEffects[1].push({ effect: 'invisible', remainingTurns: 1 }); game.selectWeapon(hidden, 0, 'homing'); game.fireProjectile(hidden); hidden.projectile.age = 1; game.stepPhysics(hidden, 1 / 120); assert.equal(hidden.projectile.target, null);
+});
+
+test('laser snapshots preserve bounded authoritative segments and reflections can self-hit', () => {
+    const state = match(1); state.weaponAmmo[0].laser = 1; state.tanks[0].angle = 31; game.selectWeapon(state, 0, 'laser'); game.fireProjectile(state);
+    const path = state.laserPath, config = game.WEAPON_REGISTRY.laser.ray;
+    assert.ok(path.segments.length <= config.maxBounces + 1); assert.ok(path.totalDistance <= config.maxDistance + 1e-6);
+    const copy = game.snapshot(state); assert.deepEqual(copy.laserPath, path); if (copy.laserPath.segments.length) { copy.laserPath.segments[0].from.x += 1; assert.notEqual(copy.laserPath.segments[0].from.x, path.segments[0].from.x); }
+    assert.ok(path.segments.every(segment => segment.hit && Number.isFinite(segment.energy)));
+    assert.ok(state.lastImpact.affected.some(hit => hit.tank === 0), 'a reflected segment damages its shooter');
+});
