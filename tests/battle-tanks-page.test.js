@@ -48,6 +48,12 @@ test('Battle Tanks game-over actions do not cover tanks or unsafe iPhone control
     assert.match(styles, /top:max\(12px,env\(safe-area-inset-top\)\)[^}]*right:max\(12px,env\(safe-area-inset-right\)\)/);
 });
 
+test('Battle Tanks keeps result actions reachable in short arenas', () => {
+    const styles = read('battle-tanks/styles.css');
+    assert.match(styles, /\.result-card\{[^}]*box-sizing:border-box[^}]*max-height:100%[^}]*overflow-y:auto/);
+    assert.doesNotMatch(styles, /\.result-card\{[^}]*overflow:hidden/);
+});
+
 test('Battle Tanks supports arrow, power, and space keyboard controls', () => {
     const app = read('battle-tanks/scripts/app.js');
     for (const key of ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Minus', 'Equal', 'NumpadSubtract', 'NumpadAdd', 'Space']) {
