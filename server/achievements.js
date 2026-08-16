@@ -22,14 +22,25 @@ const catalog = [
     { id: 'tanks-win', game: 'battletanks', icon: '🏆', title: 'Tank Commander', condition: 'Win a Battle Tanks match.', event: 'result', where: { won: true }, target: 1 },
     { id: 'tanks-accurate', game: 'battletanks', icon: '🎯', title: 'Deadeye', condition: 'Win with at least 50% accuracy.', event: 'result', where: { won: true, 'details.accuracy': { gte: 50 } }, target: 1 },
     { id: 'tanks-untouched', game: 'battletanks', icon: '🛡️', title: 'Untouchable', condition: 'Win without taking damage.', event: 'result', where: { won: true, 'details.damageTaken': 0 }, target: 1 },
-    { id: 'tanks-online', game: 'battletanks', icon: '🌐', title: 'Long-Distance Call', condition: 'Finish an online Battle Tanks match.', event: 'result', where: { 'details.mode': 'online' }, target: 1 }
+    { id: 'tanks-online', game: 'battletanks', icon: '🌐', title: 'Long-Distance Call', condition: 'Finish an online Battle Tanks match.', event: 'result', where: { 'details.mode': 'online' }, target: 1 },
+    { id: 'tanks-power-first', game: 'battletanks', icon: '🃏', title: 'Card on the Table', condition: 'Acquire your first power-up.', event: 'result', where: { 'details.powerUpsAcquired': { gte: 1 } }, target: 1 },
+    { id: 'tanks-power-variety', game: 'battletanks', icon: '🎴', title: 'Full Deck', condition: 'Use three different power-up types in one match.', event: 'result', where: { 'details.powerUpTypesUsed': { lengthGte: 3 } }, target: 1 },
+    { id: 'tanks-shield-break', game: 'battletanks', icon: '🛡️', title: 'Not Even a Scratch', condition: 'Absorb at least 50 damage with shields in one match.', event: 'result', where: { 'details.shieldDamageAbsorbed': { gte: 50 } }, target: 1 },
+    { id: 'tanks-second-wind', game: 'battletanks', icon: '💚', title: 'Back in the Fight', condition: 'Restore at least 25 health with health packs and win.', event: 'result', where: { won: true, 'details.healthRestored': { gte: 25 } }, target: 1 },
+    { id: 'tanks-invisible-win', game: 'battletanks', icon: '👻', title: 'Now You See Me', condition: 'Win an online match after activating invisibility.', event: 'result', where: { won: true, 'details.mode': 'online', 'details.invisibilityActivations': { gte: 1 } }, target: 1 },
+    { id: 'tanks-laser-ricochet', game: 'battletanks', icon: '📐', title: 'Geometry Wins', condition: 'Damage an opponent with a reflected laser.', event: 'result', where: { 'details.laserRicochetHits': { gte: 1 } }, target: 1 },
+    { id: 'tanks-laser-self-hit', game: 'battletanks', icon: '⚠️', title: 'Calculated Risk', condition: 'Survive damage from your own reflected laser.', event: 'result', where: { 'details.laserSelfDamage': { gte: 1 } }, target: 1 },
+    { id: 'tanks-homing-hit', game: 'battletanks', icon: '↩️', title: 'Return to Sender', condition: 'Damage an opponent with a homing projectile.', event: 'result', where: { 'details.homingHits': { gte: 1 } }, target: 1 },
+    { id: 'tanks-heavy-hit', game: 'battletanks', icon: '💥', title: 'Heavy Artillery', condition: 'Deal at least 40 health damage with one heavy projectile.', event: 'result', where: { 'details.heavyProjectileMaxDamage': { gte: 40 } }, target: 1 },
+    { id: 'tanks-powered-win', game: 'battletanks', icon: '⚡', title: 'Power Player', condition: 'Win after two power-up-powered hits.', event: 'result', where: { won: true, 'details.poweredHits': { gte: 2 } }, target: 1 },
+    { id: 'tanks-power-collector', game: 'battletanks', icon: '🗂️', title: 'Deck Builder', condition: 'Finish ten matches in which you acquired a power-up.', event: 'result', where: { 'details.powerUpsAcquired': { gte: 1 } }, target: 10 }
 ];
 
 function valueAt(object, path) { return path.split('.').reduce((value, key) => value?.[key], object); }
 function matches(rule, payload) {
     return Object.entries(rule || {}).every(([path, expected]) => {
         const actual = valueAt(payload, path);
-        if (expected && typeof expected === 'object') return (expected.lte === undefined || actual <= expected.lte) && (expected.gte === undefined || actual >= expected.gte);
+        if (expected && typeof expected === 'object') return (expected.lte === undefined || actual <= expected.lte) && (expected.gte === undefined || actual >= expected.gte) && (expected.gt === undefined || actual > expected.gt) && (expected.lengthGte === undefined || (Array.isArray(actual) && actual.length >= expected.lengthGte)) && (expected.includes === undefined || (Array.isArray(actual) && actual.includes(expected.includes)));
         return actual === expected;
     });
 }

@@ -370,3 +370,13 @@ test('acquisition events are monotonic, bounded, generated, safe, and reset with
     const event = shieldState.acquisitionEvents[0]; assert.ok(event.generatedValues.capacity >= 40 && event.generatedValues.capacity <= 60); assert.ok(event.generatedValues.durationTurns >= 2 && event.generatedValues.durationTurns <= 4); assert.equal('x' in event, false);
     game.resetMatch(state); assert.equal(state.acquisitionEventId, 0); assert.deepEqual(state.acquisitionEvents, []);
 });
+
+test('authoritative power-up statistics credit successful mechanics and reset', () => {
+    const state = match(), tank = state.tanks[0];
+    state.pickups = [{ id: 'health-pack', x: tank.x + game.TANK_W / 2, y: game.terrainHeightAt(state.arena, tank.x + game.TANK_W / 2) }];
+    game.collectPickup(state, 0); assert.equal(state.statistics.powerUpsAcquired[0], 1); assert.equal(state.statistics.powerUpsAcquired[1], 0);
+    tank.health = 80; game.activatePowerUp(state, 0, 'health-pack'); assert.equal(state.statistics.healthRestored[0], 20); assert.deepEqual([...state.statistics.powerUpTypesUsed[0]], ['health-pack']);
+    state.activeEffects[1].push({ id: 'shield', effect: 'absorb', remainingTurns: 2, remainingCapacity: 50 }); game.applyDamage(state, 1, 30); assert.equal(state.statistics.shieldDamageAbsorbed[1], 30);
+    assert.equal(state.statistics.homingHits[0], 0, 'equipping or missing never credits a hit');
+    game.resetMatch(state, 123); for (const values of Object.values(state.statistics)) for (const value of values) assert.equal(value instanceof Set ? value.size : typeof value === 'object' ? Object.keys(value).length : value, 0);
+});

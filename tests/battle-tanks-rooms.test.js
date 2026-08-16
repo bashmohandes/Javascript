@@ -114,3 +114,10 @@ test('both sockets immediately receive the same safe authoritative acquisition a
     const replacement = socket(); rooms.disconnect(host.room, guest.player); rooms.resume(host.room.code, guest.player.token, replacement); rooms.broadcastState(host.room);
     const snapshot = replacement.messages.at(-1).state; assert.equal(snapshot.acquisitionEventId, messages[0].event.eventId); assert.equal(JSON.stringify(snapshot.acquisitionEvents).includes('angle'), false);
 });
+
+test('completed rooms persist each side only its own authoritative power statistics', () => {
+    const results = [], { rooms, host } = started({ recordResult: (id, result) => results.push({ id, result }) }), state = host.room.game;
+    state.statistics.powerUpsAcquired[0] = 2; state.statistics.powerUpsAcquired[1] = 1; state.statistics.powerUpsUsed[0] = 1; state.statistics.powerUpsUsed[1] = 1; state.statistics.powerUpTypesUsed[0].add('shield'); state.statistics.powerUpTypesUsed[1].add('health-pack');
+    host.room.stats[0].shots = 2; host.room.stats[1].shots = 2; host.room.stats[0].hits = 1; host.room.stats[1].hits = 1; host.room.stats[1].damageTaken = 100; state.tanks[1].health = 0; state.winner = 0; state.phase = 'game-over'; rooms.finish(host.room);
+    assert.deepEqual(results.map(item => item.result.details.powerUpsAcquired), [2, 1]); assert.deepEqual(results.map(item => item.result.details.powerUpTypesUsed), [['shield'], ['health-pack']]);
+});

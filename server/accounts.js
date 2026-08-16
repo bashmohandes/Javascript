@@ -168,7 +168,17 @@ function validateResult(game, wonValue, details, trustedOnline = false) {
             optional.weapons = weapons;
         }
         for (const [name, maximum] of [['splashDamage', 20000], ['healing', 20000], ['powerUps', 200]]) if (details[name] !== undefined) optional[name] = field(name, 0, maximum);
-        return { won, score, normalizedDetails: { mode: details.mode, winner, turns, shots, hits, accuracy, seconds, damageTaken, ...optional } };
+        const powerUpsAcquired = details.powerUpsAcquired === undefined ? (optional.powerUps || 0) : field('powerUpsAcquired', 0, 200);
+        const powerUpsUsed = details.powerUpsUsed === undefined ? 0 : field('powerUpsUsed', 0, 200);
+        const knownPowerUps = new Set(['health-pack', 'shield', 'invisibility', 'weapon-heavy-shell', 'weapon-homing', 'weapon-laser', 'weapon-wide-blast', 'damage-boost', 'blast-radius-boost']);
+        const suppliedTypes = details.powerUpTypesUsed === undefined ? [] : details.powerUpTypesUsed;
+        if (!Array.isArray(suppliedTypes) || suppliedTypes.length > knownPowerUps.size || suppliedTypes.some(id => typeof id !== 'string' || !knownPowerUps.has(id)) || new Set(suppliedTypes).size !== suppliedTypes.length) throw new Error('Invalid Battle Tanks powerUpTypesUsed.');
+        const powerUpTypesUsed = [...new Set(suppliedTypes)];
+        const counters = {};
+        for (const [name, maximum] of Object.entries({ shieldDamageAbsorbed: 12000, healthRestored: 7000, invisibilityActivations: 200, laserRicochetHits: shots, laserSelfDamage: 7000, homingHits: shots, heavyProjectileMaxDamage: 100, poweredHits: shots })) counters[name] = details[name] === undefined ? 0 : field(name, 0, maximum);
+        if (powerUpsUsed > powerUpsAcquired || powerUpTypesUsed.length > powerUpsUsed || counters.invisibilityActivations > powerUpsUsed || counters.healthRestored > powerUpsUsed * 35 || counters.shieldDamageAbsorbed > powerUpsUsed * 60 || counters.invisibilityActivations > powerUpTypesUsed.includes('invisibility') * powerUpsUsed || (details.mode === 'local' && counters.invisibilityActivations !== 0)) throw new Error('Invalid Battle Tanks power-up statistics.');
+        if (counters.laserRicochetHits > (optional.weapons?.laser || 0) || counters.homingHits > (optional.weapons?.homing || 0) || counters.heavyProjectileMaxDamage > 0 && !(optional.weapons?.['heavy-shell'] > 0)) throw new Error('Invalid Battle Tanks weapon statistics.');
+        return { won, score, normalizedDetails: { mode: details.mode, winner, turns, shots, hits, accuracy, seconds, damageTaken, ...optional, powerUpsAcquired, powerUpsUsed, powerUpTypesUsed, ...counters } };
     }
     if (game === 'tictactoe') {
         if (!['solo-easy', 'solo-medium', 'solo-hard', 'duo', 'online'].includes(details.mode)) throw new Error('Invalid Tic-tac-toe mode.');

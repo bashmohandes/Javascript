@@ -32,6 +32,15 @@ test('full-screen games expose an on-screen exit and Battle Tanks turn controls'
     assert.match(read('styles/game.css'), /:fullscreen \.fullscreen-exit/);
 });
 
+test('Battle Tanks game-over actions do not cover tanks or unsafe iPhone controls', () => {
+    const app = read('battle-tanks/scripts/app.js'), styles = read('battle-tanks/styles.css');
+    assert.match(app, /arena\.dataset\.phase=state\.phase/);
+    assert.match(styles, /data-phase="game-over"[^}]*fullscreen-controls[^}]*display:none/);
+    assert.match(styles, /\.arena-wrap \.arena-share\{top:[^}]*bottom:auto/);
+    assert.match(styles, /fullscreen \.fullscreen-exit[^}]*z-index:10[^}]*border:2px solid #fff/);
+    assert.match(styles, /top:max\(12px,env\(safe-area-inset-top\)\)[^}]*right:max\(12px,env\(safe-area-inset-right\)\)/);
+});
+
 test('Battle Tanks supports arrow, power, and space keyboard controls', () => {
     const app = read('battle-tanks/scripts/app.js');
     for (const key of ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Minus', 'Equal', 'NumpadSubtract', 'NumpadAdd', 'Space']) {

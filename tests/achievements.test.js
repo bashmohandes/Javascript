@@ -54,16 +54,33 @@ test('achievement progress is isolated between users', async t => {
 test('Battle Tanks catalog is public and signed-in progress unlocks each badge only once', async t => {
     const { accounts, achievements } = fixture(t);
     const anonymous = achievements.list(null, 'battletanks');
-    assert.deepEqual(anonymous.map(item => item.id), ['tanks-first', 'tanks-win', 'tanks-accurate', 'tanks-untouched', 'tanks-online']);
+    assert.deepEqual(anonymous.slice(0, 5).map(item => item.id), ['tanks-first', 'tanks-win', 'tanks-accurate', 'tanks-untouched', 'tanks-online']);
+    assert.equal(anonymous.length, 16);
     assert.ok(anonymous.every(item => item.progress === 0 && !item.unlocked));
 
     const user = await accounts.create('TankBadges', 'passcode');
     const payload = { game: 'battletanks', won: true, details: { mode: 'local', winner: 1, turns: 4, shots: 4, hits: 2, seconds: 50, damageTaken: 0 } };
     const first = accounts.record(user.id, payload);
-    assert.deepEqual(first.unlocked.map(item => item.id).sort(), anonymous.map(item => item.id).filter(id => id !== 'tanks-online').sort());
+    assert.deepEqual(first.unlocked.map(item => item.id).sort(), ['tanks-first', 'tanks-win', 'tanks-accurate', 'tanks-untouched'].sort());
     const signedIn = achievements.list(user.id, 'battletanks');
-    assert.ok(signedIn.filter(item => item.id !== 'tanks-online').every(item => item.progress === 1 && item.unlocked));
+    assert.ok(signedIn.slice(0, 4).every(item => item.progress === 1 && item.unlocked));
     assert.equal(signedIn.find(item => item.id === 'tanks-online').unlocked, false);
     assert.deepEqual(accounts.record(user.id, payload).unlocked, []);
-    assert.ok(achievements.list(user.id, 'battletanks').filter(item => item.id !== 'tanks-online').every(item => item.progress === 1));
+    assert.ok(achievements.list(user.id, 'battletanks').slice(0, 4).every(item => item.progress === 1));
+});
+
+
+test('Battle Tanks tactical boundaries and per-match Deck Builder progress are precise and isolated', async t => {
+    const { accounts, achievements } = fixture(t), first = await accounts.create('PowerOne', 'passcode'), second = await accounts.create('PowerTwo', 'passcode');
+    const payload = details => ({ game: 'battletanks', won: true, details: { mode: 'online', winner: 1, turns: 10, shots: 5, hits: 3, seconds: 60, damageTaken: 20, weapons: { laser: 1, homing: 1, 'heavy-shell': 1 }, powerUpsAcquired: 3, powerUpsUsed: 3, powerUpTypesUsed: ['weapon-laser', 'weapon-homing', 'weapon-heavy-shell'], ...details } });
+    const below = accounts.record(first.id, payload({ shieldDamageAbsorbed: 49, healthRestored: 24, laserRicochetHits: 0, laserSelfDamage: 0, homingHits: 0, heavyProjectileMaxDamage: 39, poweredHits: 1 }), { trustedOnline: true });
+    assert.equal(below.unlocked.some(item => ['tanks-shield-break','tanks-second-wind','tanks-laser-ricochet','tanks-laser-self-hit','tanks-homing-hit','tanks-heavy-hit','tanks-powered-win'].includes(item.id)), false);
+    const boundary = accounts.record(first.id, payload({ shieldDamageAbsorbed: 50, healthRestored: 25, laserRicochetHits: 1, laserSelfDamage: 1, homingHits: 1, heavyProjectileMaxDamage: 40, poweredHits: 2, invisibilityActivations: 1, powerUpTypesUsed: ['invisibility','weapon-laser','weapon-homing'] }), { trustedOnline: true });
+    for (const id of ['tanks-shield-break','tanks-second-wind','tanks-invisible-win','tanks-laser-ricochet','tanks-laser-self-hit','tanks-homing-hit','tanks-heavy-hit','tanks-powered-win']) assert.equal(boundary.unlocked.filter(item => item.id === id).length, 1, id);
+    assert.deepEqual(accounts.record(first.id, payload({}), { trustedOnline: true }).unlocked.filter(item => item.id !== 'tanks-power-collector'), []);
+    for (let match = 3; match <= 10; match += 1) accounts.record(first.id, payload({}), { trustedOnline: true });
+    assert.equal(achievements.list(first.id, 'battletanks').find(item => item.id === 'tanks-power-collector').progress, 10);
+    assert.equal(achievements.list(second.id, 'battletanks').find(item => item.id === 'tanks-power-collector').progress, 0);
+    const local = { ...payload({ invisibilityActivations: 0 }).details, mode: 'local', turns: 5, shots: 5 };
+    assert.equal(accounts.record(second.id, { game: 'battletanks', won: true, details: local }).unlocked.some(item => item.id === 'tanks-invisible-win'), false);
 });

@@ -97,9 +97,9 @@ test('validates Battle Tanks results, derives scores, ranks players, and persist
     assert.equal(result.score, 14460, 'client-provided scores must not be trusted');
     accounts.record(rival.id, { game: 'battletanks', won: true, details: { mode: 'local', winner: 1, turns: 5, shots: 5, hits: 4, seconds: 20, damageTaken: 37 } });
     assert.deepEqual(accounts.leaderboard('battletanks').map(row => row.gamertag), ['TankRival', 'TankAce']);
-    assert.deepEqual(accounts.leaderboard('battletanks')[0].details, { mode: 'local', winner: 1, turns: 5, shots: 5, hits: 4, accuracy: 80, seconds: 20, damageTaken: 37 });
+    assert.deepEqual(accounts.leaderboard('battletanks')[0].details, { mode: 'local', winner: 1, turns: 5, shots: 5, hits: 4, accuracy: 80, seconds: 20, damageTaken: 37, powerUpsAcquired: 0, powerUpsUsed: 0, powerUpTypesUsed: [], shieldDamageAbsorbed: 0, healthRestored: 0, invisibilityActivations: 0, laserRicochetHits: 0, laserSelfDamage: 0, homingHits: 0, heavyProjectileMaxDamage: 0, poweredHits: 0 });
     const history = accounts.profile(ace.id).recent.find(row => row.game === 'battletanks');
-    assert.deepEqual(history.details, { mode: 'local', winner: 1, turns: 4, shots: 4, hits: 2, accuracy: 50, seconds: 40, damageTaken: 0 });
+    assert.deepEqual(history.details, { mode: 'local', winner: 1, turns: 4, shots: 4, hits: 2, accuracy: 50, seconds: 40, damageTaken: 0, powerUpsAcquired: 0, powerUpsUsed: 0, powerUpTypesUsed: [], shieldDamageAbsorbed: 0, healthRestored: 0, invisibilityActivations: 0, laserRicochetHits: 0, laserSelfDamage: 0, homingHits: 0, heavyProjectileMaxDamage: 0, poweredHits: 0 });
 
     const invalid = [
         { ...victory, won: false },
@@ -112,4 +112,15 @@ test('validates Battle Tanks results, derives scores, ranks players, and persist
     assert.throws(() => accounts.record(ace.id, { game: 'battletanks', won: true, details: { mode: 'online', winner: 1, turns: 5, shots: 3, hits: 2, seconds: 30, damageTaken: 50 } }), /Invalid Battle Tanks/);
     const online = accounts.record(ace.id, { game: 'battletanks', won: true, details: { mode: 'online', winner: 1, turns: 5, shots: 3, hits: 2, seconds: 30, damageTaken: 63 } }, { trustedOnline: true });
     assert.equal(online.score, 15283);
+});
+
+
+test('validates bounded Battle Tanks power-up achievement statistics', async t => {
+    const accounts = fixture(t), user = await accounts.create('PowerStats', 'passcode');
+    const base = { game: 'battletanks', won: true, details: { mode: 'local', winner: 1, turns: 4, shots: 4, hits: 2, seconds: 30, damageTaken: 0, weapons: { laser: 1, homing: 1, 'heavy-shell': 1 }, powerUpsAcquired: 3, powerUpsUsed: 3, powerUpTypesUsed: ['weapon-laser', 'weapon-homing', 'weapon-heavy-shell'] } };
+    assert.doesNotThrow(() => accounts.record(user.id, base));
+    for (const change of [{ powerUpTypesUsed: ['unknown'] }, { powerUpTypesUsed: ['shield', 'shield'] }, { powerUpsUsed: -1 }, { powerUpsUsed: 4 }, { invisibilityActivations: 1 }, { homingHits: 2 }, { heavyProjectileMaxDamage: 101 }, { healthRestored: 106 }, { shieldDamageAbsorbed: 181 }, { powerUpTypesUsed: Array(10).fill('shield') }]) assert.throws(() => accounts.record(user.id, { ...base, details: { ...base.details, ...change } }), /Invalid Battle Tanks/);
+    const online = { ...base, details: { ...base.details, mode: 'online', turns: 6, shots: 4, invisibilityActivations: 1, powerUpTypesUsed: ['invisibility', 'weapon-homing', 'weapon-laser'] } };
+    assert.throws(() => accounts.record(user.id, online), /Invalid Battle Tanks mode/);
+    assert.doesNotThrow(() => accounts.record(user.id, online, { trustedOnline: true }));
 });
