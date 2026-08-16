@@ -61,12 +61,13 @@ test('a sufficiently high shot clears the central barrier', () => {
     assert.equal(crossedAboveBarrier, true);
 });
 
-test('a direct collision damages only the target tank', () => {
+test('a direct collision applies full explosion damage to the target tank', () => {
     const state = match(), target = state.tanks[1];
     state.projectile = { x: target.x - 20, y: target.y + game.TANK_H / 2, vx: 200, vy: 0, owner: 0 }; state.phase = 'projectile-flight';
     assert.deepEqual(game.stepPhysics(state, 0.2), { type: 'tank', index: 1 });
     assert.deepEqual(state.tanks.map(tank => tank.health), [100, 50]);
-    assert.equal(state.lastImpact.type, 'tank'); assert.equal(state.impacts.length, 0);
+    assert.equal(state.lastImpact.type, 'tank'); assert.equal(state.impacts.length, 1);
+    assert.deepEqual(state.lastImpact.affected.map(item => [item.tank, item.healthDamage]), [[1, 50]]);
 });
 
 test('missed shots leave bounded impact residue in the arena', () => {
@@ -94,7 +95,7 @@ test('a miss resolves and advances exactly one turn', () => {
 });
 
 test('lethal damage ends the match without advancing the turn', () => {
-    const state = match(); state.tanks[1].health = game.DAMAGE; state.projectile = {}; state.phase = 'projectile-flight';
+    const state = match(), target = state.tanks[1]; state.tanks[1].health = game.DAMAGE; state.projectile = { x: target.x, y: target.y, vx: 0, vy: 0, owner: 0, weapon: game.DEFAULT_WEAPON }; state.phase = 'projectile-flight';
     game.resolveShot(state, { type: 'tank', index: 1 });
     assert.equal(state.phase, 'game-over'); assert.equal(state.winner, 0); assert.equal(state.activePlayer, 0);
 });
@@ -206,4 +207,54 @@ test('reset creates an explicit boundary that discards all deformation', () => {
     assert.deepEqual(state.arena, original);
     assert.equal(state.impacts.length, 0);
     assert.equal(state.impactSerial, 0);
+});
+
+
+test('near misses fall off and the blast-radius edge deals no damage', () => {
+    const state = match(), target = state.tanks[1], radius = 50;
+    const near = game.resolveExplosion(state, { x: target.x - 25, y: target.y + game.TANK_H / 2, type: 'tank' }, { owner: 0, weapon: { ...game.DEFAULT_WEAPON, blastRadius: radius } });
+    assert.ok(near.affected[0].healthDamage > 0 && near.affected[0].healthDamage < game.DAMAGE);
+    const health = target.health;
+    const edge = game.resolveExplosion(state, { x: target.x - radius, y: target.y + game.TANK_H / 2, type: 'tank' }, { owner: 0, weapon: { ...game.DEFAULT_WEAPON, blastRadius: radius } });
+    assert.equal(edge.affected.length, 0); assert.equal(target.health, health);
+});
+
+test('splash damages the shooter and records detailed distances', () => {
+    const state = match(), shooter = state.tanks[0];
+    const result = game.resolveExplosion(state, { x: shooter.x + game.TANK_W + 10, y: shooter.y + game.TANK_H / 2, type: 'terrain' }, { owner: 0, weapon: game.DEFAULT_WEAPON });
+    assert.ok(shooter.health < game.STARTING_HEALTH);
+    assert.deepEqual(Object.keys(result.affected[0]).sort(), ['absorbedDamage', 'attemptedDamage', 'distance', 'healthDamage', 'tank']);
+    assert.equal(result.affected[0].tank, 0); assert.equal(result.affected[0].distance, 10);
+});
+
+test('weapon strength changes damage independently of aiming power', () => {
+    const weakState = match(), strongState = match(), weakTank = weakState.tanks[1], strongTank = strongState.tanks[1];
+    const point = tank => ({ x: tank.x, y: tank.y, type: 'tank' });
+    const weak = game.resolveExplosion(weakState, point(weakTank), { vx: 100, owner: 0, weapon: { ...game.DEFAULT_WEAPON, baseDamage: 20 } });
+    const strong = game.resolveExplosion(strongState, point(strongTank), { vx: 100, owner: 0, weapon: { ...game.DEFAULT_WEAPON, baseDamage: 40 } });
+    assert.equal(weak.totalDamage, 20); assert.equal(strong.totalDamage, 40);
+    weakState.tanks[0].power = 20; strongState.tanks[0].power = 100;
+    assert.equal(weak.weapon.powerMultiplier, strong.weapon.powerMultiplier);
+});
+
+test('shields absorb explosion damage before health', () => {
+    const state = match(), target = state.tanks[1]; target.shield = 30;
+    const result = game.resolveExplosion(state, { x: target.x, y: target.y, type: 'tank' }, { owner: 0, weapon: game.DEFAULT_WEAPON });
+    assert.equal(result.affected[0].absorbedDamage, 30); assert.equal(result.affected[0].healthDamage, 20);
+    assert.equal(target.shield, 0); assert.equal(target.health, 80);
+});
+
+test('simultaneous destruction is an explicit draw', () => {
+    const state = match(), left = state.tanks[0], right = state.tanks[1];
+    right.x = left.x + game.TANK_W + 2; right.y = left.y; left.health = 10; right.health = 10;
+    state.projectile = { x: left.x + game.TANK_W + 1, y: left.y + game.TANK_H / 2, vx: 0, vy: 0, owner: 0, weapon: game.DEFAULT_WEAPON }; state.phase = 'projectile-flight';
+    game.resolveShot(state, { type: 'tank', index: 1 });
+    assert.equal(state.phase, 'game-over'); assert.equal(state.draw, true); assert.equal(state.winner, null);
+});
+
+test('fired projectiles carry an immutable complete weapon payload', () => {
+    const state = match(); game.fireProjectile(state);
+    assert.equal(Object.isFrozen(state.projectile.weapon), true);
+    for (const key of ['baseDamage', 'blastRadius', 'terrainDamage', 'powerMultiplier', 'velocityMultiplier']) assert.equal(Number.isFinite(state.projectile.weapon[key]), true);
+    assert.throws(() => { state.projectile.weapon.baseDamage = 999; }, TypeError);
 });
