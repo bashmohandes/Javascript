@@ -68,6 +68,14 @@ class BattleTanksRooms {
             const tank = room.game.tanks[player.side], angle = Math.round(message.angle), power = Math.round(message.power);
             if (angle < 10 || angle > 80 || power < 20 || power > 100) throw new Error('Invalid aim.'); tank.angle = angle; tank.power = power; changed = true;
         } else if (message.type === 'fire') { changed = game.fireProjectile(room.game); if (changed) room.stats[player.side].shots += 1; }
+        else if (message.type === 'activate' || message.type === 'equip') {
+            if (typeof message.itemId !== 'string' || !game.POWER_UP_CATALOG[message.itemId]) throw new Error('Invalid inventory item.');
+            const item = game.POWER_UP_CATALOG[message.itemId];
+            if (message.type === 'equip' && item.kind !== 'weapon') throw new Error('That item cannot be equipped.');
+            if (message.type === 'activate' && item.kind === 'weapon') throw new Error('Equip weapon pickups instead.');
+            const result = game.activatePowerUp(room.game, player.side, message.itemId); if (!result) throw new Error('That item is not available.'); changed = true;
+            if (result.consumesTurn) { game.advancePickupSchedule(room.game); game.beginTurn(room.game, 1 - player.side); room.turnId += 1; }
+        }
         else throw new Error('Unsupported command.');
         room.touchedAt = Date.now(); return changed;
     }

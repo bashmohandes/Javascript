@@ -258,3 +258,43 @@ test('fired projectiles carry an immutable complete weapon payload', () => {
     for (const key of ['baseDamage', 'blastRadius', 'terrainDamage', 'powerMultiplier', 'velocityMultiplier']) assert.equal(Number.isFinite(state.projectile.weapon[key]), true);
     assert.throws(() => { state.projectile.weapon.baseDamage = 999; }, TypeError);
 });
+
+test('power-up spawning is seeded, bounded, and uses valid exposed terrain', () => {
+    const left = match('pickups'), right = match('pickups');
+    for (let turn = 0; turn < 30; turn += 1) { game.advancePickupSchedule(left); game.advancePickupSchedule(right); }
+    assert.deepEqual(left.pickups, right.pickups);
+    assert.ok(left.pickups.length <= game.MAX_PICKUPS);
+    left.pickups.forEach(item => assert.equal(game.isValidPickupPosition({ ...left, pickups: left.pickups.filter(other => other !== item) }, item.x), true));
+});
+
+test('movement collects overlapping pickups up to the inventory limit', () => {
+    const state = match(4), tank = state.tanks[0];
+    for (let index = 0; index < 4; index += 1) state.pickups.push({ serial: index, id: 'health-pack', x: tank.x + game.TANK_W / 2, y: tank.y + game.TANK_H });
+    game.moveTank(state, 'forward', 0);
+    assert.equal(state.inventories[0].length, game.INVENTORY_LIMIT);
+    assert.equal(state.pickups.length, 1);
+});
+
+test('activation caps healing and tracks turn-based effects and absorption', () => {
+    const state = match(5); state.tanks[0].health = 90; state.inventories[0].push('health-pack', 'shield', 'invisibility');
+    assert.equal(game.activatePowerUp(state, 0, 'health-pack').consumesTurn, true); assert.equal(state.tanks[0].health, 100);
+    game.activatePowerUp(state, 0, 'shield'); assert.equal(state.tanks[0].shield, 45);
+    game.activatePowerUp(state, 0, 'invisibility'); assert.equal(state.activeEffects[0].find(item => item.effect === 'invisible').remainingTurns, 2);
+    game.beginTurnEffects(state, 0); game.beginTurnEffects(state, 0);
+    assert.equal(state.activeEffects[0].some(item => item.effect === 'invisible'), false);
+});
+
+test('fully depleted shields expire instead of remaining as a zero-capacity effect', () => {
+    const state = match(51), tank = state.tanks[0]; state.inventories[0].push('shield');
+    game.activatePowerUp(state, 0, 'shield');
+    game.resolveExplosion(state, { x: tank.x, y: tank.y, type: 'tank' }, { owner: 1, weapon: game.DEFAULT_WEAPON });
+    assert.equal(tank.shield, 0); assert.equal(state.activeEffects[0][0].remainingAbsorption, 0);
+    game.expireEffects(state, 0);
+    assert.deepEqual(state.activeEffects[0], []);
+});
+
+test('rematch clears every pickup, inventory, weapon, and active effect', () => {
+    const state = match(6); state.pickups.push({ id: 'shield', x: 200, y: 400 }); state.inventories[0].push('shield'); state.equippedWeapons[0] = 'weapon-heavy-shell'; state.activeEffects[0].push({ id: 'invisibility', remainingTurns: 1 });
+    game.resetMatch(state, 6);
+    assert.deepEqual([state.pickups, state.inventories, state.equippedWeapons, state.activeEffects], [[], [[], []], [null, null], [[], []]]);
+});
