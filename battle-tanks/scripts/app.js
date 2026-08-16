@@ -18,13 +18,9 @@ function queueAcquisitionEvents(events=[]){events.filter(event=>Number.isSafeInt
 function syncAcquisitionEvents(){const match=state.matchId??'local',room=mode==='online'?(onlineSession?.roomCode||'pending'):'local',presentationId=`${room}-${match}`;if(presentationId!==presentationMatchId){presentationMatchId=presentationId;highestPresentedEventId=Number(sessionStorage.getItem(`battle-tanks-presented-${presentationId}`))||0;powerCardQueue.length=0;dismissPowerCard();}queueAcquisitionEvents(state.acquisitionEvents);}
 dismissPowerCardButton.addEventListener('click',dismissPowerCard);powerCard.addEventListener('mouseenter',pausePowerCardTimer);powerCard.addEventListener('mouseleave',resumePowerCardTimer);powerCard.addEventListener('focusin',pausePowerCardTimer);powerCard.addEventListener('focusout',()=>setTimeout(resumePowerCardTimer));document.addEventListener('visibilitychange',()=>document.hidden?pausePowerCardTimer():resumePowerCardTimer);
 
-function updateArenaTheme(resolved=document.documentElement.dataset.colorMode,theme=document.documentElement.dataset.arcadeTheme){
-    const palettes={
-        playful:{dark:{skyTop:'#152c35',skyBottom:'#28443f',terrain:'#425b38',terrainEdge:'#a6bf82',barrier:'#746d68',barrierLine:'#d2c3b7',ink:'#f5fbf7',active:'#fff4a8',aim:'#fff4a8'},light:{skyTop:'#b9dadd',skyBottom:'#edf0d8',terrain:'#79935c',terrainEdge:'#405638',barrier:'#786c61',barrierLine:'#4d443d',ink:'#182720',active:'#ffffff',aim:'#173f35'}},
-        cabinet:{dark:{skyTop:'#101329',skyBottom:'#272052',terrain:'#242d4d',terrainEdge:'#16e0bd',barrier:'#663a68',barrierLine:'#ffcf4a',ink:'#fff4d0',active:'#ffcf4a',aim:'#16e0bd'},light:{skyTop:'#ead8b1',skyBottom:'#f8c98c',terrain:'#7e8262',terrainEdge:'#382c42',barrier:'#8c6277',barrierLine:'#382c42',ink:'#382c42',active:'#fff3d6',aim:'#9b175d'}},
-        calm:{dark:{skyTop:'#17231f',skyBottom:'#263c35',terrain:'#425b50',terrainEdge:'#9bb5ab',barrier:'#665f58',barrierLine:'#b8c4bf',ink:'#e5efeb',active:'#d9b968',aim:'#a1d1c3'},light:{skyTop:'#dce9e4',skyBottom:'#eef4f1',terrain:'#789d90',terrainEdge:'#405f55',barrier:'#8a8177',barrierLine:'#527068',ink:'#223a33',active:'#f8fbf9',aim:'#356f61'}}
-    };
-    arenaColors=(palettes[theme]||palettes.playful)[resolved]||palettes.playful.light;render();
+function updateArenaTheme(){
+    const styles=getComputedStyle(arena),properties={skyTop:'--battle-sky-top',skyBottom:'--battle-sky-bottom',terrain:'--battle-terrain',terrainEdge:'--battle-terrain-edge',barrier:'--battle-barrier',barrierLine:'--battle-barrier-line',ink:'--battle-ink',active:'--battle-active',aim:'--battle-aim'};
+    arenaColors=Object.fromEntries(Object.entries(properties).map(([name,property])=>[name,styles.getPropertyValue(property).trim()]));render();
 }
 function roundedRect(x,y,w,h,r){ctx.beginPath();ctx.roundRect(x,y,w,h,r);}
 function drawTank(tank,i){
