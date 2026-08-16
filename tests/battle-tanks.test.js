@@ -223,7 +223,7 @@ test('splash damages the shooter and records detailed distances', () => {
     const state = match(), shooter = state.tanks[0];
     const result = game.resolveExplosion(state, { x: shooter.x + game.TANK_W + 10, y: shooter.y + game.TANK_H / 2, type: 'terrain' }, { owner: 0, weapon: game.DEFAULT_WEAPON });
     assert.ok(shooter.health < game.STARTING_HEALTH);
-    assert.deepEqual(Object.keys(result.affected[0]).sort(), ['absorbedDamage', 'attemptedDamage', 'distance', 'healthDamage', 'tank']);
+    assert.deepEqual(Object.keys(result.affected[0]).sort(), ['absorbedDamage', 'attemptedDamage', 'distance', 'healthDamage', 'source', 'tank']);
     assert.equal(result.affected[0].tank, 0); assert.equal(result.affected[0].distance, 10);
 });
 
@@ -237,11 +237,18 @@ test('weapon strength changes damage independently of aiming power', () => {
     assert.equal(weak.weapon.powerMultiplier, strong.weapon.powerMultiplier);
 });
 
-test('shields absorb explosion damage before health', () => {
-    const state = match(), target = state.tanks[1]; target.shield = 30;
-    const result = game.resolveExplosion(state, { x: target.x, y: target.y, type: 'tank' }, { owner: 0, weapon: game.DEFAULT_WEAPON });
-    assert.equal(result.affected[0].absorbedDamage, 30); assert.equal(result.affected[0].healthDamage, 20);
-    assert.equal(target.shield, 0); assert.equal(target.health, 80);
+test('applyDamage fully absorbs damage and itemizes its source', () => {
+    const state = match(); state.activeEffects[1].push({ id: 'shield', effect: 'absorb', remainingTurns: 2, remainingCapacity: 30 });
+    const result = game.applyDamage(state, 1, 20, 'falling debris');
+    assert.deepEqual(result, { tank: 1, source: 'falling debris', attemptedDamage: 20, absorbedDamage: 20, healthDamage: 0 });
+    assert.equal(state.tanks[1].health, 100); assert.equal(state.activeEffects[1][0].remainingCapacity, 10);
+});
+
+test('applyDamage sends shield overflow to health and removes exhausted capacity', () => {
+    const state = match(); state.activeEffects[1].push({ id: 'shield', effect: 'absorb', remainingTurns: 2, remainingCapacity: 30 });
+    const result = game.applyDamage(state, 1, 50, { type: 'explosion', owner: 0 });
+    assert.equal(result.absorbedDamage, 30); assert.equal(result.healthDamage, 20);
+    assert.equal(state.tanks[1].health, 80); assert.deepEqual(state.activeEffects[1], []);
 });
 
 test('simultaneous destruction is an explicit draw', () => {
@@ -278,23 +285,28 @@ test('movement collects overlapping pickups up to the inventory limit', () => {
 test('activation caps healing and tracks turn-based effects and absorption', () => {
     const state = match(5); state.tanks[0].health = 90; state.inventories[0].push('health-pack', 'shield', 'invisibility');
     assert.equal(game.activatePowerUp(state, 0, 'health-pack').consumesTurn, true); assert.equal(state.tanks[0].health, 100);
-    game.activatePowerUp(state, 0, 'shield'); assert.equal(state.tanks[0].shield, 45);
+    game.activatePowerUp(state, 0, 'shield', () => 0); const shield = state.activeEffects[0].find(item => item.effect === 'absorb'); assert.deepEqual([shield.remainingTurns, shield.remainingCapacity], [2, 40]);
     game.activatePowerUp(state, 0, 'invisibility'); assert.equal(state.activeEffects[0].find(item => item.effect === 'invisible').remainingTurns, 2);
     game.beginTurnEffects(state, 0); game.beginTurnEffects(state, 0);
     assert.equal(state.activeEffects[0].some(item => item.effect === 'invisible'), false);
 });
 
-test('fully depleted shields expire instead of remaining as a zero-capacity effect', () => {
-    const state = match(51), tank = state.tanks[0]; state.inventories[0].push('shield');
-    game.activatePowerUp(state, 0, 'shield');
-    game.resolveExplosion(state, { x: tank.x, y: tank.y, type: 'tank' }, { owner: 1, weapon: game.DEFAULT_WEAPON });
-    assert.equal(tank.shield, 0); assert.equal(state.activeEffects[0][0].remainingAbsorption, 0);
-    game.expireEffects(state, 0);
-    assert.deepEqual(state.activeEffects[0], []);
+test('shield duration expires after the protected player completes turns', () => {
+    const state = match(); state.activeEffects[0].push({ id: 'shield', effect: 'absorb', remainingTurns: 2, remainingCapacity: 50 });
+    game.endTurnEffects(state, 1); assert.equal(state.activeEffects[0][0].remainingTurns, 2);
+    game.endTurnEffects(state, 0); assert.equal(state.activeEffects[0][0].remainingTurns, 1);
+    game.endTurnEffects(state, 0); assert.deepEqual(state.activeEffects[0], []);
+});
+
+test('self-damage and repeated damage sources share the shield capacity', () => {
+    const state = match(); state.activeEffects[0].push({ id: 'shield', effect: 'absorb', remainingTurns: 3, remainingCapacity: 25 });
+    const first = game.applyDamage(state, 0, 15, { type: 'explosion', owner: 0 });
+    const second = game.applyDamage(state, 0, 20, { type: 'environment', event: 'debris' });
+    assert.equal(first.absorbedDamage, 15); assert.equal(second.absorbedDamage, 10); assert.equal(second.healthDamage, 10); assert.equal(state.tanks[0].health, 90);
 });
 
 test('rematch clears every pickup, inventory, weapon, and active effect', () => {
-    const state = match(6); state.pickups.push({ id: 'shield', x: 200, y: 400 }); state.inventories[0].push('shield'); state.equippedWeapons[0] = 'weapon-heavy-shell'; state.activeEffects[0].push({ id: 'invisibility', remainingTurns: 1 });
+    const state = match(6); state.pickups.push({ id: 'shield', x: 200, y: 400 }); state.inventories[0].push('shield'); state.equippedWeapons[0] = 'weapon-heavy-shell'; state.activeEffects[0].push({ id: 'shield', effect: 'absorb', remainingTurns: 1, remainingCapacity: 10 }); state.effectSerial = 8;
     game.resetMatch(state, 6);
-    assert.deepEqual([state.pickups, state.inventories, state.equippedWeapons, state.activeEffects], [[], [[], []], [null, null], [[], []]]);
+    assert.deepEqual([state.pickups, state.inventories, state.equippedWeapons, state.activeEffects], [[], [[], []], [null, null], [[], []]]); assert.equal(state.effectSerial, 0);
 });

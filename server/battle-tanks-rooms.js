@@ -73,8 +73,8 @@ class BattleTanksRooms {
             const item = game.POWER_UP_CATALOG[message.itemId];
             if (message.type === 'equip' && item.kind !== 'weapon') throw new Error('That item cannot be equipped.');
             if (message.type === 'activate' && item.kind === 'weapon') throw new Error('Equip weapon pickups instead.');
-            const result = game.activatePowerUp(room.game, player.side, message.itemId); if (!result) throw new Error('That item is not available.'); changed = true;
-            if (result.consumesTurn) { game.advancePickupSchedule(room.game); game.beginTurn(room.game, 1 - player.side); room.turnId += 1; }
+            const result = game.activatePowerUp(room.game, player.side, message.itemId, this.random); if (!result) throw new Error('That item is not available.'); changed = true;
+            if (result.consumesTurn) { game.endTurnEffects(room.game, player.side); game.advancePickupSchedule(room.game); game.beginTurn(room.game, 1 - player.side); room.turnId += 1; }
         }
         else throw new Error('Unsupported command.');
         room.touchedAt = Date.now(); return changed;
