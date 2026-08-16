@@ -30,6 +30,13 @@ test('every modern game consumes the shared playful design language', () => {
     }
 });
 
+test('modern arena decoration excludes native and fallback full-screen states', () => {
+    const design = read('styles/modern-game.css');
+
+    assert.match(design, /\.arena-wrap:not\(:fullscreen\):not\(\.is-fullscreen\)/);
+    assert.doesNotMatch(design, /\.modern-game \.arena-wrap,/);
+});
+
 test('online competitive games consume shared room UI behavior', () => {
     for (const game of ['pong', 'tictactoe', 'battle-tanks']) {
         assert.match(read(`${game}/index.html`), /scripts\/online-rooms\.js/);
