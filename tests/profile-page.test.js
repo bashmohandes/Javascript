@@ -5,11 +5,20 @@ const fs = require('node:fs');
 const test = require('node:test');
 
 const profile = fs.readFileSync('profile.html', 'utf8');
+const styles = fs.readFileSync('profile.css', 'utf8');
 
 test('profile defines light and dark theme palettes', () => {
-    assert.match(profile, /:root\{color-scheme:light;[^}]*--page:#f7f3eb/);
-    assert.match(profile, /:root\[data-theme="dark"\]\{color-scheme:dark;[^}]*--page:#0d1420/);
-    assert.match(profile, /background:[^;}]*var\(--page\)/);
+    assert.match(profile, /href="profile\.css"/);
+    assert.match(styles, /:root\s*\{[^}]*color-scheme:\s*light;[^}]*--page:\s*#f7f3eb/s);
+    assert.match(styles, /:root\[data-theme="dark"\]\s*\{[^}]*color-scheme:\s*dark;[^}]*--page:\s*#0d1420/s);
+    assert.match(styles, /background:[\s\S]*var\(--page\);/);
+});
+
+test('profile uses the playful arcade shell and card language', () => {
+    assert.match(profile, /class="brand-mark"[^>]*>JS</);
+    assert.match(profile, /class="hero-spark"/);
+    assert.match(styles, /\.panel\s*\{[^}]*border:\s*3px solid var\(--ink\);[^}]*box-shadow:/s);
+    assert.match(styles, /\.panel::before/);
 });
 
 test('profile includes accessible game-history pagination', () => {
@@ -19,6 +28,6 @@ test('profile includes accessible game-history pagination', () => {
 });
 
 test('leaderboard game filters fit narrow mobile screens', () => {
-    assert.match(profile, /\.tabs\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)\}/);
-    assert.match(profile, /\.tabs button\{min-width:0;[^}]*font-size:13px/);
+    assert.match(styles, /\.tabs\s*\{\s*display:\s*grid;\s*grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\);/);
+    assert.match(styles, /\.tabs button\s*\{\s*min-width:\s*0;[^}]*font-size:\s*13px/s);
 });
