@@ -59,6 +59,7 @@ body.arena-fullscreen .arcade-account { display:none; }
 :root { --arcade-shell-width:1120px; --arcade-shell-radius:20px; --arcade-shell-gap:24px; }
 :root[data-arcade-theme="cabinet"] { --arcade-shell-width:1280px; --arcade-shell-radius:4px; --arcade-shell-gap:14px; --arcade-nav-bg:#15182a; --arcade-nav-ink:#fff4d0; --arcade-nav-line:#ffcf4a66; --arcade-dialog-bg:#1b1f35; --arcade-dialog-field:#101321; --arcade-dialog-muted:#b9b7c9; }
 :root[data-arcade-theme="cabinet"][data-color-mode="light"] { --arcade-nav-bg:#382c42; --arcade-dialog-bg:#fff3d6; --arcade-dialog-field:#ead8b1; --arcade-dialog-muted:#65566a; }
+:root[data-arcade-theme="cabinet"][data-color-mode="light"] .arcade-dialog { --arcade-nav-ink:#382c42; }
 :root[data-arcade-theme="calm"] { --arcade-shell-width:1040px; --arcade-shell-radius:2px; --arcade-shell-gap:32px; --arcade-nav-bg:rgba(238,244,241,.96); --arcade-nav-ink:#223a33; --arcade-nav-line:#52706840; --arcade-dialog-bg:#f8fbf9; --arcade-dialog-field:#e5eeea; --arcade-dialog-muted:#61746d; }
 :root[data-arcade-theme="calm"][data-color-mode="dark"] { --arcade-nav-bg:rgba(17,25,23,.96); --arcade-nav-ink:#e5efeb; --arcade-dialog-bg:#18231f; --arcade-dialog-field:#101815; --arcade-dialog-muted:#9fb0a9; }
 .arcade-topbar-inner { width:min(var(--arcade-shell-width),100%); }

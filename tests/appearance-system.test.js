@@ -32,3 +32,8 @@ test('alternative themes customize shared shell and game layouts', () => {
     assert.match(games, /grid-template-columns:minmax\(0,2fr\)/);
     assert.match(games, /box-shadow:none/);
 });
+
+test('cabinet light mode keeps dialog text dark without changing topbar ink', () => {
+    assert.match(shared, /data-arcade-theme="cabinet"\]\[data-color-mode="light"\] \.arcade-dialog \{ --arcade-nav-ink:#382c42; \}/);
+    assert.doesNotMatch(shared, /data-color-mode="light"\] \{[^}]*--arcade-nav-ink:/);
+});
