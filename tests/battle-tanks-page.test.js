@@ -32,6 +32,13 @@ test('full-screen games expose an on-screen exit and Battle Tanks turn controls'
     assert.match(read('styles/game.css'), /:fullscreen \.fullscreen-exit/);
 });
 
+test('Battle Tanks exposes usable power-ups in full screen', () => {
+    const page = read('battle-tanks/index.html'), app = read('battle-tanks/scripts/app.js'), styles = read('battle-tanks/styles.css');
+    assert.match(page, /id="fullscreen-inventory"[^>]*aria-label="Power-up inventory in full screen"/);
+    assert.match(app, /document\.querySelector\('#inventory'\),document\.querySelector\('#fullscreen-inventory'\)/);
+    assert.match(styles, /\.fullscreen-inventory\{[^}]*grid-column:1\/-1/);
+});
+
 test('Battle Tanks preserves its 16:9 arena in viewport and fallback full screen layouts', () => {
     const styles = read('battle-tanks/styles.css');
     assert.match(styles, /arena-wrap canvas\{[^}]*height:auto[^}]*aspect-ratio:16\/9/);
