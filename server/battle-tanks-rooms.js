@@ -83,9 +83,15 @@ class BattleTanksRooms {
             const expired = room.players.some(item => item && !item.connected && now - item.disconnectedAt > this.reconnectMs);
             if (expired || now - room.touchedAt > this.roomTimeoutMs) { this.broadcast(room, { type: 'room-closed', reason: expired ? 'An opponent did not reconnect in time.' : 'Room expired.' }); this.rooms.delete(code); continue; }
             if (room.paused || room.game.phase !== 'projectile-flight') continue;
-            const shooter = room.game.activePlayer, health = room.game.tanks.map(tank => tank.health), turn = room.turnId;
+            const shooter = room.game.activePlayer, impactSerial = room.game.impactSerial || 0, turn = room.turnId;
             game.stepPhysics(room.game, Math.min(Math.max(dt, 0), .1));
-            room.game.tanks.forEach((tank, side) => { const damage = health[side] - tank.health; if (damage > 0) { room.stats[shooter].hits += 1; room.stats[side].damageTaken += damage; } });
+            if ((room.game.impactSerial || 0) !== impactSerial) {
+                const affected = room.game.lastImpact?.affected || [];
+                // A hit is one shot that deals health damage by either direct or splash damage;
+                // self-damage counts too. Shield-only contact is not a hit.
+                if (affected.some(item => item.healthDamage > 0)) room.stats[shooter].hits += 1;
+                affected.forEach(item => { room.stats[item.tank].damageTaken += item.healthDamage; });
+            }
             if (room.game.phase !== 'projectile-flight') {
                 room.turnId = turn + 1;
                 if (room.game.phase === 'game-over') this.finish(room);

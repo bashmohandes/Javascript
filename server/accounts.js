@@ -149,9 +149,9 @@ function validateResult(game, wonValue, details, trustedOnline = false) {
             return integer(details[name], minimum, maximum, `Battle Tanks ${name}`);
         };
         const winner = field('winner', 1, 2), turns = field('turns', 2, 200), shots = field('shots', details.mode === 'local' ? 2 : 0, 200);
-        const hits = field('hits', details.mode === 'local' ? 2 : 0, details.mode === 'local' ? Math.min(3, shots) : shots), seconds = field('seconds', 1, 7200), damageTaken = field('damageTaken', 0, 100);
-        const credibleLocalHealth = details.mode !== 'local' || (winner === 1 ? damageTaken <= 50 : damageTaken === 100);
-        if ((details.mode === 'local' && turns !== shots) || (details.mode === 'online' && shots > turns) || won !== (winner === 1) || damageTaken % 50 !== 0 || !credibleLocalHealth) throw new Error('Invalid Battle Tanks result.');
+        const hits = field('hits', details.mode === 'local' ? 2 : 0, shots), seconds = field('seconds', 1, 7200), damageTaken = field('damageTaken', 0, 100);
+        const credibleHealth = winner === 1 ? damageTaken < 100 : damageTaken === 100;
+        if ((details.mode === 'local' && turns !== shots) || (details.mode === 'online' && shots > turns) || won !== (winner === 1) || !credibleHealth) throw new Error('Invalid Battle Tanks result.');
         // Wins rank above losses. Accuracy is worth up to 5,000 points, while
         // fewer turns break otherwise equal matches: 10,000*win + 5,000*hits/shots + 10*(200-turns).
         const score = (won ? 10000 : 0) + Math.floor(hits * 5000 / shots) + (200 - turns) * 10;
