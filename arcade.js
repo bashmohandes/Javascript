@@ -75,8 +75,8 @@
     document.body.classList.add('arcade-has-topbar');
     document.body.prepend(topbar);
     document.body.append(dialog, appearanceDialog, buildVersion);
-    const gamePath = location.pathname.match(/\/(pong|Sudoku|Minesweeper|tictactoe|battle-tanks)\//)?.[1];
-    const game = ({ pong:'pong', Sudoku:'sudoku', Minesweeper:'minesweeper', tictactoe:'tictactoe', 'battle-tanks':'battletanks' })[gamePath];
+    const gamePath = location.pathname.match(/\/(pong|Sudoku|Minesweeper|tictactoe|battle-tanks|tetris)\//)?.[1];
+    const game = ({ pong:'pong', Sudoku:'sudoku', Minesweeper:'minesweeper', tictactoe:'tictactoe', 'battle-tanks':'battletanks', tetris:'tetris' })[gamePath];
     let achievementDialog;
     const shareAchievement = async achievement => {
         const text = `${achievement.icon} Achievement unlocked: “${achievement.title}” in JavaScript Arcade — ${achievement.condition}`;

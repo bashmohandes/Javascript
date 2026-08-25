@@ -69,6 +69,11 @@ extension constraints.
 | Pong | Modern canvas controller + motion prediction; solo, couch duo, online; separate p5.js classic (`board`, `ball`, `sketch`) | Server engine at 60 Hz; snapshots at 30 Hz | Modern results, scores and achievements |
 | Tic-tac-toe | Modern controller, minimax AI, couch duo and online | Room manager validates turns, cells and wins | Results, scores and achievements |
 | Battle Tanks | Shared deterministic engine + canvas controller; local and online | Server validates commands and owns physics, damage, turns and online result recording | Results, scores and achievements |
+| Tetris | Modern DOM controller plus testable seven-bag/SRS mechanics engine; endless solo marathon | None | Results, scores, history and achievements |
+
+Tetris keeps mechanics independent from DOM presentation, submits bounded
+top-out aggregates for server-derived scoring, and consumes a scoped theme-token
+interface. See [ADR 0010](adr/0010-tetris-marathon-integration.md).
 
 The coding-challenge folders (`leetcode/`, `codeforces/`, `codewars/`) are
 independent scripts, not arcade games or runtime components.
@@ -80,6 +85,7 @@ flowchart LR
   Shared --> PO[Pong modern]
   Shared --> TT[Tic-tac-toe]
   Shared --> BT[Battle Tanks]
+  Shared --> TE[Tetris]
   P5[p5.js CDN] --> SUC[Sudoku classic]
   P5 --> MSC[Minesweeper classic]
   P5 --> POC[Pong classic]

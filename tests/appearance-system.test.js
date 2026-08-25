@@ -39,7 +39,8 @@ test('no modern game selects an experience theme or embeds an experience palette
         'tictactoe/scripts/app.js',
         'battle-tanks/scripts/app.js',
         'Sudoku/scripts/app.js',
-        'Minesweeper/scripts/app.js'
+        'Minesweeper/scripts/app.js',
+        'tetris/scripts/app.js'
     ];
 
     for (const file of gameScripts) {
@@ -57,6 +58,14 @@ test('theme styles own the Battle Tanks canvas palette', () => {
     const battleTanks = fs.readFileSync('battle-tanks/scripts/app.js', 'utf8');
     assert.match(battleTanks, /getComputedStyle\(arena\)/);
     assert.doesNotMatch(battleTanks, /const palettes=/);
+});
+
+test('theme styles own the Tetris palette and sharing refreshes from its scoped interface', () => {
+    for (const token of ['board', 'grid', 'border', 'empty', 'ghost', 'ink', 'panel', 'overlay', 'i', 'j', 'l', 'o', 's', 't', 'z']) assert.match(games, new RegExp(`--tetris-${token}:`));
+    const script = fs.readFileSync('tetris/scripts/app.js', 'utf8');
+    assert.match(script, /getComputedStyle\(boardElement\)/);
+    assert.match(script, /arcade:theme[^\n]*updateTetrisTheme/);
+    assert.doesNotMatch(script, /dataset\.arcadeTheme|const palettes|playful\s*:|cabinet\s*:|calm\s*:/);
 });
 
 test('cabinet light mode keeps dialog text dark without changing topbar ink', () => {

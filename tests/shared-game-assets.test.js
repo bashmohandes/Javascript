@@ -17,7 +17,7 @@ test('competitive games consume shared styles without cross-game imports', () =>
 });
 
 test('every modern game consumes the shared playful design language', () => {
-    const games = ['pong', 'tictactoe', 'battle-tanks', 'Sudoku', 'Minesweeper'];
+    const games = ['pong', 'tictactoe', 'battle-tanks', 'Sudoku', 'Minesweeper', 'tetris'];
     const design = read('styles/modern-game.css');
 
     assert.match(design, /--game-pop:#ff4fa3/);
@@ -125,7 +125,8 @@ test('every arcade page opts into shared iPhone safe-area handling', () => {
         'Minesweeper/index.html',
         'Minesweeper/classic/index.html',
         'tictactoe/index.html',
-        'battle-tanks/index.html'
+        'battle-tanks/index.html',
+        'tetris/index.html'
     ];
 
     for (const page of pages) {

@@ -4,7 +4,7 @@ const crypto = require('node:crypto');
 const { promisify } = require('node:util');
 
 const SESSION_DAYS = 30;
-const GAMES = new Set(['pong', 'sudoku', 'minesweeper', 'tictactoe', 'battletanks']);
+const GAMES = new Set(['pong', 'sudoku', 'minesweeper', 'tictactoe', 'battletanks', 'tetris']);
 const hashToken = token => crypto.createHash('sha256').update(token).digest('hex');
 const normalizeGamertag = value => String(value || '').trim();
 const scrypt = promisify(crypto.scrypt);
@@ -114,7 +114,9 @@ class Accounts {
         const page = Math.max(1, Number.parseInt(pageValue, 10) || 1);
         const pageSize = Math.min(10, Math.max(1, Number.parseInt(pageSizeValue, 10) || 10));
         const user = publicUser(this.database.prepare('SELECT * FROM users WHERE id = ?').get(userId));
-        const totals = this.database.prepare('SELECT game, COUNT(*) games_played, SUM(won) wins, MAX(score) best_score FROM game_results WHERE user_id = ? GROUP BY game').all(userId);
+        const totals = this.database.prepare(`SELECT game, COUNT(*) games_played, SUM(won) wins, MAX(score) best_score,
+            CASE WHEN game = 'tetris' THEN SUM(CAST(json_extract(details, '$.lines') AS INTEGER)) ELSE NULL END total_lines
+            FROM game_results WHERE user_id = ? GROUP BY game`).all(userId);
         const totalGames = this.database.prepare('SELECT COUNT(*) total FROM game_results WHERE user_id = ?').get(userId).total;
         const totalPages = Math.max(1, Math.ceil(totalGames / pageSize));
         const currentPage = Math.min(page, totalPages);
@@ -141,6 +143,22 @@ function integer(value, minimum, maximum, label) {
 
 function validateResult(game, wonValue, details, trustedOnline = false) {
     const won = wonValue === true;
+    if (game === 'tetris') {
+        if (won || details.mode !== 'marathon') throw new Error('Invalid Tetris result.');
+        const seconds = integer(details.seconds, 1, 86400, 'Tetris time');
+        const lines = integer(details.lines, 0, 10000, 'Tetris line count');
+        const level = integer(details.level, 1, 1001, 'Tetris level');
+        const pieces = integer(details.pieces, 1, 100000, 'Tetris piece count');
+        const singles = integer(details.singles, 0, pieces, 'Tetris singles');
+        const doubles = integer(details.doubles, 0, pieces, 'Tetris doubles');
+        const triples = integer(details.triples, 0, pieces, 'Tetris triples');
+        const tetrises = integer(details.tetrises, 0, pieces, 'Tetris four-line clears');
+        const softDropCells = integer(details.softDropCells, 0, pieces * 20, 'Tetris soft-drop distance');
+        const hardDropCells = integer(details.hardDropCells, 0, pieces * 20 + 40, 'Tetris hard-drop distance');
+        if (lines !== singles + doubles * 2 + triples * 3 + tetrises * 4 || singles + doubles + triples + tetrises > pieces || level !== Math.floor(lines / 10) + 1) throw new Error('Invalid Tetris statistics.');
+        const score = singles * 100 + doubles * 300 + triples * 500 + tetrises * 800 + softDropCells + hardDropCells * 2;
+        return { won: false, score, normalizedDetails: { mode: 'marathon', seconds, lines, level, pieces, singles, doubles, triples, tetrises, softDropCells, hardDropCells } };
+    }
     if (game === 'battletanks') {
         if (!['local', 'online'].includes(details.mode)) throw new Error('Invalid Battle Tanks mode.');
         if (details.mode === 'online' && !trustedOnline) throw new Error('Invalid Battle Tanks mode.');

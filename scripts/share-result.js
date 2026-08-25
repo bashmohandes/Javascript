@@ -73,6 +73,19 @@
         board.forEach((mark, index) => { if (mark) label(ctx, mark, left + (index % 3 + .5) * cell, top + (Math.floor(index / 3) + .72) * cell, 86, 800, colors[mark === 'O' ? 1 : 0], 'center'); });
         return card;
     }
+    function tetris({ board, colors, score, lines, level, time }) {
+        const card = makeCanvas(), ctx = card.getContext('2d');
+        frame(ctx, 'Tetris', `${Number(score).toLocaleString()} points`, `${lines} lines · Level ${level} · ${time}`);
+        const cell = 23, left = 790, top = 70, width = cell * 10, height = cell * 20;
+        ctx.fillStyle = colors.board || color.ink; ctx.fillRect(left, top, width, height);
+        board.forEach((row, y) => row.forEach((piece, x) => {
+            ctx.fillStyle = piece ? (colors[piece.toLowerCase()] || color.accent) : (colors.empty || colors.board || color.ink);
+            ctx.fillRect(left + x * cell + 1, top + y * cell + 1, cell - 2, cell - 2);
+            if (piece) { ctx.strokeStyle = colors['piece-edge'] || color.ink; ctx.strokeRect(left + x * cell + 1.5, top + y * cell + 1.5, cell - 3, cell - 3); }
+        }));
+        ctx.strokeStyle = colors.border || color.ink; ctx.lineWidth = 5; ctx.strokeRect(left - 2, top - 2, width + 4, height + 4);
+        return card;
+    }
     function achievement({ icon, title, condition, game }) {
         const card = makeCanvas(), ctx = card.getContext('2d');
         frame(ctx, 'Achievement unlocked', title, game ? `Earned in ${game}` : 'JavaScript Arcade');
@@ -172,5 +185,5 @@
             try { await navigator.clipboard.writeText(`${text}\n${url}`); return 'downloaded-copy'; } catch { return 'downloaded'; }
         });
     }
-    window.ResultShare = { sudoku, pong, minesweeper, tictactoe, achievement, share };
+    window.ResultShare = { sudoku, pong, minesweeper, tictactoe, tetris, achievement, share };
 })();
