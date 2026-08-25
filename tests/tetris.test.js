@@ -75,3 +75,13 @@ test('Tetris is wired into themes, accounts, sharing, homepage, profile, and API
     assert.match(read('index.html'), /href="tetris\/index\.html"/); assert.match(read('profile.html'), /data-game="tetris"/); assert.match(read('profile.js'), /tetris: 'Tetris'/);
     assert.match(server, /leaderboards[^\n]*tetris/); assert.match(server, /achievements[^\n]*tetris/); assert.match(read('scripts/share-result.js'), /window\.ResultShare = \{[^}]*tetris/);
 });
+
+test('Tetris preserves elapsed time while bounding simulation steps and ignores dialog shortcuts', () => {
+    const app = read('tetris/scripts/app.js');
+    assert.match(app, /const elapsed = Math\.max\(0, now - lastFrame\)/);
+    assert.match(app, /activeMilliseconds \+= elapsed/);
+    assert.match(app, /while \(remaining > 0 && !game\.gameOver\)[^\n]*Math\.min\(100, remaining\)/);
+    assert.doesNotMatch(app, /Math\.min\(100, now - lastFrame\)/);
+    assert.match(app, /event\.defaultPrevented \|\| interactive \|\| document\.querySelector\('dialog\[open\]'\)/);
+    assert.match(app, /button,a,input,select,textarea,dialog/);
+});

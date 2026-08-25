@@ -68,7 +68,8 @@
         finally { shareButton.disabled = false; setTimeout(() => { shareButton.textContent = 'Share result'; }, 2600); }
     }
     document.addEventListener('keydown', event => {
-        if (['INPUT','SELECT','TEXTAREA'].includes(event.target.tagName)) return;
+        const interactive = event.target.closest?.('button,a,input,select,textarea,dialog,[contenteditable="true"],[role="button"],[role="radio"]');
+        if (event.defaultPrevented || interactive || document.querySelector('dialog[open]')) return;
         const keyActions = { ArrowLeft:'left', ArrowRight:'right', ArrowDown:'soft', ArrowUp:'rotate-right', KeyX:'rotate-right', KeyZ:'rotate-left', Space:'hard', KeyC:'hold', ShiftLeft:'hold', ShiftRight:'hold' };
         if (keyActions[event.code]) { event.preventDefault(); act(keyActions[event.code]); }
         else if (['KeyP','Escape'].includes(event.code)) { event.preventDefault(); togglePause(); }
@@ -78,6 +79,15 @@
     pauseButton.addEventListener('click', () => togglePause()); shareButton.addEventListener('click', shareResult);
     document.addEventListener('visibilitychange', () => { if (document.hidden && !game.gameOver && !game.paused) togglePause(true); });
     document.addEventListener('arcade:theme', updateTetrisTheme);
-    function frame(now) { const elapsed = Math.min(100, now - lastFrame); lastFrame = now; if (!game.paused && !game.gameOver) { activeMilliseconds += elapsed; game.update(elapsed); render(); if (game.gameOver) finish(); } requestAnimationFrame(frame); }
+    function frame(now) {
+        const elapsed = Math.max(0, now - lastFrame); lastFrame = now;
+        if (!game.paused && !game.gameOver) {
+            activeMilliseconds += elapsed;
+            let remaining = elapsed;
+            while (remaining > 0 && !game.gameOver) { const step = Math.min(100, remaining); game.update(step); remaining -= step; }
+            render(); if (game.gameOver) finish();
+        }
+        requestAnimationFrame(frame);
+    }
     bestElement.textContent = (Number(localStorage.getItem('tetris-best-score')) || 0).toLocaleString(); updateTetrisTheme(); render(); requestAnimationFrame(frame);
 })();
