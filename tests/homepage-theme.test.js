@@ -31,8 +31,8 @@ test('homepage gives every game card the same grid footprint', () => {
 });
 
 test('homepage labels each game with accessible player-mode capabilities', () => {
-    assert.equal((homepage.match(/aria-label="Game modes"/g) || []).length, 5);
-    assert.equal((homepage.match(/>Single player<\/li>/g) || []).length, 4);
+    assert.equal((homepage.match(/aria-label="Game modes"/g) || []).length, 6);
+    assert.equal((homepage.match(/>Single player<\/li>/g) || []).length, 5);
     assert.equal((homepage.match(/>Local multiplayer<\/li>/g) || []).length, 2);
     assert.equal((homepage.match(/>Local two-player<\/li>/g) || []).length, 1);
     assert.equal((homepage.match(/>Online multiplayer<\/li>/g) || []).length, 3);

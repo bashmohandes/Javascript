@@ -167,6 +167,7 @@
         .card:nth-child(3) { --game-color: var(--lime); }
         .card:nth-child(4) { --game-color: var(--orange); }
         .card:nth-child(5) { --game-color: var(--sunshine); }
+        .card:nth-child(6) { --game-color: var(--sky-blue); --glow: var(--blue-glow); }
 
         .card::before { position: absolute; top: 0; left: 0; width: 100%; height: 10px; background: var(--game-color); content: ""; }
 
@@ -319,7 +320,7 @@
             <h1 id="page-title">Your next <span class="pop">high score</span> starts here.</h1>
             <span class="hero-spark hero-spark-one" aria-hidden="true">✦</span>
             <span class="hero-spark hero-spark-two" aria-hidden="true">✹</span>
-            <p class="intro">Five games. Zero boring meetings. Pick a challenge, chase a high score, and sign in to keep your wins across the whole arcade.</p>
+            <p class="intro">Six games. Zero boring meetings. Pick a challenge, chase a high score, and sign in to keep your wins across the whole arcade.</p>
         </section>
 
         <section class="game-grid" aria-label="Games">
@@ -401,6 +402,17 @@
                         <li class="capability"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 3.7 5.5 3.7 9s-1.2 6.5-3.7 9c-2.5-2.5-3.7-5.5-3.7-9S9.5 5.5 12 3"/></svg>Online multiplayer</li>
                     </ul>
                     <div class="actions"><a class="button button-primary" href="battle-tanks/index.html">Play Battle Tanks&nbsp; →</a></div>
+                </div>
+            </article>
+            <article class="card">
+                <div class="card-top"><span class="game-icon" aria-hidden="true">▦</span><span class="badge">New game</span></div>
+                <div class="card-copy">
+                    <h2>Tetris</h2>
+                    <p>Stack falling pieces, clear lines, and keep the board alive as the pace climbs.</p>
+                    <ul class="capabilities" aria-label="Game modes">
+                        <li class="capability"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20c.6-4 2.7-6 6.5-6s5.9 2 6.5 6"/></svg>Single player</li>
+                    </ul>
+                    <div class="actions"><a class="button button-primary" href="tetris/index.html">Play Tetris&nbsp; →</a></div>
                 </div>
             </article>
         </section>

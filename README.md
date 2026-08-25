@@ -21,6 +21,7 @@ topology and subsystem flows. Architectural decisions are indexed in
 | **Minesweeper Classic** | The original p5.js experiment, preserved alongside the new game. | [Play Minesweeper Classic](https://bashmohandes.github.io/Javascript/Minesweeper/classic/) |
 | **Pong** | Responsive solo, couch co-op, and public or private online multiplayer Pong. | [Play Pong](https://bashmohandes.github.io/Javascript/pong/) |
 | **Battle Tanks** | Local and authoritative online artillery duels across generated, destructible arenas with pickups, effects, and specialized weapons. | [Play Battle Tanks](https://bashmohandes.github.io/Javascript/battle-tanks/) |
+| **Tetris** | An endless single-player marathon with seven-bag pieces, hold, ghost previews, progressive speed, scores, and achievements. | [Play Tetris](https://bashmohandes.github.io/Javascript/tetris/) |
 
 ## Battle Tanks controls and online play
 
