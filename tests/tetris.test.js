@@ -90,4 +90,5 @@ test('Tetris keeps phone controls visible alongside the board', () => {
     const styles = read('tetris/styles.css');
     assert.match(styles, /@media\(max-width:780px\)[^{]*\{[\s\S]*?\.touch-controls\{[^}]*position:fixed;[^}]*bottom:max\(8px,env\(safe-area-inset-bottom\)\)/);
     assert.match(styles, /padding-bottom:calc\(160px \+ env\(safe-area-inset-bottom\)\)/);
+    assert.match(styles, /\.game-layout \.tetris-stage\{width:min\([^}]*calc\(\(100dvh - 160px - env\(safe-area-inset-bottom\)\)\/2\)\)/);
 });
