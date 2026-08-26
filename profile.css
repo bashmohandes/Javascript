@@ -81,7 +81,8 @@ h2 { margin-top: 0; font-size: clamp(25px, 4vw, 34px); }
 .stat-metrics div + div { padding-left: 14px; border-left: 1px solid color-mix(in srgb, var(--ink) 18%, transparent); }
 .stat-metrics strong { display: block; font-size: 26px; line-height: 1.1; }
 .stat-metrics small { display: block; margin-top: 5px; color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
-.shell form { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; }
+.shell form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)) auto; gap: 10px; }
+.shell form input { min-width: 0; }
 .shell :where(input, select, button) { min-height: 44px; padding: 11px 13px; color: inherit; background: var(--field); border: 2px solid var(--ink); border-radius: 12px; font: inherit; }
 .shell button { color: #fff; background: var(--button); box-shadow: 3px 3px 0 var(--ink); font-weight: 900; cursor: pointer; }
 .shell button:hover:not(:disabled) { background: var(--button-hover); box-shadow: 1px 1px 0 var(--ink); transform: translate(2px, 2px); }
@@ -109,7 +110,7 @@ th { color: var(--muted); font-size: 11px; letter-spacing: .08em; text-transform
 .profile-achievement small, .profile-achievement p { color: var(--muted); }
 .profile-achievement p { margin: 4px 0; font-size: 13px; }
 .profile-achievement progress { width: 100%; accent-color: var(--accent); }
-@media (max-width: 820px) { .shell form { grid-template-columns: 1fr 1fr; } .shell form button { grid-column: 1 / -1; } }
+@media (max-width: 820px) { .shell form { grid-template-columns: repeat(2, minmax(0, 1fr)); } .shell form button { grid-column: 1 / -1; } }
 @media (max-width: 650px) {
     .shell { width: min(100% - 20px, 560px); }
     .hero { margin-top: 50px; }

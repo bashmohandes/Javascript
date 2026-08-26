@@ -85,3 +85,9 @@ test('Tetris preserves elapsed time while bounding simulation steps and ignores 
     assert.match(app, /event\.defaultPrevented \|\| interactive \|\| document\.querySelector\('dialog\[open\]'\)/);
     assert.match(app, /button,a,input,select,textarea,dialog/);
 });
+
+test('Tetris keeps phone controls visible alongside the board', () => {
+    const styles = read('tetris/styles.css');
+    assert.match(styles, /@media\(max-width:780px\)[^{]*\{[\s\S]*?\.touch-controls\{[^}]*position:fixed;[^}]*bottom:max\(8px,env\(safe-area-inset-bottom\)\)/);
+    assert.match(styles, /padding-bottom:calc\(160px \+ env\(safe-area-inset-bottom\)\)/);
+});

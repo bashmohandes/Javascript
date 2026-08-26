@@ -28,6 +28,11 @@ test('profile controls do not restyle the shared top bar', () => {
     assert.doesNotMatch(styles, /(?:^|\n)button\s*\{/);
 });
 
+test('profile management fields fit the compact Cabinet column', () => {
+    assert.match(styles, /\.shell form\s*\{[^}]*grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\) auto;/s);
+    assert.match(styles, /\.shell form input\s*\{[^}]*min-width:\s*0;/s);
+});
+
 test('profile includes accessible game-history pagination', () => {
     assert.match(profile, /id="history-pagination" aria-label="Game history pages"/);
     assert.match(profile, /data-page-action="previous"/);
