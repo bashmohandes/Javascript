@@ -24,7 +24,8 @@
     </section>
     <section class="game-layout">
         <div class="tetris-stage">
-            <div id="board" class="tetris-board" role="img" aria-label="Empty Tetris board"></div>
+            <div id="board" class="tetris-board" role="img" tabindex="-1" aria-label="Empty Tetris board"></div>
+            <div class="line-clear-effect" id="line-clear-effect" aria-hidden="true"><div class="clear-streaks" id="clear-streaks"></div><div class="clear-multiplier"><strong id="clear-multiplier">x1</strong><span>line clear</span></div></div>
             <div class="result-layer" id="finish" hidden><article class="result-card" role="dialog" aria-modal="true" aria-labelledby="finish-title"><p class="eyebrow">Stack topped out</p><h2 id="finish-title">Run complete</h2><p id="finish-summary"></p><div class="result-actions"><button class="primary-button" id="play-again" type="button">Play again</button><button class="secondary-button" id="share-result" type="button">Share result</button></div></article></div>
         </div>
         <aside class="tetris-controls">

@@ -33,8 +33,9 @@ test('line clears update counters, score, level, and gravity', () => {
     const game = new TetrisGame();
     game.board[21].fill('J'); game.board[20].fill('L');
     assert.equal(game.clearLines(), 2); assert.equal(game.doubles, 1); assert.equal(game.lines, 2); assert.equal(game.score, 300);
+    assert.deepEqual(game.lastClear, { id:1, count:2, rows:[18,19] });
     game.lines = 9; game.board[21].fill('T'); const slow = game.gravityMs(); game.clearLines();
-    assert.equal(game.level, 2); assert.ok(game.gravityMs() < slow);
+    assert.equal(game.level, 2); assert.ok(game.gravityMs() < slow); assert.deepEqual(game.lastClear, { id:2, count:1, rows:[19] });
 });
 
 test('lock delay pauses safely and top-out ends the run', () => {
@@ -70,7 +71,7 @@ test('accounts persist Tetris history, total lines, top scores, and achievements
 test('Tetris is wired into themes, accounts, sharing, homepage, profile, and APIs', () => {
     const page = read('tetris/index.html'), app = read('tetris/scripts/app.js'), server = read('server/index.js');
     for (const asset of ['theme-init.js', 'styles/modern-game.css', 'arcade.css', 'scripts/share-result.js', 'scripts/game.js', 'scripts/app.js']) assert.ok(page.includes(asset), `${asset} should load on Tetris`);
-    assert.match(page, /body class="modern-game game-tetris"/); assert.match(page, /single-player/i);
+    assert.match(page, /body class="modern-game game-tetris"/); assert.match(page, /single-player/i); assert.match(page, /id="board"[^>]*tabindex="-1"/);
     assert.match(app, /Arcade\?\.record\(\{ game: 'tetris'/); assert.match(app, /arcade:theme/); assert.match(app, /ResultShare\.tetris/);
     assert.match(read('index.html'), /href="tetris\/index\.html"/); assert.match(read('profile.html'), /data-game="tetris"/); assert.match(read('profile.js'), /tetris: 'Tetris'/);
     assert.match(server, /leaderboards[^\n]*tetris/); assert.match(server, /achievements[^\n]*tetris/); assert.match(read('scripts/share-result.js'), /window\.ResultShare = \{[^}]*tetris/);
@@ -91,4 +92,13 @@ test('Tetris keeps phone controls visible alongside the board', () => {
     assert.match(styles, /@media\(max-width:780px\)[^{]*\{[\s\S]*?\.touch-controls\{[^}]*position:fixed;[^}]*bottom:max\(8px,env\(safe-area-inset-bottom\)\)/);
     assert.match(styles, /padding-bottom:calc\(160px \+ env\(safe-area-inset-bottom\)\)/);
     assert.match(styles, /\.game-layout \.tetris-stage\{width:min\([^}]*calc\(\(100dvh - 160px - env\(safe-area-inset-bottom\)\)\/2\)\)/);
+});
+
+test('Tetris presents escalating, accessible line-clear effects without delaying play', () => {
+    const page = read('tetris/index.html'), app = read('tetris/scripts/app.js'), styles = read('tetris/styles.css');
+    assert.match(page, /id="line-clear-effect"[^>]*aria-hidden="true"/); assert.match(page, /id="clear-multiplier">x1/);
+    assert.match(app, /game\.lastClear/); assert.match(app, /dataset\.clearIntensity = clear\.count/); assert.match(app, /`x\$\{clear\.count\}`/);
+    assert.match(styles, /data-clear-intensity="2"/); assert.match(styles, /data-clear-intensity="3"/); assert.match(styles, /data-clear-intensity="4"/);
+    assert.match(styles, /@keyframes clear-streak/); assert.match(styles, /@keyframes clear-board-jolt/); assert.match(styles, /prefers-reduced-motion:reduce/);
+    assert.doesNotMatch(app, /game\.paused\s*=.*clear|clear.*game\.paused/);
 });

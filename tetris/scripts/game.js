@@ -40,6 +40,7 @@
             this.board = emptyBoard(); this.queue = []; this.holdType = null; this.holdUsed = false; this.piece = null;
             this.score = 0; this.lines = 0; this.level = 1; this.pieces = 0; this.singles = 0; this.doubles = 0; this.triples = 0; this.tetrises = 0;
             this.softDropCells = 0; this.hardDropCells = 0; this.gameOver = false; this.paused = false; this.gravityElapsed = 0; this.lockElapsed = 0; this.lockResets = 0;
+            this.clearEventId = 0; this.lastClear = null;
             this.fillQueue(); this.spawn();
         }
         fillQueue() {
@@ -88,13 +89,16 @@
             return this.spawn(incoming);
         }
         clearLines() {
-            const remaining = this.board.filter(row => !row.every(Boolean)), cleared = HEIGHT - remaining.length;
+            const clearedRows = [];
+            this.board.forEach((row, index) => { if (row.every(Boolean)) clearedRows.push(index); });
+            const remaining = this.board.filter((row, index) => !clearedRows.includes(index)), cleared = clearedRows.length;
             while (remaining.length < HEIGHT) remaining.unshift(Array(WIDTH).fill(null)); this.board = remaining;
             if (cleared === 1) { this.singles += 1; this.score += 100; }
             if (cleared === 2) { this.doubles += 1; this.score += 300; }
             if (cleared === 3) { this.triples += 1; this.score += 500; }
             if (cleared === 4) { this.tetrises += 1; this.score += 800; }
             this.lines += cleared; this.level = Math.floor(this.lines / 10) + 1;
+            if (cleared) this.lastClear = { id: ++this.clearEventId, count: cleared, rows: clearedRows.map(row => row - HIDDEN_ROWS).filter(row => row >= 0) };
             return cleared;
         }
         lock() {
