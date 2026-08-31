@@ -10,8 +10,8 @@ Battle Tanks began with flat terrain, one fixed barrier, cosmetic impact marks,
 and fixed damage on direct hits. The expanded game requires seeded hills and
 valleys, variable barriers, destructible collision geometry, radial damage,
 pickups, timed effects, several weapons, and invisibility that is available only
-online. Maintaining separate local and online rule sets would make outcomes and
-bug fixes diverge, so both modes need one deterministic mechanics core.
+online. Maintaining separate solo, local, and online rule sets would make outcomes
+and bug fixes diverge, so all three modes need one deterministic mechanics core.
 
 Online rooms must remain server-authoritative. In particular, invisibility is
 hidden information: removing a tank during canvas rendering is insufficient if
@@ -39,12 +39,24 @@ transitions and authoritative online state, never from UI actions.
 7. Weapons and power-ups use data-driven registries. Protocol identifiers are
    bounded and validated rather than inferred from labels or array positions.
 8. Acquisition cards consume ordered, match-scoped, replay-safe presentation
-   events. Each browser keeps its own dismissal guard; dismissal cannot pause
-   or mutate the match.
+   events. Each browser keeps its own dismissal guard; only online room/match
+   guards persist for reconnect replay protection. Solo and local guards reset
+   on page load so reused local event IDs cannot suppress a new acquisition.
+   Dismissal cannot mutate the match.
 9. Results contain bounded per-player match aggregates, not an unbounded combat
    history. These aggregates drive achievements.
 10. Battle Tanks state snapshots and result-detail payloads are versioned.
     Unsupported versions are rejected so incompatible clients fail safely.
+11. Solo mode is a browser adapter over the shared mechanics core. Its
+    deterministic CPU repositions within legal movement bounds, plans against
+    current destructible geometry, and intentionally chooses bounded damaging
+    shots and credible near misses rather than maximizing every turn.
+12. Solo result aggregation includes only human Player 1 activity. A CPU win
+    derives a zero player score, preventing CPU statistics from entering human
+    leaderboards.
+13. Homing guidance may use a bounded clearance waypoint while intact barrier
+    cells block the direct route, then transitions to normal target pursuit.
+    Guidance changes steering only; shared collision remains authoritative.
 
 ## Considered alternatives
 
@@ -68,7 +80,7 @@ transitions and authoritative online state, never from UI actions.
 
 ## Consequences
 
-The design gives deterministic, testable local/online parity and stronger
+The design gives deterministic, testable solo/local/online parity and stronger
 protection for online hidden information. Its cost is larger, more complex
 snapshots plus additional schema validation and compatibility responsibilities.
 Destructible terrain and reflected lasers make collision queries more expensive.
@@ -106,6 +118,10 @@ for as long as callers require it.
 * Shield absorption precedes health damage.
 * Every acquisition event has a stable match-scoped ID.
 * Client-local card dismissal cannot mutate shared match state.
+* A fresh solo or local page run cannot inherit a presentation-event watermark
+  from an earlier match; online reconnects retain their room/match watermark.
+* Solo CPU movement and shots obey the same mechanics bounds as human commands.
+* Solo results exclude CPU aggregates, and CPU victories produce zero score.
 * Rematches reset deformation, effects, inventories, statistics, and
   presentation-event guards.
 * Bounded state prevents unlimited snapshot or memory growth.

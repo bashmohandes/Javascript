@@ -46,6 +46,17 @@ top-out rather than producing a win or loss.
 8. Tetris JavaScript must not inspect theme attributes, branch on registered
    theme names, or embed experience palettes. A new theme supports Tetris by
    implementing the existing token interface.
+9. At mobile widths, the board and information rail remain side by side in an
+   approximately 70/30 split. Dynamic-viewport and safe-area constraints keep
+   the board, score, high score, lines, level, hold, next queue, actions, and
+   existing touch controls available together.
+10. A line-clear mechanics event drives an intentionally prominent but
+    non-blocking presentation layer. Its flash, recoil, streaks, sparks, and
+    clear count scale with the number of lines; reduced-motion users receive a
+    prominent static alternative. Presentation timers never delay mechanics.
+11. The browser displays and updates the local high score throughout a run.
+    Crossing the best score triggers an in-game announcement and persistent
+    run-time highlight without pausing play or changing submitted result facts.
 
 ## Considered alternatives
 
@@ -74,6 +85,11 @@ are plausibility-checked rather than authoritative, so a determined client can
 still fabricate a local result; authoritative play would require moving the
 simulation server-side.
 
+The narrow layout deliberately gives the board most of the horizontal space
+while preserving a compact information rail and the established touch-control
+placement. Clear and record effects add presentation state to the controller,
+but do not enter the mechanics or result schemas.
+
 Scoring, result fields, achievement rules, and the database game constraint must
 be changed together. Any future mode must define its completion semantics and
 validation separately instead of overloading the marathon payload.
@@ -88,3 +104,7 @@ validation separately instead of overloading the marathon payload.
 * Top-score and achievement notifications use the shared sequential queue.
 * Tetris rendering code does not select or identify an experience theme.
 * Every experience theme exposes the complete scoped Tetris token contract.
+* Mobile layout keeps live statistics and previews visible beside the board
+  without removing the touch controls.
+* Clear and record celebrations never pause or alter gameplay state.
+* Reduced-motion preferences preserve visible feedback without large movement.

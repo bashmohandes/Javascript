@@ -114,6 +114,16 @@ test('validates Battle Tanks results, derives scores, ranks players, and persist
     assert.equal(online.score, 15283);
 });
 
+test('Battle Tanks solo scores use only human shots and never reward a CPU victory', async t => {
+    const accounts = fixture(t), user = await accounts.create('SoloTanker', 'passcode');
+    const loss = accounts.record(user.id, { game: 'battletanks', won: false, details: { mode: 'solo', winner: 2, turns: 8, shots: 4, hits: 4, seconds: 70, damageTaken: 100 } });
+    assert.equal(loss.score, 0, 'even perfect human accuracy cannot turn a CPU victory into leaderboard points');
+    const win = accounts.record(user.id, { game: 'battletanks', won: true, details: { mode: 'solo', winner: 1, turns: 7, shots: 4, hits: 2, seconds: 65, damageTaken: 75 } });
+    assert.equal(win.score, 14430); assert.equal(accounts.leaderboard('battletanks')[0].score, 14430);
+    assert.deepEqual(accounts.leaderboard('battletanks')[0].details, { mode: 'solo', winner: 1, turns: 7, shots: 4, hits: 2, accuracy: 50, seconds: 65, damageTaken: 75, powerUpsAcquired: 0, powerUpsUsed: 0, powerUpTypesUsed: [], shieldDamageAbsorbed: 0, healthRestored: 0, invisibilityActivations: 0, laserRicochetHits: 0, laserSelfDamage: 0, homingHits: 0, heavyProjectileMaxDamage: 0, poweredHits: 0 });
+    assert.throws(() => accounts.record(user.id, { game: 'battletanks', won: true, details: { mode: 'solo', winner: 1, turns: 7, shots: 5, hits: 2, seconds: 65, damageTaken: 75 } }), /Invalid Battle Tanks/);
+});
+
 
 test('validates bounded Battle Tanks power-up achievement statistics', async t => {
     const accounts = fixture(t), user = await accounts.create('PowerStats', 'passcode');

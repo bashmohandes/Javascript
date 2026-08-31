@@ -367,6 +367,22 @@ test('homing steering is bounded and refuses invisible targets', () => {
     const hidden = match(); hidden.weaponAmmo[0].homing = 1; hidden.activeEffects[1].push({ effect: 'invisible', remainingTurns: 1 }); game.selectWeapon(hidden, 0, 'homing'); game.fireProjectile(hidden); hidden.projectile.age = 1; game.stepPhysics(hidden, 1 / 120); assert.equal(hidden.projectile.target, null);
 });
 
+test('homing missiles clear an intact barrier from either side before pursuing the target', () => {
+    for (const seed of [1, 123]) for (const side of [0, 1]) for (const [angle, power] of [[10, 20], [45, 60], [80, 20], [80, 100]]) {
+        const state = match(seed); game.beginTurn(state, side); state.tanks[side].angle = angle; state.tanks[side].power = power; state.weaponAmmo[side].homing = 1; game.selectWeapon(state, side, 'homing'); game.fireProjectile(state);
+        let clearedAbove = false;
+        for (let step = 0; step < 2400 && state.phase === 'projectile-flight'; step += 1) { const projectile = state.projectile, barrier = state.arena.barrier; if (projectile.x >= barrier.x - game.PROJECTILE_R && projectile.x <= barrier.x + barrier.w + game.PROJECTILE_R && projectile.y + game.PROJECTILE_R < barrier.y) clearedAbove = true; game.stepPhysics(state, 1 / 120); }
+        assert.equal(clearedAbove, true, `side ${side} should clear seed ${seed} at ${angle}°/${power}%`);
+        assert.equal(state.lastImpact?.type, 'tank'); assert.ok(state.tanks[1 - side].health < game.STARTING_HEALTH);
+    }
+});
+
+test('homing missiles pursue directly when no barrier cells remain', () => {
+    const state = match(9); state.arena.barrier.cells.fill(0); state.weaponAmmo[0].homing = 1; game.selectWeapon(state, 0, 'homing'); game.fireProjectile(state);
+    for (let step = 0; step < 2400 && state.phase === 'projectile-flight'; step += 1) game.stepPhysics(state, 1 / 120);
+    assert.equal(state.lastImpact?.type, 'tank'); assert.ok(state.tanks[1].health < game.STARTING_HEALTH);
+});
+
 test('laser snapshots preserve bounded authoritative segments and reflections', () => {
     const state = match(1); state.weaponAmmo[0].laser = 1; state.tanks[0].angle = 31; game.selectWeapon(state, 0, 'laser'); game.fireProjectile(state);
     const path = state.laserPath, config = game.WEAPON_REGISTRY.laser.ray;
@@ -403,6 +419,13 @@ test('acquisition events are monotonic, bounded, generated, safe, and reset with
     const shieldState = match('shield-event'); shieldState.pickups = [{ id: 'shield', x: shieldState.tanks[0].x + game.TANK_W / 2, y: shieldState.tanks[0].y + game.TANK_H }]; game.collectPickup(shieldState, 0);
     const event = shieldState.acquisitionEvents[0]; assert.ok(event.generatedValues.capacity >= 40 && event.generatedValues.capacity <= 60); assert.ok(event.generatedValues.durationTurns >= 2 && event.generatedValues.durationTurns <= 4); assert.equal('x' in event, false);
     game.resetMatch(state); assert.equal(state.acquisitionEventId, 0); assert.deepEqual(state.acquisitionEvents, []);
+});
+
+test('collecting homing ammo emits the complete announcement event as well as inventory', () => {
+    const state = match('homing-acquisition'), tank = state.tanks[0];
+    state.pickups = [{ id: 'weapon-homing', x: tank.x + game.TANK_W / 2, y: tank.y + game.TANK_H }];
+    assert.deepEqual(game.collectPickup(state, 0), ['weapon-homing']); assert.deepEqual(state.inventories[0], ['weapon-homing']);
+    assert.deepEqual(state.acquisitionEvents[0], { eventId: 1, player: 0, powerUpType: 'weapon-homing', displayName: 'Homing missile ammo', effectDescription: 'adds homing missile ammunition', iconKey: 'homing', rarity: 'rare', theme: 'weapon', generatedValues: { ammunition: 2 } });
 });
 
 test('authoritative power-up statistics credit successful mechanics and reset', () => {

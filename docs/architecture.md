@@ -68,12 +68,17 @@ extension constraints.
 | Minesweeper | Modern controller plus tile/grid engine; separate p5.js classic (`sketch`, `tile`) | None | Modern results, browser best times, scores and achievements |
 | Pong | Modern canvas controller + motion prediction; solo, couch duo, online; separate p5.js classic (`board`, `ball`, `sketch`) | Server engine at 60 Hz; snapshots at 30 Hz | Modern results, scores and achievements |
 | Tic-tac-toe | Modern controller, minimax AI, couch duo and online | Room manager validates turns, cells and wins | Results, scores and achievements |
-| Battle Tanks | Shared deterministic engine + canvas controller; local and online | Server validates commands and owns physics, damage, turns and online result recording | Results, scores and achievements |
+| Battle Tanks | Shared deterministic engine + canvas controller; solo CPU, local duo and online | Server validates commands and owns physics, damage, turns and online result recording | Results, scores and achievements |
 | Tetris | Modern DOM controller plus testable seven-bag/SRS mechanics engine; endless solo marathon | None | Results, scores, history and achievements |
 
 Tetris keeps mechanics independent from DOM presentation, submits bounded
 top-out aggregates for server-derived scoring, and consumes a scoped theme-token
-interface. See [ADR 0010](adr/0010-tetris-marathon-integration.md).
+interface. At phone widths, the controller's board and status rail use an
+approximately 70/30 viewport-aware layout while the touch controls remain
+available. Line-clear and live-record celebrations are non-authoritative,
+non-blocking presentation driven by mechanics events and local best-score state.
+See [ADR 0010](adr/0010-tetris-marathon-integration.md) and the
+[player guide](tetris.md).
 
 The coding-challenge folders (`leetcode/`, `codeforces/`, `codewars/`) are
 independent scripts, not arcade games or runtime components.
@@ -199,9 +204,10 @@ Battle Tanks uses one deterministic mechanics core with deliberately narrow adap
 
 | Component | Responsibility |
 |---|---|
-| `battle-tanks/scripts/game.js` | Versioned match state, seeded generation, fixed-step mechanics, collision and deformation, registry-driven weapons and power-ups, damage/effects, and bounded transition statistics. It contains no DOM, transport, or account trust decisions. |
+| `battle-tanks/scripts/game.js` | Versioned match state, seeded generation, fixed-step mechanics, collision and deformation, registry-driven weapons and power-ups, obstacle-aware homing guidance, damage/effects, and bounded transition statistics. It contains no DOM, transport, or account trust decisions. |
+| `battle-tanks/scripts/ai.js` | Deterministic browser-side movement and trajectory planning for the solo CPU. It repositions within shared movement bounds, evaluates legal shots from the new position, selects bounded grazes or near misses at a human-like rate, and never participates in online authority. |
 | `server/battle-tanks-rooms.js` | Authoritative online command validation and orchestration, fixed-step ticking, room lifecycle, trusted result creation, and viewer-specific serialization/redaction. |
-| `battle-tanks/scripts/app.js` | Canvas rendering, local input/simulation, bounded visual prediction, room commands, accessibility, controls, and replay-safe presentation-event handling. Card dismissal remains browser-local. |
+| `battle-tanks/scripts/app.js` | Canvas rendering, prominent projectile/impact feedback, local input/simulation, solo orchestration, bounded visual prediction, room commands, accessibility, controls, viewport-contained result/acquisition layers, and replay-safe presentation-event handling. Card dismissal remains browser-local; only online room/match watermarks persist across reconnects. |
 | `server/accounts.js` | Result-schema trust boundary: rejects invalid modes, identifiers, bounds, and untrusted online submissions, then normalizes versioned result details. |
 | `server/achievements.js` | Declarative evaluator for normalized result transitions and cumulative progress; it does not accept UI-authored claims. |
 
@@ -231,8 +237,10 @@ sequenceDiagram
 ```
 
 Reconnect sends current state, not a full event-history replay. The same core
-runs local matches in the browser, but only the room server is authoritative for
-online state and statistics. See [ADR 0009](adr/0009-authoritative-battle-tanks-simulation.md)
+runs solo and local matches in the browser, but only the room server is
+authoritative for online state and statistics. Solo result aggregation excludes
+CPU activity and assigns no player score to a CPU victory. See
+[ADR 0009](adr/0009-authoritative-battle-tanks-simulation.md)
 and the [player-facing rules](battle-tanks.md).
 
 ## Deployment and boundaries

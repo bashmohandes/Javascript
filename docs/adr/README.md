@@ -12,5 +12,5 @@ All records describe the current system retrospectively and have status
 7. [Same-origin deployment and layered HTTP security](0007-same-origin-security.md)
 
 8. [Separate experience themes from color modes](0008-experience-theming-system.md)
-9. [Authoritative deterministic Battle Tanks simulation](0009-authoritative-battle-tanks-simulation.md) — **Accepted**; one versioned mechanics core powers local play and viewer-redacted, server-authoritative online rooms.
-10. [Build-free Tetris marathon with scoped themes and validated results](0010-tetris-marathon-integration.md) — **Accepted**; a testable local mechanics core feeds server-derived scores, shared account surfaces, achievements, and an encapsulated theme-token interface.
+9. [Authoritative deterministic Battle Tanks simulation](0009-authoritative-battle-tanks-simulation.md) — **Accepted**; one versioned mechanics core powers solo CPU, local play, and viewer-redacted, server-authoritative online rooms.
+10. [Build-free Tetris marathon with scoped themes and validated results](0010-tetris-marathon-integration.md) — **Accepted**; a testable local mechanics core feeds server-derived scores, shared account surfaces, achievements, responsive mobile presentation, and an encapsulated theme-token interface.

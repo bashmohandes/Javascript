@@ -17,10 +17,24 @@ test('homepage links to Battle Tanks and its page loads all shared arcade assets
     assert.match(page, /scripts\/game\.js[\s\S]*scripts\/app\.js/, 'mechanics must load before the browser application');
 });
 
+test('Battle Tanks exposes solo, local duo, and online modes with a CPU turn adapter', () => {
+    const page = read('battle-tanks/index.html'), app = read('battle-tanks/scripts/app.js');
+    for (const mode of ['solo','local','online']) assert.match(page, new RegExp(`data-mode="${mode}"`));
+    assert.match(page, /scripts\/game\.js[\s\S]*scripts\/ai\.js[\s\S]*scripts\/app\.js/);
+    assert.match(app, /cpu\.planMove\(state,1\)/); assert.match(app, /moveTank\(state,plan\.direction,stepAmount\)/); assert.match(app, /cpu\.planShot\(state,1\)/); assert.match(app, /mode==='solo'&&state\.activePlayer===1/);
+    assert.match(app, /mode:solo\?'solo':'local'/); assert.match(app, /shots:solo\?soloStatistics\.shots:state\.shots/); assert.match(app, /hits:solo\?soloStatistics\.hits:state\.hits/);
+});
+
+test('Battle Tanks renders high-impact projectile and explosion feedback', () => {
+    const app = read('battle-tanks/scripts/app.js'), styles = read('battle-tanks/styles.css');
+    assert.match(app, /combatEffects/); assert.match(app, /triggerImpactEffect/); assert.match(app, /globalCompositeOperation='screen'/);
+    assert.match(styles, /@keyframes arena-impact-shake/); assert.match(styles, /@keyframes impact-flash/); assert.match(styles, /impact-mega-pop/);
+});
+
 test('Battle Tanks resets its impact callout guard for local and synchronized rematches', () => {
     const app = read('battle-tanks/scripts/app.js');
     assert.match(app, /\(state\.impactSerial\|\|0\)<lastImpactSerial\)lastImpactSerial=0/, 'a lower synchronized serial should identify a new match');
-    assert.match(app, /resetMatch\(state\);lastImpactSerial=0/, 'local resets should immediately clear the impact guard');
+    assert.match(app, /resetMatch\(state\);(?:resetSoloStatistics\(\);)?lastImpactSerial=0/, 'local resets should immediately clear the impact guard');
 });
 
 test('full-screen games expose an on-screen exit and Battle Tanks turn controls', () => {
@@ -55,10 +69,15 @@ test('Battle Tanks game-over actions do not cover tanks or unsafe iPhone control
     assert.match(styles, /top:max\(12px,env\(safe-area-inset-top\)\)[^}]*right:max\(12px,env\(safe-area-inset-right\)\)/);
 });
 
-test('Battle Tanks keeps result actions reachable in short arenas', () => {
+test('Battle Tanks keeps result and power-up actions visible without scrolling', () => {
     const styles = read('battle-tanks/styles.css');
-    assert.match(styles, /\.result-card\{[^}]*box-sizing:border-box[^}]*max-height:100%[^}]*overflow-y:auto/);
-    assert.doesNotMatch(styles, /\.result-card\{[^}]*overflow:hidden/);
+    assert.match(styles, /\.power-card-layer\{[^}]*position:fixed[^}]*height:100dvh[^}]*overflow:hidden[^}]*safe-area-inset-top[^}]*safe-area-inset-bottom/);
+    assert.match(styles, /\.result-layer\{[^}]*position:fixed[^}]*height:100dvh[^}]*overflow:hidden[^}]*safe-area-inset-top[^}]*safe-area-inset-bottom/);
+    assert.match(styles, /\.power-card\{[^}]*max-height:calc\(100dvh[^}]*overflow:hidden/);
+    assert.match(styles, /\.result-card\{[^}]*max-height:calc\(100dvh[^}]*overflow:hidden/);
+    assert.match(styles, /\.result-actions\{[^}]*grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+    assert.match(styles, /@media\(max-height:420px\)/);
+    assert.doesNotMatch(styles, /\.(?:power-card|result-card)\{[^}]*(?:overflow:auto|overflow-y:auto)/);
 });
 
 test('Battle Tanks supports arrow, power, and space keyboard controls', () => {
@@ -98,8 +117,15 @@ test('Battle Tanks disables online-only power-ups in local matches and guards ac
 test('Battle Tanks exposes an accessible, queued, local-only acquisition card', () => {
     const page = read('battle-tanks/index.html'), app = read('battle-tanks/scripts/app.js'), styles = read('battle-tanks/styles.css');
     assert.match(page, /id="power-card"[^>]*role="dialog"/); assert.match(page, /id="dismiss-power-card"[^>]*aria-label="Dismiss power-up card"/); assert.match(page, /id="power-card-live"[^>]*aria-live="polite"/);
-    assert.match(app, /powerCardQueue/); assert.match(app, /highestPresentedEventId/); assert.match(app, /presentationMatchId/); assert.match(app, /room=mode==='online'\?\(onlineSession\?\.roomCode\|\|'pending'\):'local'/); assert.match(app, /sessionStorage\.setItem\(`battle-tanks-presented-/); assert.match(app, /powerCard\.style\.animation='none';void powerCard\.offsetWidth;powerCard\.style\.removeProperty\('animation'\)/); assert.match(app, /function dismissPowerCard/); assert.doesNotMatch(app, /sendOnline\([^)]*dismiss/i);
-    assert.match(styles, /prefers-reduced-motion:reduce[\s\S]*power-card/); assert.match(styles, /:fullscreen \.power-card-layer/); assert.match(styles, /@keyframes power-card-play/);
+    assert.match(app, /powerCardQueue/); assert.match(app, /highestPresentedEventId/); assert.match(app, /presentationMatchId/); assert.match(app, /room=mode==='online'\?\(onlineSession\?\.roomCode\|\|'pending'\):'local'/); assert.match(app, /function presentationStorageKey\([^)]*\)\{return mode==='online'\?`battle-tanks-presented-/); assert.match(app, /if\(storageKey\)sessionStorage\.setItem/); assert.match(app, /highestPresentedEventId=storageKey\?Number\(sessionStorage\.getItem\(storageKey\)\)\|\|0:0/); assert.match(app, /powerCard\.style\.animation='none';void powerCard\.offsetWidth;powerCard\.style\.removeProperty\('animation'\)/); assert.match(app, /function dismissPowerCard/); assert.doesNotMatch(app, /sendOnline\([^)]*dismiss/i);
+    assert.match(styles, /prefers-reduced-motion:reduce[\s\S]*power-card/); assert.match(styles, /\.power-card-layer\{position:fixed/); assert.match(styles, /@keyframes power-card-play/);
+});
+
+test('Battle Tanks only persists acquisition presentation watermarks for online reconnects', () => {
+    const app = read('battle-tanks/scripts/app.js'), source = app.match(/function presentationStorageKey[^\r\n]+/)?.[0];
+    assert.ok(source); const keyFor = mode => Function('mode', `'use strict';${source};return presentationStorageKey('ROOM-2');`)(mode);
+    assert.equal(keyFor('solo'), null); assert.equal(keyFor('local'), null); assert.equal(keyFor('online'), 'battle-tanks-presented-ROOM-2');
+    assert.match(app, /highestPresentedEventId=storageKey\?Number\(sessionStorage\.getItem\(storageKey\)\)\|\|0:0/, 'a reloaded local match must present event 1 again');
 });
 
 test('Battle Tanks snapshots are versioned and unsupported synchronized state leaves safely', () => {
@@ -129,7 +155,7 @@ test('Battle Tanks instructions and accessible controls cover expanded combat', 
 
 test('Battle Tanks keeps reset, rematch, reconnect, results, callouts, and themes wired', () => {
     const app = read('battle-tanks/scripts/app.js');
-    assert.match(app, /resetMatch\(state\);lastImpactSerial=0/);
+    assert.match(app, /resetMatch\(state\);(?:resetSoloStatistics\(\);)?lastImpactSerial=0/);
     assert.match(app, /sendOnline\(\{type:'rematch'\}\)/);
     assert.match(app, /type:'resume',\.\.\.onlineSession/);
     assert.match(app, /Arcade\.record\(\{game:'battletanks'/);

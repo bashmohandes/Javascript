@@ -20,7 +20,7 @@ topology and subsystem flows. Architectural decisions are indexed in
 | **Minesweeper** | A responsive mine-clearing puzzle with three field sizes, flags, keyboard controls, and saved best times. | [Play modern Minesweeper](https://bashmohandes.github.io/Javascript/Minesweeper/) |
 | **Minesweeper Classic** | The original p5.js experiment, preserved alongside the new game. | [Play Minesweeper Classic](https://bashmohandes.github.io/Javascript/Minesweeper/classic/) |
 | **Pong** | Responsive solo, couch co-op, and public or private online multiplayer Pong. | [Play Pong](https://bashmohandes.github.io/Javascript/pong/) |
-| **Battle Tanks** | Local and authoritative online artillery duels across generated, destructible arenas with pickups, effects, and specialized weapons. | [Play Battle Tanks](https://bashmohandes.github.io/Javascript/battle-tanks/) |
+| **Battle Tanks** | Solo CPU, local, and authoritative online artillery duels across generated, destructible arenas with pickups, effects, and specialized weapons. | [Play Battle Tanks](https://bashmohandes.github.io/Javascript/battle-tanks/) |
 | **Tetris** | An endless single-player marathon with seven-bag pieces, hold, ghost previews, progressive speed, scores, and achievements. | [Play Tetris](https://bashmohandes.github.io/Javascript/tetris/) |
 
 ## Battle Tanks controls and online play
@@ -30,8 +30,10 @@ change terrain and deal distance- and weapon-based splash damage, including
 self-damage. Collect pickups by driving over them, then use the inventory for
 health packs, shields, temporary boosts, online-only invisibility, or ammunition
 for wide-blast, heavy, homing, and reflected-laser weapons; the default shell is
-unlimited. Acquisition cards are replay-safe notifications. Dismissing one is
-local to the browser and does not pause a match.
+unlimited. Acquisition cards are replay-safe notifications. Online reconnects
+do not replay dismissed cards, while every fresh solo or local page run
+announces newly acquired items. Winner and acquisition panels keep their
+content and actions inside the viewport on short screens.
 
 Use `A`/`D` or arrow keys to move, `W`/`S` or up/down to aim, `Q`/`E` or
 minus/plus to change power, and Space to fire. Pointer and touch users can use
@@ -39,12 +41,26 @@ the on-screen controls and, during local play, drag the active tank. The weapon
 selector and full-screen overlay expose weapon, fire, movement, aim, power, and
 exit controls.
 
-Local and online modes use the same deterministic mechanics core. Online rooms
-are server-authoritative and redact invisible opponents and concealed projectile
-origins; local mode is browser-authoritative and does not permit invisibility.
+Solo, local, and online modes use the same deterministic mechanics core. The
+solo CPU moves before each shot, evaluates trajectories in the browser, and
+mixes credible hits with near misses while controlling Player 2. Solo scores use
+only the human player's statistics, and a CPU victory produces no player score.
+Online rooms are server-authoritative and redact invisible opponents and
+concealed projectile origins; solo and local modes are browser-authoritative
+and do not permit invisibility.
 See the [complete Battle Tanks gameplay rules](docs/battle-tanks.md),
 [architecture](docs/architecture.md#battle-tanks-boundaries-and-flow), and
 [ADR 0009](docs/adr/0009-authoritative-battle-tanks-simulation.md).
+
+## Tetris controls and mobile play
+
+Tetris keeps the current score, high score, lines, level, hold, and next-piece
+queue beside the board on mobile in an approximately 70/30 layout, with the
+touch controls still visible below. Line clears use prominent flashes, recoil,
+sparks, and a large clear count; breaking the standing high score is announced
+and highlighted while the run continues. See the
+[Tetris gameplay and responsive-layout guide](docs/tetris.md) and
+[ADR 0010](docs/adr/0010-tetris-marathon-integration.md).
 
 The repository also contains solutions and experiments from LeetCode,
 Codeforces, and Codewars.

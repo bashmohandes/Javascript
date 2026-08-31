@@ -160,19 +160,20 @@ function validateResult(game, wonValue, details, trustedOnline = false) {
         return { won: false, score, normalizedDetails: { mode: 'marathon', seconds, lines, level, pieces, singles, doubles, triples, tetrises, softDropCells, hardDropCells } };
     }
     if (game === 'battletanks') {
-        if (!['local', 'online'].includes(details.mode)) throw new Error('Invalid Battle Tanks mode.');
+        if (!['solo', 'local', 'online'].includes(details.mode)) throw new Error('Invalid Battle Tanks mode.');
         if (details.mode === 'online' && !trustedOnline) throw new Error('Invalid Battle Tanks mode.');
         const field = (name, minimum, maximum) => {
             if (typeof details[name] !== 'number' || !Number.isFinite(details[name]) || !Number.isSafeInteger(details[name])) throw new Error(`Invalid Battle Tanks ${name}.`);
             return integer(details[name], minimum, maximum, `Battle Tanks ${name}`);
         };
-        const winner = field('winner', 1, 2), turns = field('turns', 2, 200), shots = field('shots', details.mode === 'local' ? 2 : 0, 200);
+        const winner = field('winner', 1, 2), turns = field('turns', 2, 200), shots = field('shots', details.mode === 'local' ? 2 : details.mode === 'solo' ? 1 : 0, 200);
         const hits = field('hits', details.mode === 'local' ? 2 : 0, shots), seconds = field('seconds', 1, 7200), damageTaken = field('damageTaken', 0, 100);
         const credibleHealth = winner === 1 ? damageTaken < 100 : damageTaken === 100;
-        if ((details.mode === 'local' && turns !== shots) || (details.mode === 'online' && shots > turns) || won !== (winner === 1) || !credibleHealth) throw new Error('Invalid Battle Tanks result.');
+        if ((details.mode === 'local' && turns !== shots) || (details.mode === 'online' && shots > turns) || (details.mode === 'solo' && shots > Math.ceil(turns / 2)) || won !== (winner === 1) || !credibleHealth) throw new Error('Invalid Battle Tanks result.');
         // Wins rank above losses. Accuracy is worth up to 5,000 points, while
         // fewer turns break otherwise equal matches: 10,000*win + 5,000*hits/shots + 10*(200-turns).
-        const score = (won ? 10000 : 0) + Math.floor(hits * 5000 / shots) + (200 - turns) * 10;
+        // A solo loss is recorded in history at zero; the CPU never contributes leaderboard points.
+        const score = details.mode === 'solo' && !won ? 0 : (won ? 10000 : 0) + Math.floor(hits * 5000 / shots) + (200 - turns) * 10;
         const accuracy = Math.floor(hits * 100 / shots);
         // Expanded clients may report these counters, while older result payloads
         // remain valid. Unknown weapon ids and malformed optional fields are
@@ -194,7 +195,7 @@ function validateResult(game, wonValue, details, trustedOnline = false) {
         const powerUpTypesUsed = [...new Set(suppliedTypes)];
         const counters = {};
         for (const [name, maximum] of Object.entries({ shieldDamageAbsorbed: 12000, healthRestored: 7000, invisibilityActivations: 200, laserRicochetHits: shots, laserSelfDamage: 7000, homingHits: shots, heavyProjectileMaxDamage: 100, poweredHits: shots })) counters[name] = details[name] === undefined ? 0 : field(name, 0, maximum);
-        if (powerUpsUsed > powerUpsAcquired || powerUpTypesUsed.length > powerUpsUsed || counters.invisibilityActivations > powerUpsUsed || counters.healthRestored > powerUpsUsed * 35 || counters.shieldDamageAbsorbed > powerUpsUsed * 60 || counters.invisibilityActivations > powerUpTypesUsed.includes('invisibility') * powerUpsUsed || (details.mode === 'local' && counters.invisibilityActivations !== 0)) throw new Error('Invalid Battle Tanks power-up statistics.');
+        if (powerUpsUsed > powerUpsAcquired || powerUpTypesUsed.length > powerUpsUsed || counters.invisibilityActivations > powerUpsUsed || counters.healthRestored > powerUpsUsed * 35 || counters.shieldDamageAbsorbed > powerUpsUsed * 60 || counters.invisibilityActivations > powerUpTypesUsed.includes('invisibility') * powerUpsUsed || (details.mode !== 'online' && counters.invisibilityActivations !== 0)) throw new Error('Invalid Battle Tanks power-up statistics.');
         if (counters.laserRicochetHits > (optional.weapons?.laser || 0) || counters.homingHits > (optional.weapons?.homing || 0) || counters.heavyProjectileMaxDamage > 0 && !(optional.weapons?.['heavy-shell'] > 0)) throw new Error('Invalid Battle Tanks weapon statistics.');
         return { won, score, normalizedDetails: { mode: details.mode, winner, turns, shots, hits, accuracy, seconds, damageTaken, ...optional, powerUpsAcquired, powerUpsUsed, powerUpTypesUsed, ...counters } };
     }

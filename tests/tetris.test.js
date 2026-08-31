@@ -88,10 +88,12 @@ test('Tetris preserves elapsed time while bounding simulation steps and ignores 
 });
 
 test('Tetris keeps phone controls visible alongside the board', () => {
-    const styles = read('tetris/styles.css');
+    const page = read('tetris/index.html'), styles = read('tetris/styles.css');
     assert.match(styles, /@media\(max-width:780px\)[^{]*\{[\s\S]*?\.touch-controls\{[^}]*position:fixed;[^}]*bottom:max\(8px,env\(safe-area-inset-bottom\)\)/);
     assert.match(styles, /padding-bottom:calc\(160px \+ env\(safe-area-inset-bottom\)\)/);
     assert.match(styles, /\.game-layout \.tetris-stage\{width:min\([^}]*calc\(\(100dvh - 160px - env\(safe-area-inset-bottom\)\)\/2\)\)/);
+    assert.match(styles, /grid-template-columns:minmax\(0,7fr\) minmax\(96px,3fr\)/);
+    assert.match(page, /class="tetris-controls"[\s\S]*class="stats"[\s\S]*id="next"/);
 });
 
 test('Tetris presents escalating, accessible line-clear effects without delaying play', () => {
@@ -101,4 +103,11 @@ test('Tetris presents escalating, accessible line-clear effects without delaying
     assert.match(styles, /data-clear-intensity="2"/); assert.match(styles, /data-clear-intensity="3"/); assert.match(styles, /data-clear-intensity="4"/);
     assert.match(styles, /@keyframes clear-streak/); assert.match(styles, /@keyframes clear-board-jolt/); assert.match(styles, /prefers-reduced-motion:reduce/);
     assert.doesNotMatch(app, /game\.paused\s*=.*clear|clear.*game\.paused/);
+});
+
+test('Tetris updates and celebrates the live high score during a run', () => {
+    const page = read('tetris/index.html'), app = read('tetris/scripts/app.js'), styles = read('tetris/styles.css');
+    assert.match(page, /class="best-stat"[\s\S]*id="best"/); assert.match(page, /id="record-callout"/);
+    assert.match(app, /game\.score > liveBest/); assert.match(app, /function celebrateHighScore/); assert.match(app, /localStorage\.setItem\('tetris-best-score', liveBest\)/);
+    assert.match(styles, /\.best-stat\.is-record/); assert.match(styles, /@keyframes new-record/);
 });

@@ -3,9 +3,9 @@
     const game = new window.TetrisGame();
     const boardElement = document.querySelector('#board'), scoreElement = document.querySelector('#score'), linesElement = document.querySelector('#lines'), levelElement = document.querySelector('#level'), bestElement = document.querySelector('#best');
     const statusElement = document.querySelector('#status'), finishElement = document.querySelector('#finish'), pauseButton = document.querySelector('#pause'), shareButton = document.querySelector('#share-result');
-    const stageElement = document.querySelector('.tetris-stage'), clearEffectElement = document.querySelector('#line-clear-effect'), clearStreaksElement = document.querySelector('#clear-streaks'), clearMultiplierElement = document.querySelector('#clear-multiplier');
+    const stageElement = document.querySelector('.tetris-stage'), clearEffectElement = document.querySelector('#line-clear-effect'), clearStreaksElement = document.querySelector('#clear-streaks'), clearBurstElement = document.querySelector('#clear-burst'), clearMultiplierElement = document.querySelector('#clear-multiplier'), recordCalloutElement = document.querySelector('#record-callout');
     const cells = Array.from({ length: 200 }, () => { const cell = document.createElement('span'); cell.className = 'tetris-cell'; boardElement.append(cell); return cell; });
-    let activeMilliseconds = 0, lastFrame = performance.now(), submitted = false, themeColors = {}, miniatureSignature = '', presentedClearId = 0, clearEffectTimer = 0;
+    let activeMilliseconds = 0, lastFrame = performance.now(), submitted = false, themeColors = {}, miniatureSignature = '', presentedClearId = 0, clearEffectTimer = 0, recordTimer = 0, standingBest = Number(localStorage.getItem('tetris-best-score')) || 0, liveBest = standingBest, recordBroken = false;
     const tokenNames = ['board','grid','border','empty','ghost','ghost-line','ink','panel','overlay','shadow','piece-edge','i','j','l','o','s','t','z'];
     const formatTime = total => `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
     const seconds = () => Math.max(1, Math.floor(activeMilliseconds / 1000));
@@ -33,10 +33,19 @@
         clearStreaksElement.replaceChildren(...clear.rows.map((row, index) => {
             const streak = document.createElement('span'); streak.className = 'clear-streak'; streak.style.setProperty('--clear-row', row); streak.style.setProperty('--clear-delay', `${index * 32}ms`); return streak;
         }));
+        clearBurstElement.replaceChildren(...Array.from({ length: 24 + clear.count * 8 }, (_, index) => {
+            const spark = document.createElement('i'); spark.style.setProperty('--spark-angle', `${index * 137.5}deg`); spark.style.setProperty('--spark-distance', `${75 + index % 7 * 13 + clear.count * 12}px`); spark.style.setProperty('--spark-delay', `${index % 6 * 18}ms`); return spark;
+        }));
         stageElement.classList.remove('is-clearing'); clearEffectElement.classList.remove('is-active'); void clearEffectElement.offsetWidth;
         stageElement.classList.add('is-clearing'); clearEffectElement.classList.add('is-active');
-        clearTimeout(clearEffectTimer); clearEffectTimer = setTimeout(() => { stageElement.classList.remove('is-clearing'); clearEffectElement.classList.remove('is-active'); }, 800);
+        clearTimeout(clearEffectTimer); clearEffectTimer = setTimeout(() => { stageElement.classList.remove('is-clearing'); clearEffectElement.classList.remove('is-active'); }, 1250);
         statusElement.textContent = `${clear.count} line${clear.count === 1 ? '' : 's'} cleared · x${clear.count}`;
+    }
+    function celebrateHighScore() {
+        recordBroken = true; stageElement.classList.remove('is-new-record'); recordCalloutElement.classList.remove('is-active'); void recordCalloutElement.offsetWidth;
+        stageElement.classList.add('is-new-record'); recordCalloutElement.classList.add('is-active'); document.querySelector('.best-stat').classList.add('is-record');
+        statusElement.textContent = `New high score: ${game.score.toLocaleString()}!`;
+        clearTimeout(recordTimer); recordTimer = setTimeout(() => { stageElement.classList.remove('is-new-record'); recordCalloutElement.classList.remove('is-active'); }, 2200);
     }
     function render() {
         const board = game.visibleBoard(), active = new Map(game.activeCells().filter(([,y]) => y >= 0).map(([x,y]) => [`${x},${y}`, game.piece.type])), ghost = new Set(game.ghostCells().filter(([,y]) => y >= 0).map(([x,y]) => `${x},${y}`));
@@ -46,6 +55,8 @@
             if (type) cell.dataset.piece = type; else delete cell.dataset.piece;
         });
         scoreElement.textContent = game.score.toLocaleString(); linesElement.textContent = game.lines; levelElement.textContent = game.level;
+        if (game.score > liveBest) { liveBest = game.score; localStorage.setItem('tetris-best-score', liveBest); }
+        bestElement.textContent = liveBest.toLocaleString(); if (game.score > standingBest && !recordBroken) celebrateHighScore();
         boardElement.setAttribute('aria-label', `Tetris board. Score ${game.score}, ${game.lines} lines, level ${game.level}. ${game.paused ? 'Paused.' : game.gameOver ? 'Run complete.' : `${game.piece.type} piece falling.`}`);
         renderMiniatures(); presentLineClear();
     }
@@ -59,7 +70,7 @@
         window.Arcade?.record({ game: 'tetris', won: false, details: game.details(elapsed) }).catch(() => {});
     }
     function startGame() {
-        game.reset(); activeMilliseconds = 0; submitted = false; miniatureSignature = ''; presentedClearId = 0; clearTimeout(clearEffectTimer); stageElement.classList.remove('is-clearing'); clearEffectElement.classList.remove('is-active');
+        game.reset(); activeMilliseconds = 0; submitted = false; miniatureSignature = ''; presentedClearId = 0; standingBest = Number(localStorage.getItem('tetris-best-score')) || 0; liveBest = standingBest; recordBroken = false; clearTimeout(clearEffectTimer); clearTimeout(recordTimer); stageElement.classList.remove('is-clearing','is-new-record'); clearEffectElement.classList.remove('is-active'); recordCalloutElement.classList.remove('is-active'); document.querySelector('.best-stat').classList.remove('is-record');
         finishElement.hidden = true; pauseButton.textContent = 'Pause'; statusElement.textContent = 'Use the controls to place the falling piece.'; lastFrame = performance.now(); render(); boardElement.focus?.();
     }
     function act(action) {
@@ -103,5 +114,5 @@
         }
         requestAnimationFrame(frame);
     }
-    bestElement.textContent = (Number(localStorage.getItem('tetris-best-score')) || 0).toLocaleString(); updateTetrisTheme(); render(); requestAnimationFrame(frame);
+    bestElement.textContent = standingBest.toLocaleString(); updateTetrisTheme(); render(); requestAnimationFrame(frame);
 })();

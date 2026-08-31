@@ -24,8 +24,11 @@ destroys both tanks the match is a draw; otherwise the surviving tank wins.
 Pickups are scheduled deterministically every three completed turns through
 turn 18, with at most three on the arena and three items in each inventory.
 Drive over one to collect it. Acquisition cards describe the collected item;
-dismissal (including <kbd>Escape</kbd>) is local to that browser and never pauses
-shared gameplay.
+dismissal (including <kbd>Escape</kbd>) is local to that browser. Online matches
+remember dismissed event IDs for that room and match so reconnects do not replay
+old cards. Solo and local matches start with a fresh in-memory dismissal guard
+on every page load, so a newly acquired item is never hidden by an ID saved from
+an earlier match. Dismissing a card never mutates shared match state.
 
 Stable power-up IDs are `health-pack`, `shield`, `invisibility`,
 `weapon-wide-blast`, `weapon-heavy-shell`, `weapon-homing`, `weapon-laser`,
@@ -37,11 +40,19 @@ Stable weapon IDs are `shell`, `wide-blast`, `heavy-shell`, `homing`, and
 `laser`. The standard shell has unlimited ammunition. Each weapon pickup grants
 two rounds. Wide blast trades peak damage for a larger radius. Heavy shells are
 slower but inflict greater damage and deformation. Homing missiles begin
-ballistically, acquire a visible opponent after a short delay when in range,
-then steer with bounded turn rate; they cannot lock onto an invisible tank.
+ballistically, climb toward a clearance waypoint while an intact central wall
+blocks the route, then pursue a visible opponent with a bounded turn rate. They
+cannot lock onto an invisible tank. With no wall cells remaining, they acquire
+the opponent directly after the normal short delay and range check.
 Lasers reflect from collision surfaces, lose energy on every reflection, and
 stop after five bounces, 1,800 arena units, insufficient energy, or a tank hit.
 Reflected lasers can damage their shooter.
+
+Projectile launches and impacts use deliberately prominent trails, flashes,
+particles, screen shake, and damage callouts. Reduced-motion preferences retain
+clear static feedback without the large movement effects. Acquisition and winner
+cards are sized against the dynamic viewport and safe areas so their information
+and actions remain available without page scrolling, including on short screens.
 
 ## Invisibility and online play
 
@@ -55,11 +66,19 @@ reconstruct or reveal its concealed launch path.
 
 ## Controls
 
+Single player puts you in the Player 1 tank against the CPU. The CPU evaluates
+legal weapon, angle, and power combinations against the current destructible
+arena, repositions before every shot, and deliberately mixes partial-damage
+shots with credible near misses. Its choices are deterministic for the match
+and use the same movement and combat mechanics as local players. It is designed
+to remain fallible rather than maximize damage on every turn.
+Local 2-player keeps both tanks under shared keyboard, pointer, or touch control.
+
 Use <kbd>A</kbd>/<kbd>D</kbd> or <kbd>←</kbd>/<kbd>→</kbd> to move,
 <kbd>W</kbd>/<kbd>S</kbd> or <kbd>↑</kbd>/<kbd>↓</kbd> to aim, and
 <kbd>Q</kbd>/<kbd>E</kbd>, <kbd>−</kbd>/<kbd>+</kbd>, or the on-screen controls
 to change power. Press <kbd>Space</kbd> or **Fire** to shoot. Pointer and touch
-players can use all visible buttons; in local mode they may also drag the active
+players can use all visible buttons; in solo or local mode they may also drag the active
 tank horizontally. The weapon selector chooses available ammunition. **Enter
 full screen** adds movement, aim, power, weapon, fire, and exit controls over
 the arena.
@@ -73,8 +92,10 @@ Battle Tanks result details use a versioned schema. Common fields are `mode`,
 `powerUpTypesUsed`, `shieldDamageAbsorbed`, `healthRestored`,
 `invisibilityActivations`, `laserRicochetHits`, `laserSelfDamage`,
 `homingHits`, `heavyProjectileMaxDamage`, and `poweredHits`. Weapon and
-power-up keys use the stable IDs above. Online values are produced by the room
-server; local values are validated but inherently less trusted.
+power-up keys use the stable IDs above. In `solo` results, `shots`, `hits`,
+accuracy, weapons, and power-up statistics belong only to the human Player 1;
+CPU victories score zero. Online values are produced by the room server; solo
+and local values are validated but inherently less trusted.
 
 Most Battle Tanks achievements are per-match milestones: finishing or winning,
 accuracy, no damage, online play, acquisition and variety, shield absorption,
