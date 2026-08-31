@@ -52,7 +52,14 @@ keyboard focus order, game rules, required controls, and responsive access to
 the play area.
 
 Old `arcade-theme` values migrate to `arcade-color-preference`; the experience
-defaults to `playful`, preserving the previous design.
+continues to default to the compatibility id `playful`.
+
+The stored `playful` id is retained as a compatibility boundary, but its
+user-facing name is **Field Manual**. Its visual contract is deliberately
+specific to this repository: indexed game specimens, ruled-paper geometry,
+hard-edged controls, and a small ink/cobalt/signal palette. Keeping the id
+avoids invalidating existing preferences while allowing the default experience
+to evolve without a second migration path.
 
 ## Consequences
 

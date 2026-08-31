@@ -11,6 +11,7 @@ const games = fs.readFileSync('styles/modern-game.css', 'utf8');
 
 test('registry provides three curated themes with independent color preferences', () => {
     for (const theme of ['playful', 'cabinet', 'calm']) assert.match(init, new RegExp(`id: '${theme}'`));
+    assert.match(init, /id: 'playful', name: 'Field Manual'/);
     assert.match(init, /colorPreferences: Object\.freeze\(\['system', 'light', 'dark'\]\)/);
     assert.match(init, /arcade-experience-theme/);
     assert.match(init, /arcade-color-preference/);

@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="theme-color" content="#101827">
+    <meta name="theme-color" content="#ebe5d8">
     <meta name="description" content="A collection of small JavaScript games, from the original experiments to their modern reimaginings.">
     <script src="theme-init.js"></script>
     <title>JavaScript Arcade</title>
@@ -18,52 +18,52 @@
     <style>
         :root {
             color-scheme: light;
-            --ink: #20352f;
-            --muted: #65766f;
-            --panel: rgba(255, 253, 248, 0.92);
-            --line: rgba(32, 53, 47, 0.14);
-            --accent: #6c3bff;
+            --ink: #171917;
+            --muted: #5c625a;
+            --panel: #f5f0e5;
+            --line: rgba(23, 25, 23, 0.34);
+            --accent: #233fc7;
             --accent-contrast: #ffffff;
-            --page-background: #f7f3eb;
-            --page-glow-start: rgba(104, 202, 179, 0.28);
-            --page-glow-end: rgba(187, 151, 221, 0.2);
-            --card-shadow: rgba(55, 72, 65, 0.14);
-            --control-fill: rgba(32, 53, 47, 0.055);
-            --hover-line: rgba(32, 53, 47, 0.42);
-            --focus-ring: rgba(22, 130, 103, 0.32);
-            --default-glow: rgba(43, 173, 141, 0.14);
-            --blue-glow: rgba(68, 118, 221, 0.13);
-            --purple-glow: rgba(153, 78, 196, 0.13);
-            --sunshine: #ffd84d;
-            --hot-pink: #ff4fa3;
-            --sky-blue: #27b4ff;
-            --lime: #8bdc3c;
-            --orange: #ff7a3d;
+            --page-background: #ebe5d8;
+            --page-glow-start: transparent;
+            --page-glow-end: transparent;
+            --card-shadow: transparent;
+            --control-fill: rgba(23, 25, 23, 0.06);
+            --hover-line: #171917;
+            --focus-ring: rgba(35, 63, 199, 0.36);
+            --default-glow: transparent;
+            --blue-glow: transparent;
+            --purple-glow: transparent;
+            --sunshine: #d9ff43;
+            --hot-pink: #ef542f;
+            --sky-blue: #233fc7;
+            --lime: #8da230;
+            --orange: #ef542f;
         }
 
         :root[data-theme="dark"] {
             color-scheme: dark;
-            --ink: #f7f8fc;
-            --muted: #aab4c5;
-            --panel: rgba(24, 35, 53, 0.76);
-            --line: rgba(255, 255, 255, 0.11);
-            --accent: #a98cff;
-            --accent-contrast: #160d38;
-            --page-background: #0d1420;
-            --page-glow-start: rgba(46, 101, 120, 0.45);
-            --page-glow-end: rgba(81, 58, 120, 0.35);
-            --card-shadow: rgba(0, 0, 0, 0.18);
+            --ink: #eeeadd;
+            --muted: #a9aea4;
+            --panel: #1b1e1a;
+            --line: rgba(238, 234, 221, 0.32);
+            --accent: #8fa2ff;
+            --accent-contrast: #10141d;
+            --page-background: #121411;
+            --page-glow-start: transparent;
+            --page-glow-end: transparent;
+            --card-shadow: transparent;
             --control-fill: rgba(255, 255, 255, 0.05);
             --hover-line: rgba(255, 255, 255, 0.4);
-            --focus-ring: rgba(131, 230, 195, 0.45);
-            --default-glow: rgba(131, 230, 195, 0.16);
-            --blue-glow: rgba(114, 157, 255, 0.18);
-            --purple-glow: rgba(206, 132, 255, 0.18);
-            --sunshine: #ffdb59;
-            --hot-pink: #ff70b7;
-            --sky-blue: #53c3ff;
-            --lime: #a4e85f;
-            --orange: #ff9363;
+            --focus-ring: rgba(143, 162, 255, 0.48);
+            --default-glow: transparent;
+            --blue-glow: transparent;
+            --purple-glow: transparent;
+            --sunshine: #d9ff43;
+            --hot-pink: #ff6a43;
+            --sky-blue: #8fa2ff;
+            --lime: #b8c965;
+            --orange: #ff6a43;
         }
 
         * { box-sizing: border-box; }
@@ -311,16 +311,210 @@
         :root[data-arcade-theme="calm"] .card { min-height:0;border-width:1px;border-radius:2px;box-shadow:none;backdrop-filter:none; }
         @media(max-width:900px){:root[data-arcade-theme="cabinet"] .game-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
         @media(max-width:650px){:root[data-arcade-theme] .game-grid{grid-template-columns:1fr}:root[data-arcade-theme="calm"] .shell{width:min(100% - 28px,1040px)}}
+
+        /* The stored "playful" id now renders the arcade's Field Manual identity. */
+        :root[data-arcade-theme="playful"] body {
+            background-color: var(--page-background);
+            background-image:
+                linear-gradient(90deg, transparent calc(100% - 1px), color-mix(in srgb, var(--ink) 8%, transparent) 0),
+                linear-gradient(transparent calc(100% - 1px), color-mix(in srgb, var(--ink) 8%, transparent) 0);
+            background-size: 40px 40px;
+            font-family: "Arial Narrow", "Aptos Narrow", "Roboto Condensed", Arial, sans-serif;
+        }
+        :root[data-arcade-theme="playful"] .shell { width:min(1240px,calc(100% - 48px));padding:46px 0 72px; }
+        :root[data-arcade-theme="playful"] .shell::before { display:none; }
+        :root[data-arcade-theme="playful"] .hero {
+            display:grid;
+            grid-template-columns:minmax(0,1.4fr) minmax(230px,.6fr);
+            gap:clamp(32px,7vw,96px);
+            align-items:end;
+            margin-bottom:44px;
+            padding:0 0 34px;
+            border-bottom:4px solid var(--ink);
+        }
+        :root[data-arcade-theme="playful"] .eyebrow {
+            grid-column:1/-1;
+            width:max-content;
+            margin:0;
+            padding:5px 8px;
+            color:var(--ink);
+            background:var(--sunshine);
+            border:1px solid var(--ink);
+            border-radius:0;
+            box-shadow:none;
+            font-family:ui-monospace,"SFMono-Regular",Consolas,monospace;
+            font-size:11px;
+            letter-spacing:.16em;
+        }
+        :root[data-arcade-theme="playful"] h1 {
+            max-width:760px;
+            font-family:Georgia,"Times New Roman",serif;
+            font-size:clamp(48px,7vw,92px);
+            font-weight:400;
+            letter-spacing:-.055em;
+            line-height:.88;
+        }
+        :root[data-arcade-theme="playful"] h1 .pop {
+            display:block;
+            color:var(--accent);
+            font-style:italic;
+            text-shadow:none;
+            -webkit-text-stroke:0;
+        }
+        :root[data-arcade-theme="playful"] .intro {
+            max-width:360px;
+            margin:0;
+            padding-top:14px;
+            border-top:1px solid var(--ink);
+            font-family:ui-monospace,"SFMono-Regular",Consolas,monospace;
+            font-size:13px;
+            line-height:1.65;
+        }
+        :root[data-arcade-theme="playful"] .hero-spark { display:none; }
+        :root[data-arcade-theme="playful"] .game-grid {
+            counter-reset:game-index;
+            grid-template-columns:repeat(2,minmax(0,1fr));
+            grid-auto-rows:1fr;
+            gap:0;
+            border-top:1px solid var(--ink);
+            border-left:1px solid var(--ink);
+        }
+        :root[data-arcade-theme="playful"] .card {
+            counter-increment:game-index;
+            display:grid;
+            grid-template-columns:74px minmax(0,1fr);
+            min-height:320px;
+            padding:0;
+            background:var(--panel);
+            border:0;
+            border-right:1px solid var(--ink);
+            border-bottom:1px solid var(--ink);
+            border-radius:0;
+            box-shadow:none;
+            backdrop-filter:none;
+            transition:background 160ms ease,color 160ms ease;
+        }
+        :root[data-arcade-theme="playful"] .card::before {
+            position:absolute;
+            top:14px;
+            left:16px;
+            width:auto;
+            height:auto;
+            color:var(--muted);
+            background:transparent;
+            content:"0" counter(game-index);
+            font:11px/1 ui-monospace,"SFMono-Regular",Consolas,monospace;
+            letter-spacing:.08em;
+        }
+        :root[data-arcade-theme="playful"] .card::after { display:none; }
+        :root[data-arcade-theme="playful"] .card:hover {
+            color:var(--ink);
+            background:color-mix(in srgb,var(--sunshine) 54%,var(--panel));
+            box-shadow:none;
+            transform:none;
+        }
+        :root[data-arcade-theme="playful"] .card:nth-child(even):hover { transform:none; }
+        :root[data-arcade-theme="playful"] .card-top {
+            display:flex;
+            flex-direction:column;
+            align-items:center;
+            justify-content:space-between;
+            gap:16px;
+            min-width:0;
+            margin:0;
+            padding:48px 11px 18px;
+            border-right:1px solid var(--ink);
+        }
+        :root[data-arcade-theme="playful"] .game-icon {
+            width:38px;
+            height:38px;
+            color:var(--ink);
+            background:transparent;
+            border:1px solid var(--ink);
+            border-radius:0;
+            box-shadow:none;
+            font:700 15px/1 ui-monospace,"SFMono-Regular",Consolas,monospace;
+            transform:none;
+        }
+        :root[data-arcade-theme="playful"] .badge {
+            padding:0;
+            color:var(--muted);
+            background:transparent;
+            border:0;
+            border-radius:0;
+            font:9px/1.25 ui-monospace,"SFMono-Regular",Consolas,monospace;
+            letter-spacing:.08em;
+            writing-mode:vertical-rl;
+            transform:rotate(180deg);
+        }
+        :root[data-arcade-theme="playful"] .card-copy { display:flex;flex-direction:column;padding:30px clamp(24px,4vw,44px) 28px; }
+        :root[data-arcade-theme="playful"] h2 {
+            margin:0 0 14px;
+            font-family:Georgia,"Times New Roman",serif;
+            font-size:clamp(36px,4vw,54px);
+            font-weight:400;
+            letter-spacing:-.05em;
+            line-height:1;
+        }
+        :root[data-arcade-theme="playful"] .card-copy>p { max-width:48ch;font-size:15px;line-height:1.5; }
+        :root[data-arcade-theme="playful"] .capabilities { gap:0;margin:22px 0 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line); }
+        :root[data-arcade-theme="playful"] .capability {
+            gap:6px;
+            padding:8px 10px 8px 0;
+            background:transparent;
+            border:0;
+            border-radius:0;
+            font:10px/1.2 ui-monospace,"SFMono-Regular",Consolas,monospace;
+            letter-spacing:.03em;
+            text-transform:uppercase;
+        }
+        :root[data-arcade-theme="playful"] .capability+ .capability { padding-left:10px;border-left:1px solid var(--line); }
+        :root[data-arcade-theme="playful"] .capability svg { width:14px;height:14px;color:var(--accent); }
+        :root[data-arcade-theme="playful"] .actions { margin-top:auto;padding-top:24px; }
+        :root[data-arcade-theme="playful"] .button {
+            min-height:42px;
+            padding:0 14px;
+            border:1px solid var(--ink);
+            border-radius:0;
+            font:700 11px/1 ui-monospace,"SFMono-Regular",Consolas,monospace;
+            letter-spacing:.04em;
+            text-transform:uppercase;
+        }
+        :root[data-arcade-theme="playful"] .button-primary { color:var(--panel);background:var(--ink);box-shadow:none; }
+        :root[data-arcade-theme="playful"] .button-secondary { background:transparent; }
+        :root[data-arcade-theme="playful"] .button:hover { color:var(--panel);background:var(--accent);border-color:var(--accent);box-shadow:none;transform:none; }
+        :root[data-arcade-theme="playful"] footer {
+            display:flex;
+            justify-content:space-between;
+            margin-top:28px;
+            padding-top:12px;
+            border-top:1px solid var(--ink);
+            font:10px/1.4 ui-monospace,"SFMono-Regular",Consolas,monospace;
+            letter-spacing:.1em;
+            text-align:left;
+            text-transform:uppercase;
+        }
+        :root[data-arcade-theme="playful"] footer::after { content:"Open source / no build step"; }
+        @media(max-width:760px){
+            :root[data-arcade-theme="playful"] .shell{width:min(100% - 24px,620px);padding-top:28px}
+            :root[data-arcade-theme="playful"] .hero{grid-template-columns:1fr;gap:24px;margin-bottom:30px}
+            :root[data-arcade-theme="playful"] .eyebrow{grid-column:auto}
+            :root[data-arcade-theme="playful"] .game-grid{grid-template-columns:1fr}
+            :root[data-arcade-theme="playful"] .card{min-height:0;grid-template-columns:54px minmax(0,1fr)}
+            :root[data-arcade-theme="playful"] .card-top{padding-inline:7px}
+            :root[data-arcade-theme="playful"] .card::before{left:10px}
+            :root[data-arcade-theme="playful"] .card-copy{padding:26px 20px 24px}
+            :root[data-arcade-theme="playful"] .actions{flex-direction:column}
+            :root[data-arcade-theme="playful"] footer{gap:18px}
+        }
     </style>
 </head>
 <body>
     <main class="shell">
         <section class="hero" aria-labelledby="page-title">
-            <p class="eyebrow">Pick a game</p>
-            <h1 id="page-title">Your next <span class="pop">high score</span> starts here.</h1>
-            <span class="hero-spark hero-spark-one" aria-hidden="true">✦</span>
-            <span class="hero-spark hero-spark-two" aria-hidden="true">✹</span>
-            <p class="intro">Six games. Zero boring meetings. Pick a challenge, chase a high score, and sign in to keep your wins across the whole arcade.</p>
+            <p class="eyebrow">JS/A · Field index 01—06</p>
+            <h1 id="page-title">Playable programs. <span class="pop">Kept close to the code.</span></h1>
+            <p class="intro">Six browser games, from first experiments to sharper editions. Choose a specimen, learn its rules, and keep your scores in one place.</p>
         </section>
 
         <section class="game-grid" aria-label="Games">
@@ -418,7 +612,7 @@
             </article>
         </section>
 
-        <footer>Built with JavaScript and a healthy sense of curiosity.</footer>
+        <footer><span>Built with JavaScript and a healthy sense of curiosity.</span></footer>
     </main>
     <script src="arcade.js"></script>
 </body>

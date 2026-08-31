@@ -16,11 +16,14 @@ test('competitive games consume shared styles without cross-game imports', () =>
     assert.doesNotMatch(read('tictactoe/index.html'), /(?:src|href)=["'][^"']*pong/i);
 });
 
-test('every modern game consumes the shared playful design language', () => {
+test('every modern game consumes the shared Field Manual design language', () => {
     const games = ['pong', 'tictactoe', 'battle-tanks', 'Sudoku', 'Minesweeper', 'tetris'];
     const design = read('styles/modern-game.css');
 
-    assert.match(design, /--game-pop:#ff4fa3/);
+    assert.match(design, /--game-pop:#ef542f/);
+    assert.match(design, /--paper:#ebe5d8/);
+    assert.match(design, /background-size:40px 40px/);
+    assert.match(design, /border-radius:0/);
     assert.match(design, /\.modern-game \.brand-mark/);
     assert.match(design, /prefers-reduced-motion:reduce/);
     for (const game of games) {

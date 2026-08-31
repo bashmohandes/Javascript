@@ -9,16 +9,17 @@ const styles = fs.readFileSync('profile.css', 'utf8');
 
 test('profile defines light and dark theme palettes', () => {
     assert.match(profile, /href="profile\.css"/);
-    assert.match(styles, /:root\s*\{[^}]*color-scheme:\s*light;[^}]*--page:\s*#f7f3eb/s);
-    assert.match(styles, /:root\[data-theme="dark"\]\s*\{[^}]*color-scheme:\s*dark;[^}]*--page:\s*#0d1420/s);
-    assert.match(styles, /background:[\s\S]*var\(--page\);/);
+    assert.match(styles, /:root\s*\{[^}]*color-scheme:\s*light;[^}]*--page:\s*#ebe5d8/s);
+    assert.match(styles, /:root\[data-theme="dark"\]\s*\{[^}]*color-scheme:\s*dark;[^}]*--page:\s*#121411/s);
+    assert.match(styles, /background-color:\s*var\(--page\);/);
 });
 
-test('profile uses the playful arcade shell and card language', () => {
+test('profile uses the shared Field Manual shell and ledger panel language', () => {
     assert.match(profile, /src="arcade\.js"/);
     assert.doesNotMatch(profile, /class="profile-nav"/);
-    assert.match(profile, /class="hero-spark"/);
-    assert.match(styles, /\.panel\s*\{[^}]*border:\s*3px solid var\(--ink\);[^}]*box-shadow:/s);
+    assert.doesNotMatch(profile, /class="hero-spark"/);
+    assert.match(profile, /Player record · live ledger/);
+    assert.match(styles, /\.panel\s*\{[^}]*border:2px solid var\(--ink\);[^}]*border-radius:0;[^}]*box-shadow:none;/s);
     assert.match(styles, /\.panel::before/);
 });
 

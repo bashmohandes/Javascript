@@ -1,29 +1,30 @@
-:root { --arcade-nav-ink:#20352f; --arcade-nav-bg:rgba(255,253,248,.94); --arcade-nav-line:rgba(32,53,47,.18); --arcade-dialog-bg:#fffdf8; --arcade-dialog-muted:#6d7d76; --arcade-dialog-field:#f3eee5; --arcade-dialog-shadow:#20352f33; }
-:root[data-theme="dark"] { --arcade-nav-ink:#f3f7f4; --arcade-nav-bg:rgba(17,27,24,.94); --arcade-nav-line:rgba(255,255,255,.16); --arcade-dialog-bg:#17231f; --arcade-dialog-muted:#aab8b1; --arcade-dialog-field:#0e1714; --arcade-dialog-shadow:#0009; }
+:root { --arcade-nav-ink:#171917; --arcade-nav-bg:#ebe5d8; --arcade-nav-line:#171917; --arcade-dialog-bg:#f5f0e5; --arcade-dialog-muted:#5c625a; --arcade-dialog-field:#ddd7ca; --arcade-dialog-shadow:transparent; --arcade-signal:#ef542f; --arcade-highlight:#d9ff43; --arcade-blue:#233fc7; }
+:root[data-theme="dark"] { --arcade-nav-ink:#eeeadd; --arcade-nav-bg:#121411; --arcade-nav-line:#eeeadd; --arcade-dialog-bg:#1b1e1a; --arcade-dialog-muted:#a9aea4; --arcade-dialog-field:#272a25; --arcade-dialog-shadow:transparent; --arcade-signal:#ff6a43; --arcade-highlight:#d9ff43; --arcade-blue:#8fa2ff; }
 /* A shared navigation surface keeps account controls clear of page headers. */
 body:not(.arcade-has-topbar)::before { display:block; height:env(safe-area-inset-top); content:""; }
-.arcade-topbar { position:relative; z-index:1000; width:100%; padding:calc(12px + env(safe-area-inset-top)) max(18px,env(safe-area-inset-right)) 12px max(18px,env(safe-area-inset-left)); color:var(--arcade-nav-ink); background:var(--arcade-nav-bg); border-bottom:1px solid var(--arcade-nav-line); box-shadow:0 8px 28px color-mix(in srgb,var(--arcade-dialog-shadow) 45%,transparent); font:700 13px/1.2 system-ui,sans-serif; backdrop-filter:blur(18px); }
+.arcade-topbar { position:relative; z-index:1000; width:100%; padding:calc(10px + env(safe-area-inset-top)) max(18px,env(safe-area-inset-right)) 10px max(18px,env(safe-area-inset-left)); color:var(--arcade-nav-ink); background:var(--arcade-nav-bg); border-bottom:2px solid var(--arcade-nav-line); box-shadow:none; font:700 12px/1.2 ui-monospace,"SFMono-Regular",Consolas,monospace; }
 .arcade-topbar-inner { display:flex; align-items:center; justify-content:space-between; gap:24px; width:min(1120px,100%); min-height:48px; margin:0 auto; }
-.arcade-home { display:inline-flex; flex:0 0 auto; align-items:center; gap:11px; color:inherit; font-size:15px; font-weight:900; letter-spacing:-.025em; text-decoration:none; }
-.arcade-home-mark { display:grid; width:38px; height:38px; place-items:center; color:#fff; background:linear-gradient(135deg,#ff4fa3,#6c3bff); border:2px solid var(--arcade-nav-ink); border-radius:12px; box-shadow:3px 3px 0 var(--arcade-nav-ink); font:900 12px ui-monospace,"SFMono-Regular",Consolas,monospace; }
+.arcade-home { display:inline-flex; flex:0 0 auto; align-items:center; gap:11px; color:inherit; font-size:13px; font-weight:900; letter-spacing:.02em; text-decoration:none; text-transform:uppercase; }
+.arcade-home-mark { display:grid; width:38px; height:38px; place-items:center; color:var(--arcade-nav-bg); background:var(--arcade-nav-ink); border:0; border-radius:0; box-shadow:inset -7px 0 var(--arcade-signal); font:900 11px ui-monospace,"SFMono-Regular",Consolas,monospace; }
 .arcade-account { display:flex; align-items:center; justify-content:flex-end; gap:8px; min-width:0; }
 body.arena-fullscreen .arcade-topbar { display:none; }
 body.arena-fullscreen .arcade-account { display:none; }
-.arcade-account a, .arcade-account button { padding: 8px 11px; color: inherit; background: transparent; border: 0; border-radius: 9px; font: inherit; text-decoration: none; cursor: pointer; }
-.arcade-account button { color: #10271f; background: #83e6c3; }
+.arcade-account a, .arcade-account button { padding:8px 10px; color:inherit; background:transparent; border:1px solid transparent; border-radius:0; font:inherit; text-decoration:none; cursor:pointer; }
+.arcade-account a:hover { border-color:var(--arcade-nav-line); }
+.arcade-account button { color:#171917; background:var(--arcade-highlight); border-color:var(--arcade-nav-line); }
 .arcade-appearance-button::before { margin-right:6px; content:'◐'; }
-.arcade-theme { display:flex; padding:3px; border-radius:9px; background:var(--arcade-dialog-field); }
+.arcade-theme { display:flex; padding:2px; border-radius:0; background:var(--arcade-dialog-field); }
 .arcade-account .arcade-theme button { padding:5px 7px; color:var(--arcade-dialog-muted); background:transparent; }
-.arcade-account .arcade-theme button[aria-checked="true"] { color:var(--arcade-nav-ink); background:var(--arcade-dialog-bg); box-shadow:0 1px 5px var(--arcade-dialog-shadow); }
-.arcade-theme button:focus-visible { outline:2px solid #d76b45; outline-offset:1px; }
-.arcade-dialog { width: min(420px, calc(100% - 32px)); padding: 0; color: var(--arcade-nav-ink); background: var(--arcade-dialog-bg); border: 1px solid var(--arcade-nav-line); border-radius: 20px; box-shadow: 0 24px 80px var(--arcade-dialog-shadow); }
+.arcade-account .arcade-theme button[aria-checked="true"] { color:var(--arcade-nav-bg); background:var(--arcade-nav-ink); box-shadow:none; }
+.arcade-theme button:focus-visible { outline:3px solid var(--arcade-blue); outline-offset:1px; }
+.arcade-dialog { width:min(420px,calc(100% - 32px)); padding:0; color:var(--arcade-nav-ink); background:var(--arcade-dialog-bg); border:2px solid var(--arcade-nav-line); border-radius:0; box-shadow:10px 10px 0 color-mix(in srgb,var(--arcade-nav-line) 28%,transparent); }
 .arcade-dialog::backdrop { background: rgba(5,10,18,.72); backdrop-filter: blur(4px); }
 .arcade-auth { display: grid; gap: 16px; padding: 26px; font: 15px/1.5 system-ui, sans-serif; }
 .arcade-auth h2, .arcade-auth p { margin: 0; }
 .arcade-auth label { display: grid; gap: 6px; color: var(--arcade-dialog-muted); }
-.arcade-auth input { width: 100%; padding: 12px; color: var(--arcade-nav-ink); background: var(--arcade-dialog-field); border: 1px solid var(--arcade-nav-line); border-radius: 10px; font: inherit; }
+.arcade-auth input { width:100%; padding:12px; color:var(--arcade-nav-ink); background:var(--arcade-dialog-field); border:1px solid var(--arcade-nav-line); border-radius:0; font:inherit; }
 .arcade-auth-actions { display: flex; gap: 9px; }
-.arcade-auth-actions button { flex: 1; padding: 11px; color: #10271f; background: #83e6c3; border: 0; border-radius: 10px; font: 700 14px system-ui; cursor: pointer; }
+.arcade-auth-actions button { flex:1; padding:11px; color:#171917; background:var(--arcade-highlight); border:1px solid var(--arcade-nav-line); border-radius:0; font:700 12px ui-monospace,"SFMono-Regular",Consolas,monospace; cursor:pointer; text-transform:uppercase; }
 .arcade-auth-actions .secondary { color: var(--arcade-nav-ink); background: var(--arcade-dialog-field); }
 .arcade-auth-message { min-height: 1.5em; color: #ffb3a7; }
 .result-share-dialog { width: min(680px, calc(100% - 28px)); overflow: hidden; }
@@ -56,7 +57,7 @@ body.arena-fullscreen .arcade-account { display:none; }
 @media(max-width:650px){.top-score-toast{right:10px;bottom:78px;width:calc(100% - 20px)}}
 
 /* Appearance picker and experience-level shell tokens. */
-:root { --arcade-shell-width:1120px; --arcade-shell-radius:20px; --arcade-shell-gap:24px; }
+:root { --arcade-shell-width:1240px; --arcade-shell-radius:0; --arcade-shell-gap:20px; }
 :root[data-arcade-theme="cabinet"] { --arcade-shell-width:1280px; --arcade-shell-radius:4px; --arcade-shell-gap:14px; --arcade-nav-bg:#15182a; --arcade-nav-ink:#fff4d0; --arcade-nav-line:#ffcf4a66; --arcade-dialog-bg:#1b1f35; --arcade-dialog-field:#101321; --arcade-dialog-muted:#b9b7c9; }
 :root[data-arcade-theme="cabinet"][data-color-mode="light"] { --arcade-nav-bg:#382c42; --arcade-dialog-bg:#fff3d6; --arcade-dialog-field:#ead8b1; --arcade-dialog-muted:#65566a; }
 :root[data-arcade-theme="cabinet"][data-color-mode="light"] .arcade-dialog { --arcade-nav-ink:#382c42; }
@@ -72,8 +73,21 @@ body.arena-fullscreen .arcade-account { display:none; }
 .arcade-appearance-dialog header { display:flex; align-items:flex-start; justify-content:space-between; gap:20px; }
 .arcade-appearance-dialog :is(h2,p) { margin:0; }.arcade-appearance-dialog h2{font-size:28px}.arcade-appearance-dialog header small{color:var(--arcade-dialog-muted);font-weight:800;text-transform:uppercase;letter-spacing:.1em}.arcade-appearance-dialog header>button{width:36px;height:36px;padding:0;color:var(--arcade-nav-ink);background:var(--arcade-dialog-field);border:0;border-radius:50%;font-size:24px;cursor:pointer}
 .arcade-appearance-intro{padding:8px 0 20px;color:var(--arcade-dialog-muted)}
-.arcade-theme-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.arcade-theme-grid>button{display:grid;gap:9px;min-width:0;padding:12px;color:var(--arcade-nav-ink);background:var(--arcade-dialog-field);border:2px solid transparent;border-radius:14px;text-align:left;cursor:pointer}.arcade-theme-grid>button[aria-pressed="true"]{border-color:#83e6c3;box-shadow:0 0 0 2px #83e6c344}.arcade-theme-grid strong{font-size:16px}.arcade-theme-grid small{color:var(--arcade-dialog-muted);line-height:1.35}
-.arcade-theme-preview{display:grid;grid-template-columns:1fr 1.5fr;grid-template-rows:1fr 1fr;gap:4px;height:82px;padding:8px;background:#f7f3eb;border-radius:9px}.arcade-theme-preview i{display:block;background:#ff4fa3;border:2px solid #20352f;border-radius:6px}.arcade-theme-preview i:first-child{grid-row:1/-1;background:#6c3bff}.preview-cabinet{gap:3px;background:#090b13;border-radius:2px}.preview-cabinet i{background:#16e0bd;border-color:#ffcf4a;border-radius:0}.preview-cabinet i:first-child{background:#ff3ea5}.preview-calm{gap:8px;padding:12px;background:#eef4f1;border-radius:0}.preview-calm i{background:#cfddd7;border:1px solid #527068;border-radius:0}.preview-calm i:first-child{background:#7e9f94}
+.arcade-theme-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.arcade-theme-grid>button{display:grid;gap:9px;min-width:0;padding:12px;color:var(--arcade-nav-ink);background:var(--arcade-dialog-field);border:2px solid transparent;border-radius:0;text-align:left;cursor:pointer}.arcade-theme-grid>button[aria-pressed="true"]{border-color:var(--arcade-blue);box-shadow:none}.arcade-theme-grid strong{font-size:16px}.arcade-theme-grid small{color:var(--arcade-dialog-muted);line-height:1.35}
+.arcade-theme-preview{display:grid;grid-template-columns:1fr 1.5fr;grid-template-rows:1fr 1fr;gap:3px;height:82px;padding:8px;background:#ebe5d8;border-radius:0}.arcade-theme-preview i{display:block;background:#ef542f;border:1px solid #171917;border-radius:0}.arcade-theme-preview i:first-child{grid-row:1/-1;background:#233fc7}.preview-cabinet{gap:3px;background:#090b13;border-radius:2px}.preview-cabinet i{background:#16e0bd;border-color:#ffcf4a;border-radius:0}.preview-cabinet i:first-child{background:#ff3ea5}.preview-calm{gap:8px;padding:12px;background:#eef4f1;border-radius:0}.preview-calm i{background:#cfddd7;border:1px solid #527068;border-radius:0}.preview-calm i:first-child{background:#7e9f94}
 .arcade-appearance-dialog fieldset{margin:20px 0 0;padding:0;border:0}.arcade-appearance-dialog legend{margin-bottom:8px;font-weight:800}.arcade-color-modes{display:flex;width:max-content;max-width:100%;padding:4px;background:var(--arcade-dialog-field);border-radius:10px}.arcade-color-modes button{padding:9px 14px;color:var(--arcade-dialog-muted);background:transparent;border:0;border-radius:7px;font-weight:800;cursor:pointer}.arcade-color-modes button[aria-checked="true"]{color:var(--arcade-nav-ink);background:var(--arcade-dialog-bg);box-shadow:0 2px 8px var(--arcade-dialog-shadow)}.arcade-appearance-status{min-height:1.4em;margin-top:12px!important;color:var(--arcade-dialog-muted);font-size:13px}
 .arcade-appearance-footer{display:flex;align-items:center;justify-content:space-between;gap:14px}.arcade-appearance-reset{padding:8px 10px;color:var(--arcade-nav-ink);background:transparent;border:1px solid var(--arcade-nav-line);border-radius:8px;font-weight:700;cursor:pointer}
 @media(max-width:650px){.arcade-theme-grid{grid-template-columns:1fr}.arcade-theme-grid>button{grid-template-columns:110px 1fr}.arcade-theme-grid>button small{grid-column:2}.arcade-theme-preview{grid-row:1/3}.arcade-appearance-dialog form{padding:18px}}
+
+/* Field Manual keeps transient account and score UI as precise as the game shell. */
+[data-arcade-theme="playful"] :is(.result-share-close,.result-share-image-wrap,.result-share-actions button,.achievement-dialog header button,.achievement-card,.achievement-icon,.achievement-card button,.achievement-toast,.top-score-toast,.top-score-toast>button,.arcade-appearance-dialog header>button,.arcade-color-modes,.arcade-color-modes button,.arcade-appearance-reset){border-radius:0}
+[data-arcade-theme="playful"] :is(.result-share-confirm,.achievement-card button){color:#171917;background:var(--arcade-highlight)}
+[data-arcade-theme="playful"] .result-share-eyebrow{color:var(--arcade-blue)}
+[data-arcade-theme="playful"] .achievement-card.is-unlocked{border-color:var(--arcade-blue)}
+[data-arcade-theme="playful"] .achievement-card progress{accent-color:var(--arcade-blue)}
+[data-arcade-theme="playful"] .achievement-toast{color:var(--arcade-nav-ink);background:var(--arcade-dialog-bg);border:2px solid var(--arcade-nav-line);box-shadow:8px 8px 0 color-mix(in srgb,var(--arcade-nav-line) 24%,transparent)}
+[data-arcade-theme="playful"] .achievement-toast small{color:var(--arcade-blue)}
+[data-arcade-theme="playful"] .top-score-toast{color:var(--arcade-nav-ink);background:var(--arcade-dialog-bg);border:2px solid var(--arcade-nav-line);box-shadow:8px 8px 0 color-mix(in srgb,var(--arcade-nav-line) 24%,transparent);font-family:ui-monospace,"SFMono-Regular",Consolas,monospace}
+[data-arcade-theme="playful"] .top-score-toast :is(s,a){color:var(--arcade-dialog-muted)}
+[data-arcade-theme="playful"] .top-score-toast :is(b,em,small){color:var(--arcade-signal)}
+[data-arcade-theme="playful"] .top-score-toast b::before{color:var(--arcade-blue)}
