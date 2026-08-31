@@ -57,6 +57,7 @@ Before handing off a change:
 ## Git hygiene
 
 - Inspect `git status` before editing and preserve user-owned changes.
-- Base requested feature/fix branches on the latest `master` unless the user specifies another base.
+- Never make requested changes directly on `master`. Before editing, update local `master` from `origin`, then create a task-specific branch from the latest `master` unless the user specifies another base.
 - Keep commits focused and use concise imperative subjects consistent with the repository history.
-- Do not commit, push, rewrite history, or open a pull request unless the user asks.
+- Treat each requested repository change as authorization to commit the completed work, push its branch, and open a pull request. Do not consider the work handed off until the pull request exists, unless the user explicitly asks not to commit, push, or create one.
+- Never rewrite history unless the user explicitly asks.
