@@ -16,7 +16,7 @@ test('competitive games consume shared styles without cross-game imports', () =>
     assert.doesNotMatch(read('tictactoe/index.html'), /(?:src|href)=["'][^"']*pong/i);
 });
 
-test('every modern game consumes the shared Field Manual design language', () => {
+test('every modern game consumes the shared Field Manual anatomy and restored Playful materials', () => {
     const games = ['pong', 'tictactoe', 'battle-tanks', 'Sudoku', 'Minesweeper', 'tetris'];
     const design = read('styles/modern-game.css');
 
@@ -24,6 +24,8 @@ test('every modern game consumes the shared Field Manual design language', () =>
     assert.match(design, /--paper:#ebe5d8/);
     assert.match(design, /background-size:40px 40px/);
     assert.match(design, /border-radius:0/);
+    assert.match(design, /data-arcade-theme="playful"\][^{]*\{--ink:#20352f/);
+    assert.match(design, /\.modern-game \.intro\{display:grid;grid-template-columns:minmax\(0,1fr\) auto/);
     assert.match(design, /\.modern-game \.brand-mark/);
     assert.match(design, /prefers-reduced-motion:reduce/);
     for (const game of games) {
@@ -82,6 +84,8 @@ test('shared arcade UI uses one safe-area-aware responsive top bar and displays 
     assert.match(script, /classList\.add\('arcade-has-topbar'\)/);
     assert.match(script, /api\/version/);
     assert.match(script, /arcade-build-version/);
+    assert.match(styles, /@media\(min-width:900px\)[\s\S]*\.arcade-topbar\{position:fixed;inset:0 auto 0 0;width:92px/);
+    assert.match(styles, /body\.arcade-has-topbar:not\(\.arena-fullscreen\)\{padding-left:92px\}/);
 });
 
 test('shared arcade navigation stays out of full-screen games', () => {

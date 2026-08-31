@@ -18,7 +18,26 @@
 @media(max-width:700px){.modern-game .brand-mark{width:36px;height:36px}.modern-game .intro>div:first-child::after{display:none}.modern-game .stats{box-shadow:none}}
 @media(prefers-reduced-motion:reduce){.modern-game *,.modern-game *::before,.modern-game *::after{animation:none!important;transition:none!important}}
 
+/* Program pages are working surfaces: compact identity band, live status, then play. */
+.modern-game .app-shell{width:min(1440px,calc(100% - 48px));padding:0 24px 48px}
+.modern-game .topbar{height:58px}
+.modern-game .intro{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:24px;align-items:stretch;padding:16px 0 18px;border-bottom:1px solid color-mix(in srgb,var(--ink) 38%,transparent)}
+.modern-game .intro>div:first-child{display:grid;grid-template-columns:30px minmax(0,1fr);grid-template-rows:auto auto;column-gap:14px;align-items:end;min-width:0}
+.modern-game .intro .eyebrow{grid-row:1/3;align-self:stretch;display:flex;align-items:center;justify-content:center;margin:0;padding:6px 4px;writing-mode:vertical-rl;transform:rotate(180deg)}
+.modern-game .intro h1{grid-column:2;margin:0;font-size:clamp(28px,3.2vw,44px);line-height:.95}
+.modern-game .intro p:not(.eyebrow){grid-column:2;max-width:70ch;margin:5px 0 0;color:var(--muted);font-size:12px;line-height:1.4}
+.modern-game .intro .stats,.modern-game .intro .scoreboard{align-self:stretch;margin:0}
+.modern-game .game-layout,.modern-game>.app-shell>.game-card{margin-top:18px}
+@media(max-width:899px){.modern-game .app-shell{width:min(100% - 24px,760px);padding-inline:0}.modern-game .topbar{height:52px}.modern-game .intro{grid-template-columns:1fr;gap:12px;padding:14px 0}.modern-game .intro>div:first-child{grid-template-columns:1fr}.modern-game .intro .eyebrow{grid-row:auto;grid-column:1;align-self:auto;justify-self:start;padding:5px 8px;writing-mode:horizontal-tb;transform:none}.modern-game .intro h1,.modern-game .intro p:not(.eyebrow){grid-column:1}.modern-game .intro h1{font-size:32px}.modern-game .game-layout,.modern-game>.app-shell>.game-card{margin-top:14px}}
+
 /* Experience themes adjust both tokens and shell layout; game mechanics retain their DOM order. */
+:root[data-arcade-theme="playful"]{--ink:#20352f;--muted:#65766f;--paper:#f7f3eb;--card:#fffdf8;--line:#20352f;--accent:#6c3bff;--accent-dark:#4c25c7;--sage:#e8f5ef;--control-surface:rgba(255,253,248,.84);--panel-surface:rgba(255,253,248,.72);--game-pop:#ff4fa3;--game-spark:#ffd84d;--game-sky:#27b4ff;--game-glow:rgba(104,202,179,.28);--game-shadow:rgba(55,72,65,.14);--brand-start:#a50050;--brand-end:#4c25c7;--button-ink:#fff;--signal-ink:#171917}
+:root[data-arcade-theme="playful"][data-color-mode="dark"]{--ink:#f7f8fc;--muted:#aab4c5;--paper:#0d1420;--card:#182335;--line:#f7f8fc;--accent:#a98cff;--accent-dark:#c7b6ff;--sage:#25364a;--control-surface:rgba(24,35,53,.82);--panel-surface:rgba(24,35,53,.72);--game-pop:#ff70b7;--game-spark:#ffdb59;--game-sky:#53c3ff;--game-glow:rgba(46,101,120,.45);--game-shadow:rgba(0,0,0,.22);--button-ink:#160d38}
+[data-arcade-theme="playful"] .modern-game{background:radial-gradient(circle at 8% 0,var(--game-glow),transparent 34rem),radial-gradient(circle at 96% 92%,rgba(153,78,196,.16),transparent 36rem),var(--paper);font-family:ui-rounded,"Arial Rounded MT Bold",Inter,ui-sans-serif,system-ui,sans-serif}
+[data-arcade-theme="playful"] .modern-game .brand-mark{color:#fff;background:linear-gradient(135deg,var(--brand-start),var(--brand-end));border:3px solid var(--ink);border-radius:13px;box-shadow:4px 4px 0 var(--ink)}
+[data-arcade-theme="playful"] .modern-game :is(.version-link,.classic-link,.eyebrow){border-radius:999px;box-shadow:3px 3px 0 var(--ink)}
+[data-arcade-theme="playful"] .modern-game :where(.scoreboard,.stats,.game-card,.controls>:where(.online-panel,.power-guide),.modal-card){border:3px solid var(--ink);border-radius:22px;box-shadow:7px 7px 0 var(--ink),0 22px 60px var(--game-shadow);backdrop-filter:blur(14px)}
+[data-arcade-theme="playful"] .modern-game :where(.primary-button,.secondary-button,.tool,.number,.flag-toggle,.icon-button,select,.mode-switch,.player-color,.touch-controls button){border-radius:12px}
 :root[data-arcade-theme="cabinet"]{--ink:#fff4d0;--muted:#bbb8cc;--paper:#090b13;--card:#171a2b;--line:#ffcf4a;--accent:#ff3ea5;--accent-dark:#ff7bc3;--sage:#202944;--control-surface:#111526;--panel-surface:#15192b;--game-pop:#16e0bd;--game-spark:#ffcf4a;--game-sky:#54a6ff;--game-glow:#ff3ea526;--game-shadow:#0008;--brand-start:#ff3ea5;--brand-end:#6f52ff}
 :root[data-arcade-theme="cabinet"] .game-battle-tanks{--battle-sky-top:#101329;--battle-sky-bottom:#272052;--battle-terrain:#242d4d;--battle-terrain-edge:#16e0bd;--battle-barrier:#663a68;--battle-barrier-line:#ffcf4a;--battle-ink:#fff4d0;--battle-active:#ffcf4a;--battle-aim:#16e0bd}
 :root[data-arcade-theme="cabinet"] .game-tetris{--tetris-board:#070914;--tetris-grid:#6f52ff44;--tetris-border:#ffcf4a;--tetris-empty:#111526;--tetris-ghost:#16e0bd18;--tetris-ghost-line:#16e0bd;--tetris-ink:#fff4d0;--tetris-panel:#15192b;--tetris-overlay:#171a2b;--tetris-shadow:#ffcf4a;--tetris-piece-edge:#070914;--tetris-i:#54a6ff;--tetris-j:#6f52ff;--tetris-l:#ff764d;--tetris-o:#ffcf4a;--tetris-s:#16e0bd;--tetris-t:#d765ff;--tetris-z:#ff3ea5}

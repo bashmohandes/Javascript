@@ -20,7 +20,7 @@ users, and games that render to canvas need a stable notification contract.
 
 We model appearance as two independent preferences:
 
-- **Experience theme**: `playful`, `cabinet`, or `calm`.
+- **Experience theme**: `field-manual`, `playful`, `cabinet`, or `calm`.
 - **Color preference**: `system`, `light`, or `dark`.
 
 The root element exposes the selected experience as `data-arcade-theme` and
@@ -46,20 +46,19 @@ token interfaces and refresh their computed values on `arcade:theme`. Player
 colors and synchronized gameplay colors are game state, not experience-theme
 palettes, and remain independent so matches render consistently for all peers.
 
-Layout themes may change shell width, grids, panel placement, typography,
-spacing, borders, and decoration. They must preserve semantic DOM order,
-keyboard focus order, game rules, required controls, and responsive access to
-the play area.
+The application anatomy is shared across themes: a desktop utility rail, a
+program-directory homepage, compact game identity/status bands, play-first game
+layouts, and a ledger-style profile. Themes may change shell width, density,
+typography, spacing, borders, and material treatment inside that anatomy. They
+must preserve semantic DOM order, keyboard focus order, game rules, required
+controls, and responsive access to the play area.
 
 Old `arcade-theme` values migrate to `arcade-color-preference`; the experience
-continues to default to the compatibility id `playful`.
-
-The stored `playful` id is retained as a compatibility boundary, but its
-user-facing name is **Field Manual**. Its visual contract is deliberately
-specific to this repository: indexed game specimens, ruled-paper geometry,
-hard-edged controls, and a small ink/cobalt/signal palette. Keeping the id
-avoids invalidating existing preferences while allowing the default experience
-to evolve without a second migration path.
+defaults to `field-manual`. Field Manual uses indexed rows, ruled geometry,
+hard-edged controls, and a small ink/cobalt/signal palette. The original
+`playful` id again names the bright, rounded experience, so existing explicit
+Playful preferences remain meaningful while the new default has its own stable
+identifier.
 
 ## Consequences
 

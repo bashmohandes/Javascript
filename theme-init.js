@@ -2,9 +2,10 @@
     'use strict';
 
     const config = Object.freeze({
-        defaultTheme: 'playful',
+        defaultTheme: 'field-manual',
         themes: Object.freeze([
-            Object.freeze({ id: 'playful', name: 'Field Manual', description: 'Paper, ink, indexed layouts, and game-first controls. The original theme id is retained for saved preferences.', density: 'comfortable', themeColor: Object.freeze({ light: '#ebe5d8', dark: '#121411' }) }),
+            Object.freeze({ id: 'field-manual', name: 'Field Manual', description: 'Paper, ink, indexed layouts, and game-first controls.', density: 'compact', themeColor: Object.freeze({ light: '#ebe5d8', dark: '#121411' }) }),
+            Object.freeze({ id: 'playful', name: 'Playful', description: 'Bright stickers, soft surfaces, and generous arcade energy.', density: 'comfortable', themeColor: Object.freeze({ light: '#f7f3eb', dark: '#0d1420' }) }),
             Object.freeze({ id: 'cabinet', name: 'Cabinet', description: 'A compact, game-first layout inspired by classic arcade cabinets.', density: 'compact', themeColor: Object.freeze({ light: '#f2dfb6', dark: '#090b13' }) }),
             Object.freeze({ id: 'calm', name: 'Calm', description: 'Quiet surfaces, open layouts, and restrained decoration.', density: 'spacious', themeColor: Object.freeze({ light: '#eef4f1', dark: '#111917' }) })
         ]),

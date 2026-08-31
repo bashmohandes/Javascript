@@ -21,6 +21,8 @@ test('profile uses the shared Field Manual shell and ledger panel language', () 
     assert.match(profile, /Player record · live ledger/);
     assert.match(styles, /\.panel\s*\{[^}]*border:2px solid var\(--ink\);[^}]*border-radius:0;[^}]*box-shadow:none;/s);
     assert.match(styles, /\.panel::before/);
+    assert.match(profile, /<body class="profile-page">/);
+    assert.match(styles, /\.profile-page \.shell\{display:grid;[^}]*grid-template-columns:repeat\(12,minmax\(0,1fr\)\)/s);
 });
 
 test('profile controls do not restyle the shared top bar', () => {

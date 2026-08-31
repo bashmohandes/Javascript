@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#ebe5d8">
-    <meta name="description" content="A collection of small JavaScript games, from the original experiments to their modern reimaginings.">
+    <meta name="description" content="Six small JavaScript games, from original browser experiments to modern competitive editions.">
     <script src="theme-init.js"></script>
     <title>JavaScript Arcade</title>
     <link rel="icon" href="icon.svg" type="image/svg+xml">
@@ -12,607 +12,77 @@
     <link rel="apple-touch-icon" href="apple-touch-icon.png" sizes="180x180">
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="stylesheet" href="arcade.css">
+    <link rel="stylesheet" href="styles/home.css">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="JS Arcade">
-    <style>
-        :root {
-            color-scheme: light;
-            --ink: #171917;
-            --muted: #5c625a;
-            --panel: #f5f0e5;
-            --line: rgba(23, 25, 23, 0.34);
-            --accent: #233fc7;
-            --accent-contrast: #ffffff;
-            --page-background: #ebe5d8;
-            --page-glow-start: transparent;
-            --page-glow-end: transparent;
-            --card-shadow: transparent;
-            --control-fill: rgba(23, 25, 23, 0.06);
-            --hover-line: #171917;
-            --focus-ring: rgba(35, 63, 199, 0.36);
-            --default-glow: transparent;
-            --blue-glow: transparent;
-            --purple-glow: transparent;
-            --sunshine: #d9ff43;
-            --hot-pink: #ef542f;
-            --sky-blue: #233fc7;
-            --lime: #8da230;
-            --orange: #ef542f;
-        }
-
-        :root[data-theme="dark"] {
-            color-scheme: dark;
-            --ink: #eeeadd;
-            --muted: #a9aea4;
-            --panel: #1b1e1a;
-            --line: rgba(238, 234, 221, 0.32);
-            --accent: #8fa2ff;
-            --accent-contrast: #10141d;
-            --page-background: #121411;
-            --page-glow-start: transparent;
-            --page-glow-end: transparent;
-            --card-shadow: transparent;
-            --control-fill: rgba(255, 255, 255, 0.05);
-            --hover-line: rgba(255, 255, 255, 0.4);
-            --focus-ring: rgba(143, 162, 255, 0.48);
-            --default-glow: transparent;
-            --blue-glow: transparent;
-            --purple-glow: transparent;
-            --sunshine: #d9ff43;
-            --hot-pink: #ff6a43;
-            --sky-blue: #8fa2ff;
-            --lime: #b8c965;
-            --orange: #ff6a43;
-        }
-
-        * { box-sizing: border-box; }
-
-        body {
-            min-height: 100vh;
-            margin: 0;
-            color: var(--ink);
-            background:
-                radial-gradient(circle at 8% 0%, var(--page-glow-start), transparent 34rem),
-                radial-gradient(circle at 95% 90%, var(--page-glow-end), transparent 36rem),
-                var(--page-background);
-            font-family: ui-rounded, "Arial Rounded MT Bold", Inter, ui-sans-serif, system-ui, sans-serif;
-            overflow-x: hidden;
-        }
-
-        a { color: inherit; }
-
-        .shell {
-            width: min(1120px, calc(100% - 40px));
-            margin: 0 auto;
-            padding: 32px 0 64px;
-        }
-
-        .shell::before {
-            position: fixed;
-            z-index: -1;
-            inset: 0;
-            opacity: 0.22;
-            background-image: radial-gradient(var(--accent) 1.4px, transparent 1.4px);
-            background-size: 24px 24px;
-            content: "";
-            mask-image: linear-gradient(to bottom, black, transparent 72%);
-            pointer-events: none;
-        }
-
-        .eyebrow {
-            display: inline-block;
-            margin: 0 0 20px;
-            padding: 8px 14px;
-            color: #251500;
-            background: var(--sunshine);
-            border: 2px solid var(--ink);
-            border-radius: 999px;
-            box-shadow: 4px 4px 0 var(--ink);
-            font-size: 12px;
-            font-weight: 800;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-        }
-
-        h1 {
-            max-width: 880px;
-            margin: 0;
-            font-size: clamp(48px, 8vw, 92px);
-            font-weight: 950;
-            letter-spacing: -0.075em;
-            line-height: 0.92;
-            text-wrap: balance;
-        }
-
-        h1 .pop { color: var(--hot-pink); text-shadow: 3px 3px 0 var(--ink); -webkit-text-stroke: 1px var(--ink); }
-
-        .hero { position: relative; }
-        .hero-spark { position: absolute; color: var(--orange); font-size: clamp(42px, 8vw, 88px); line-height: 1; pointer-events: none; }
-        .hero-spark-one { top: -36px; right: 3%; transform: rotate(14deg); }
-        .hero-spark-two { right: 20%; bottom: 8px; color: var(--sky-blue); font-size: clamp(28px, 5vw, 54px); transform: rotate(-18deg); }
-
-        .intro {
-            max-width: 630px;
-            margin: 30px 0 54px;
-            color: var(--muted);
-            font-size: clamp(17px, 2vw, 20px);
-            line-height: 1.55;
-        }
-
-        .game-grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            grid-auto-rows: 1fr;
-            gap: 24px;
-        }
-
-        .card {
-            position: relative;
-            min-height: 300px;
-            padding: clamp(26px, 4vw, 42px);
-            overflow: hidden;
-            background: var(--panel);
-            border: 3px solid var(--ink);
-            border-radius: 30px;
-            box-shadow: 0 24px 70px var(--card-shadow);
-            backdrop-filter: blur(14px);
-            transition: transform 180ms ease, box-shadow 180ms ease;
-        }
-
-        .card:hover { transform: translateY(-7px) rotate(-0.5deg); box-shadow: 8px 10px 0 var(--ink), 0 30px 70px var(--card-shadow); }
-        .card:nth-child(even):hover { transform: translateY(-7px) rotate(0.5deg); }
-        .card:nth-child(1) { --game-color: var(--hot-pink); }
-        .card:nth-child(2) { --game-color: var(--sky-blue); }
-        .card:nth-child(3) { --game-color: var(--lime); }
-        .card:nth-child(4) { --game-color: var(--orange); }
-        .card:nth-child(5) { --game-color: var(--sunshine); }
-        .card:nth-child(6) { --game-color: var(--sky-blue); --glow: var(--blue-glow); }
-
-        .card::before { position: absolute; top: 0; left: 0; width: 100%; height: 10px; background: var(--game-color); content: ""; }
-
-        .card::after {
-            position: absolute;
-            right: -55px;
-            bottom: -75px;
-            width: 190px;
-            height: 190px;
-            background: var(--glow, var(--default-glow));
-            border-radius: 50%;
-            content: "";
-            filter: blur(8px);
-        }
-
-        .card:nth-child(2) { --glow: var(--blue-glow); }
-        .card:nth-child(3) { --glow: var(--purple-glow); }
-
-        .card-top {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 16px;
-            margin-bottom: 52px;
-        }
-
-        .game-icon {
-            display: grid;
-            width: 46px;
-            height: 46px;
-            place-items: center;
-            color: #15111f;
-            background: var(--game-color);
-            border: 2px solid var(--ink);
-            border-radius: 15px;
-            box-shadow: 4px 4px 0 var(--ink);
-            font-size: 22px;
-            font-weight: 950;
-            transform: rotate(-4deg);
-        }
-
-        .badge {
-            padding: 7px 10px;
-            color: var(--ink);
-            background: color-mix(in srgb, var(--game-color) 24%, var(--panel));
-            border: 2px solid var(--ink);
-            border-radius: 999px;
-            font-size: 11px;
-            font-weight: 800;
-            letter-spacing: 0.09em;
-            text-transform: uppercase;
-        }
-
-        h2 { margin: 0 0 12px; font-size: clamp(34px, 4vw, 48px); font-weight: 950; letter-spacing: -0.055em; }
-        .card-copy { position: relative; z-index: 1; }
-        .card-copy p { margin: 0; color: var(--muted); line-height: 1.65; }
-
-        .capabilities {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin: 22px 0 0;
-            padding: 0;
-            list-style: none;
-        }
-
-        .capability {
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-            padding: 7px 10px;
-            color: var(--ink);
-            background: var(--control-fill);
-            border: 1.5px solid var(--line);
-            border-radius: 999px;
-            font-size: 12px;
-            font-weight: 700;
-            line-height: 1;
-        }
-
-        .capability svg {
-            width: 16px;
-            height: 16px;
-            color: var(--accent);
-            color: var(--game-color, var(--accent));
-            fill: none;
-            stroke: currentColor;
-            stroke-linecap: round;
-            stroke-linejoin: round;
-            stroke-width: 1.8;
-        }
-
-        .actions { display: flex; flex-wrap: wrap; gap: 11px; margin-top: 28px; }
-        .button {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 46px;
-            padding: 0 18px;
-            border: 2px solid var(--ink);
-            border-radius: 14px;
-            font-size: 14px;
-            font-weight: 750;
-            text-decoration: none;
-            transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
-        }
-
-        .button-primary { color: #161020; background: var(--game-color, var(--accent)); border-color: var(--ink); box-shadow: 4px 4px 0 var(--ink); }
-        .button-secondary { background: var(--control-fill); }
-        .button:hover { transform: translate(2px, 2px); border-color: var(--ink); box-shadow: 2px 2px 0 var(--ink); }
-        .button:focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 3px; }
-        footer { margin-top: 34px; color: var(--muted); font-size: 13px; text-align: center; }
-
-        @media (max-width: 700px) {
-            .shell { width: min(100% - 28px, 1120px); padding-top: 22px; }
-            .intro { margin-bottom: 42px; }
-            .game-grid { grid-template-columns: 1fr; }
-            .card { min-height: 0; border-radius: 22px; }
-            .card-top { margin-bottom: 38px; }
-            .actions { flex-direction: column; }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-            .button, .card { transition: none; }
-            .card:hover, .card:nth-child(even):hover { transform: none; }
-        }
-        /* Experience themes share semantic page tokens while expressing distinct layouts. */
-        :root[data-arcade-theme="cabinet"] { --ink:#fff4d0;--muted:#bbb8cc;--panel:#15192b;--accent:#16e0bd;--accent-contrast:#07120f;--page-background:#090b13;--page-glow-start:#ff3ea526;--page-glow-end:#6f52ff24;--card-shadow:#0008;--control-fill:#ffffff0a;--hover-line:#ffcf4a;--focus-ring:#16e0bd88;--default-glow:#ff3ea528;--blue-glow:#54a6ff26;--purple-glow:#6f52ff28;--sunshine:#ffcf4a;--hot-pink:#ff3ea5;--sky-blue:#54a6ff;--lime:#16e0bd;--orange:#ff764d; }
-        :root[data-arcade-theme="cabinet"][data-color-mode="light"] { --ink:#382c42;--muted:#6a5c6d;--panel:#fff3d6;--page-background:#f2dfb6;--card-shadow:#382c4230;--control-fill:#382c420a; }
-        :root[data-arcade-theme="cabinet"] body { font-family:ui-monospace,"SFMono-Regular",Consolas,monospace; }
-        :root[data-arcade-theme="cabinet"] .shell { width:min(1280px,calc(100% - 28px));padding-top:22px; }
-        :root[data-arcade-theme="cabinet"] .game-grid { grid-template-columns:repeat(3,minmax(0,1fr));gap:14px; }
-        :root[data-arcade-theme="cabinet"] .card { min-height:260px;padding:24px;border-radius:3px;box-shadow:5px 5px 0 var(--sunshine); }
-        :root[data-arcade-theme="cabinet"] .card-top { margin-bottom:32px; }
-        :root[data-arcade-theme="calm"] { --ink:#223a33;--muted:#61746d;--panel:#f8fbf9;--accent:#356f61;--accent-contrast:#fff;--page-background:#eef4f1;--page-glow-start:transparent;--page-glow-end:transparent;--card-shadow:#263c3418;--control-fill:#5270680a;--hover-line:#527068;--focus-ring:#668e9b66;--default-glow:transparent;--blue-glow:transparent;--purple-glow:transparent;--sunshine:#d9b968;--hot-pink:#b26454;--sky-blue:#668e9b;--lime:#789d90;--orange:#b77a55; }
-        :root[data-arcade-theme="calm"][data-color-mode="dark"] { --ink:#e5efeb;--muted:#9fb0a9;--panel:#18231f;--page-background:#111917;--card-shadow:#0004;--control-fill:#ffffff08; }
-        :root[data-arcade-theme="calm"] body { font-family:Georgia,"Times New Roman",serif; }
-        :root[data-arcade-theme="calm"] .shell { width:min(1040px,calc(100% - 48px));padding-top:58px; }
-        :root[data-arcade-theme="calm"] .shell::before,:root[data-arcade-theme="calm"] .hero-spark { display:none; }
-        :root[data-arcade-theme="calm"] .game-grid { grid-template-columns:1fr;gap:32px; }
-        :root[data-arcade-theme="calm"] .card { min-height:0;border-width:1px;border-radius:2px;box-shadow:none;backdrop-filter:none; }
-        @media(max-width:900px){:root[data-arcade-theme="cabinet"] .game-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-        @media(max-width:650px){:root[data-arcade-theme] .game-grid{grid-template-columns:1fr}:root[data-arcade-theme="calm"] .shell{width:min(100% - 28px,1040px)}}
-
-        /* The stored "playful" id now renders the arcade's Field Manual identity. */
-        :root[data-arcade-theme="playful"] body {
-            background-color: var(--page-background);
-            background-image:
-                linear-gradient(90deg, transparent calc(100% - 1px), color-mix(in srgb, var(--ink) 8%, transparent) 0),
-                linear-gradient(transparent calc(100% - 1px), color-mix(in srgb, var(--ink) 8%, transparent) 0);
-            background-size: 40px 40px;
-            font-family: "Arial Narrow", "Aptos Narrow", "Roboto Condensed", Arial, sans-serif;
-        }
-        :root[data-arcade-theme="playful"] .shell { width:min(1240px,calc(100% - 48px));padding:46px 0 72px; }
-        :root[data-arcade-theme="playful"] .shell::before { display:none; }
-        :root[data-arcade-theme="playful"] .hero {
-            display:grid;
-            grid-template-columns:minmax(0,1.4fr) minmax(230px,.6fr);
-            gap:clamp(32px,7vw,96px);
-            align-items:end;
-            margin-bottom:44px;
-            padding:0 0 34px;
-            border-bottom:4px solid var(--ink);
-        }
-        :root[data-arcade-theme="playful"] .eyebrow {
-            grid-column:1/-1;
-            width:max-content;
-            margin:0;
-            padding:5px 8px;
-            color:var(--ink);
-            background:var(--sunshine);
-            border:1px solid var(--ink);
-            border-radius:0;
-            box-shadow:none;
-            font-family:ui-monospace,"SFMono-Regular",Consolas,monospace;
-            font-size:11px;
-            letter-spacing:.16em;
-        }
-        :root[data-arcade-theme="playful"] h1 {
-            max-width:760px;
-            font-family:Georgia,"Times New Roman",serif;
-            font-size:clamp(48px,7vw,92px);
-            font-weight:400;
-            letter-spacing:-.055em;
-            line-height:.88;
-        }
-        :root[data-arcade-theme="playful"] h1 .pop {
-            display:block;
-            color:var(--accent);
-            font-style:italic;
-            text-shadow:none;
-            -webkit-text-stroke:0;
-        }
-        :root[data-arcade-theme="playful"] .intro {
-            max-width:360px;
-            margin:0;
-            padding-top:14px;
-            border-top:1px solid var(--ink);
-            font-family:ui-monospace,"SFMono-Regular",Consolas,monospace;
-            font-size:13px;
-            line-height:1.65;
-        }
-        :root[data-arcade-theme="playful"] .hero-spark { display:none; }
-        :root[data-arcade-theme="playful"] .game-grid {
-            counter-reset:game-index;
-            grid-template-columns:repeat(2,minmax(0,1fr));
-            grid-auto-rows:1fr;
-            gap:0;
-            border-top:1px solid var(--ink);
-            border-left:1px solid var(--ink);
-        }
-        :root[data-arcade-theme="playful"] .card {
-            counter-increment:game-index;
-            display:grid;
-            grid-template-columns:74px minmax(0,1fr);
-            min-height:320px;
-            padding:0;
-            background:var(--panel);
-            border:0;
-            border-right:1px solid var(--ink);
-            border-bottom:1px solid var(--ink);
-            border-radius:0;
-            box-shadow:none;
-            backdrop-filter:none;
-            transition:background 160ms ease,color 160ms ease;
-        }
-        :root[data-arcade-theme="playful"] .card::before {
-            position:absolute;
-            top:14px;
-            left:16px;
-            width:auto;
-            height:auto;
-            color:var(--muted);
-            background:transparent;
-            content:"0" counter(game-index);
-            font:11px/1 ui-monospace,"SFMono-Regular",Consolas,monospace;
-            letter-spacing:.08em;
-        }
-        :root[data-arcade-theme="playful"] .card::after { display:none; }
-        :root[data-arcade-theme="playful"] .card:hover {
-            color:var(--ink);
-            background:color-mix(in srgb,var(--sunshine) 54%,var(--panel));
-            box-shadow:none;
-            transform:none;
-        }
-        :root[data-arcade-theme="playful"] .card:nth-child(even):hover { transform:none; }
-        :root[data-arcade-theme="playful"] .card-top {
-            display:flex;
-            flex-direction:column;
-            align-items:center;
-            justify-content:space-between;
-            gap:16px;
-            min-width:0;
-            margin:0;
-            padding:48px 11px 18px;
-            border-right:1px solid var(--ink);
-        }
-        :root[data-arcade-theme="playful"] .game-icon {
-            width:38px;
-            height:38px;
-            color:var(--ink);
-            background:transparent;
-            border:1px solid var(--ink);
-            border-radius:0;
-            box-shadow:none;
-            font:700 15px/1 ui-monospace,"SFMono-Regular",Consolas,monospace;
-            transform:none;
-        }
-        :root[data-arcade-theme="playful"] .badge {
-            padding:0;
-            color:var(--muted);
-            background:transparent;
-            border:0;
-            border-radius:0;
-            font:9px/1.25 ui-monospace,"SFMono-Regular",Consolas,monospace;
-            letter-spacing:.08em;
-            writing-mode:vertical-rl;
-            transform:rotate(180deg);
-        }
-        :root[data-arcade-theme="playful"] .card-copy { display:flex;flex-direction:column;padding:30px clamp(24px,4vw,44px) 28px; }
-        :root[data-arcade-theme="playful"] h2 {
-            margin:0 0 14px;
-            font-family:Georgia,"Times New Roman",serif;
-            font-size:clamp(36px,4vw,54px);
-            font-weight:400;
-            letter-spacing:-.05em;
-            line-height:1;
-        }
-        :root[data-arcade-theme="playful"] .card-copy>p { max-width:48ch;font-size:15px;line-height:1.5; }
-        :root[data-arcade-theme="playful"] .capabilities { gap:0;margin:22px 0 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line); }
-        :root[data-arcade-theme="playful"] .capability {
-            gap:6px;
-            padding:8px 10px 8px 0;
-            background:transparent;
-            border:0;
-            border-radius:0;
-            font:10px/1.2 ui-monospace,"SFMono-Regular",Consolas,monospace;
-            letter-spacing:.03em;
-            text-transform:uppercase;
-        }
-        :root[data-arcade-theme="playful"] .capability+ .capability { padding-left:10px;border-left:1px solid var(--line); }
-        :root[data-arcade-theme="playful"] .capability svg { width:14px;height:14px;color:var(--accent); }
-        :root[data-arcade-theme="playful"] .actions { margin-top:auto;padding-top:24px; }
-        :root[data-arcade-theme="playful"] .button {
-            min-height:42px;
-            padding:0 14px;
-            border:1px solid var(--ink);
-            border-radius:0;
-            font:700 11px/1 ui-monospace,"SFMono-Regular",Consolas,monospace;
-            letter-spacing:.04em;
-            text-transform:uppercase;
-        }
-        :root[data-arcade-theme="playful"] .button-primary { color:var(--panel);background:var(--ink);box-shadow:none; }
-        :root[data-arcade-theme="playful"] .button-secondary { background:transparent; }
-        :root[data-arcade-theme="playful"] .button:hover { color:var(--panel);background:var(--accent);border-color:var(--accent);box-shadow:none;transform:none; }
-        :root[data-arcade-theme="playful"] footer {
-            display:flex;
-            justify-content:space-between;
-            margin-top:28px;
-            padding-top:12px;
-            border-top:1px solid var(--ink);
-            font:10px/1.4 ui-monospace,"SFMono-Regular",Consolas,monospace;
-            letter-spacing:.1em;
-            text-align:left;
-            text-transform:uppercase;
-        }
-        :root[data-arcade-theme="playful"] footer::after { content:"Open source / no build step"; }
-        @media(max-width:760px){
-            :root[data-arcade-theme="playful"] .shell{width:min(100% - 24px,620px);padding-top:28px}
-            :root[data-arcade-theme="playful"] .hero{grid-template-columns:1fr;gap:24px;margin-bottom:30px}
-            :root[data-arcade-theme="playful"] .eyebrow{grid-column:auto}
-            :root[data-arcade-theme="playful"] .game-grid{grid-template-columns:1fr}
-            :root[data-arcade-theme="playful"] .card{min-height:0;grid-template-columns:54px minmax(0,1fr)}
-            :root[data-arcade-theme="playful"] .card-top{padding-inline:7px}
-            :root[data-arcade-theme="playful"] .card::before{left:10px}
-            :root[data-arcade-theme="playful"] .card-copy{padding:26px 20px 24px}
-            :root[data-arcade-theme="playful"] .actions{flex-direction:column}
-            :root[data-arcade-theme="playful"] footer{gap:18px}
-        }
-    </style>
 </head>
-<body>
-    <main class="shell">
-        <section class="hero" aria-labelledby="page-title">
-            <p class="eyebrow">JS/A · Field index 01—06</p>
-            <h1 id="page-title">Playable programs. <span class="pop">Kept close to the code.</span></h1>
-            <p class="intro">Six browser games, from first experiments to sharper editions. Choose a specimen, learn its rules, and keep your scores in one place.</p>
-        </section>
+<body class="arcade-directory">
+    <main class="home-shell">
+        <header class="directory-heading">
+            <div>
+                <p class="directory-kicker">Program directory / 6 playable builds</p>
+                <h1>JavaScript Arcade</h1>
+            </div>
+            <p class="directory-note">Choose a program and run it in the browser. Modern editions share scores, achievements, profiles, and online rooms; original builds stay available as working history.</p>
+        </header>
 
-        <section class="game-grid" aria-label="Games">
-            <article class="card">
-                <div class="card-top">
-                    <span class="game-icon" aria-hidden="true">⌗</span>
-                    <span class="badge">New edition available</span>
-                </div>
-                <div class="card-copy">
-                    <h2>Sudoku</h2>
-                    <p>Slow down and find the pattern. Choose the refined new experience or revisit the original p5.js classic.</p>
-                    <ul class="capabilities" aria-label="Game modes">
-                        <li class="capability"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20c.6-4 2.7-6 6.5-6s5.9 2 6.5 6"/></svg>Single player</li>
-                    </ul>
-                    <div class="actions">
-                        <a class="button button-primary" href="Sudoku/index.html">Play new Sudoku&nbsp; →</a>
-                        <a class="button button-secondary" href="Sudoku/classic/index.html">Play classic Sudoku</a>
-                    </div>
-                </div>
+        <section class="program-directory" aria-labelledby="directory-title">
+            <div class="directory-columns" aria-hidden="true">
+                <span>No.</span><span>Program</span><span>Brief</span><span>Players</span><span>Run</span>
+            </div>
+            <h2 class="visually-hidden" id="directory-title">Available games</h2>
+
+            <article class="program">
+                <span class="program-number">01</span>
+                <div class="program-name"><span class="program-mark" aria-hidden="true">⌗</span><h3>Sudoku</h3><span class="program-state">Modern + original</span></div>
+                <p class="program-brief">Read the grid, test a pattern, and resolve every row, column, and box.</p>
+                <ul class="program-modes" aria-label="Game modes"><li>Single player</li></ul>
+                <div class="program-actions"><a class="run-primary" href="Sudoku/index.html">Run modern <span aria-hidden="true">↗</span></a><a href="Sudoku/classic/index.html">Open original</a></div>
             </article>
 
-            <article class="card">
-                <div class="card-top">
-                    <span class="game-icon" aria-hidden="true">✦</span>
-                    <span class="badge">New edition available</span>
-                </div>
-                <div class="card-copy">
-                    <h2>Minesweeper</h2>
-                    <p>Clear the field, read the clues, and avoid every hidden mine in the modernized game—or revisit the original experiment.</p>
-                    <ul class="capabilities" aria-label="Game modes">
-                        <li class="capability"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20c.6-4 2.7-6 6.5-6s5.9 2 6.5 6"/></svg>Single player</li>
-                    </ul>
-                    <div class="actions">
-                        <a class="button button-primary" href="Minesweeper/index.html">Play new Minesweeper&nbsp; →</a>
-                        <a class="button button-secondary" href="Minesweeper/classic/index.html">Play classic Minesweeper</a>
-                    </div>
-                </div>
+            <article class="program">
+                <span class="program-number">02</span>
+                <div class="program-name"><span class="program-mark" aria-hidden="true">✦</span><h3>Minesweeper</h3><span class="program-state">Modern + original</span></div>
+                <p class="program-brief">Map the hidden field from its clues and clear it without touching a mine.</p>
+                <ul class="program-modes" aria-label="Game modes"><li>Single player</li></ul>
+                <div class="program-actions"><a class="run-primary" href="Minesweeper/index.html">Run modern <span aria-hidden="true">↗</span></a><a href="Minesweeper/classic/index.html">Open original</a></div>
             </article>
 
-            <article class="card">
-                <div class="card-top">
-                    <span class="game-icon" aria-hidden="true">●</span>
-                    <span class="badge">New edition available</span>
-                </div>
-                <div class="card-copy">
-                    <h2>Pong</h2>
-                    <p>Meet the ball and hold your line in a polished solo or two-player rally—or revisit the original experiment.</p>
-                    <ul class="capabilities" aria-label="Game modes">
-                        <li class="capability"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20c.6-4 2.7-6 6.5-6s5.9 2 6.5 6"/></svg>Single player</li>
-                        <li class="capability"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2.5 20c.5-4 2.3-6 5.5-6s5 2 5.5 6M14 15c3.9-.8 6.5.9 7 4"/></svg>Local multiplayer</li>
-                        <li class="capability"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 3.7 5.5 3.7 9s-1.2 6.5-3.7 9c-2.5-2.5-3.7-5.5-3.7-9S9.5 5.5 12 3"/></svg>Online multiplayer</li>
-                    </ul>
-                    <div class="actions">
-                        <a class="button button-primary" href="pong/index.html">Play new Pong&nbsp; →</a>
-                        <a class="button button-secondary" href="pong/classic/index.html">Play classic Pong</a>
-                    </div>
-                </div>
+            <article class="program">
+                <span class="program-number">03</span>
+                <div class="program-name"><span class="program-mark" aria-hidden="true">●</span><h3>Pong</h3><span class="program-state">Modern + original</span></div>
+                <p class="program-brief">Hold the line in a fast rally with the computer, a nearby player, or a remote rival.</p>
+                <ul class="program-modes" aria-label="Game modes"><li>Single player</li><li>Local multiplayer</li><li>Online multiplayer</li></ul>
+                <div class="program-actions"><a class="run-primary" href="pong/index.html">Run modern <span aria-hidden="true">↗</span></a><a href="pong/classic/index.html">Open original</a></div>
             </article>
-            <article class="card">
-                <div class="card-top"><span class="game-icon" aria-hidden="true">×○</span><span class="badge">New game</span></div>
-                <div class="card-copy">
-                    <h2>Tic-tac-toe</h2>
-                    <p>Make three in a row against three computer levels, a friend nearby, or an online opponent.</p>
-                    <ul class="capabilities" aria-label="Game modes">
-                        <li class="capability"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20c.6-4 2.7-6 6.5-6s5.9 2 6.5 6"/></svg>Single player</li>
-                        <li class="capability"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2.5 20c.5-4 2.3-6 5.5-6s5 2 5.5 6M14 15c3.9-.8 6.5.9 7 4"/></svg>Local multiplayer</li>
-                        <li class="capability"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 3.7 5.5 3.7 9s-1.2 6.5-3.7 9c-2.5-2.5-3.7-5.5-3.7-9S9.5 5.5 12 3"/></svg>Online multiplayer</li>
-                    </ul>
-                    <div class="actions"><a class="button button-primary" href="tictactoe/index.html">Play Tic-tac-toe&nbsp; →</a></div>
-                </div>
+
+            <article class="program">
+                <span class="program-number">04</span>
+                <div class="program-name"><span class="program-mark" aria-hidden="true">×○</span><h3>Tic-tac-toe</h3><span class="program-state">Modern</span></div>
+                <p class="program-brief">Make three in a row against three computer levels or another player.</p>
+                <ul class="program-modes" aria-label="Game modes"><li>Single player</li><li>Local multiplayer</li><li>Online multiplayer</li></ul>
+                <div class="program-actions"><a class="run-primary" href="tictactoe/index.html">Run game <span aria-hidden="true">↗</span></a></div>
             </article>
-            <article class="card">
-                <div class="card-top"><span class="game-icon" aria-hidden="true">▰</span><span class="badge">New game</span></div>
-                <div class="card-copy">
-                    <h2>Battle Tanks</h2>
-                    <p>Trade explosive artillery shots against the CPU, a couch rival, or an online opponent.</p>
-                    <ul class="capabilities" aria-label="Game modes">
-                        <li class="capability"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3"/><path d="M6 20c.5-4 2.5-6 6-6s5.5 2 6 6"/></svg>Single-player CPU</li>
-                        <li class="capability"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2.5 20c.5-4 2.3-6 5.5-6s5 2 5.5 6M14 15c3.9-.8 6.5.9 7 4"/></svg>Local two-player</li>
-                        <li class="capability"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 3.7 5.5 3.7 9s-1.2 6.5-3.7 9c-2.5-2.5-3.7-5.5-3.7-9S9.5 5.5 12 3"/></svg>Online multiplayer</li>
-                    </ul>
-                    <div class="actions"><a class="button button-primary" href="battle-tanks/index.html">Play Battle Tanks&nbsp; →</a></div>
-                </div>
+
+            <article class="program">
+                <span class="program-number">05</span>
+                <div class="program-name"><span class="program-mark" aria-hidden="true">▰</span><h3>Battle Tanks</h3><span class="program-state">Modern</span></div>
+                <p class="program-brief">Move, aim, and trade terrain-shaping artillery shots across a generated arena.</p>
+                <ul class="program-modes" aria-label="Game modes"><li>Single-player CPU</li><li>Local two-player</li><li>Online multiplayer</li></ul>
+                <div class="program-actions"><a class="run-primary" href="battle-tanks/index.html">Run game <span aria-hidden="true">↗</span></a></div>
             </article>
-            <article class="card">
-                <div class="card-top"><span class="game-icon" aria-hidden="true">▦</span><span class="badge">New game</span></div>
-                <div class="card-copy">
-                    <h2>Tetris</h2>
-                    <p>Stack falling pieces, clear lines, and keep the board alive as the pace climbs.</p>
-                    <ul class="capabilities" aria-label="Game modes">
-                        <li class="capability"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20c.6-4 2.7-6 6.5-6s5.9 2 6.5 6"/></svg>Single player</li>
-                    </ul>
-                    <div class="actions"><a class="button button-primary" href="tetris/index.html">Play Tetris&nbsp; →</a></div>
-                </div>
+
+            <article class="program">
+                <span class="program-number">06</span>
+                <div class="program-name"><span class="program-mark" aria-hidden="true">▦</span><h3>Tetris</h3><span class="program-state">Modern</span></div>
+                <p class="program-brief">Stack a seven-bag stream, clear lines, and keep the board alive as gravity rises.</p>
+                <ul class="program-modes" aria-label="Game modes"><li>Single player</li></ul>
+                <div class="program-actions"><a class="run-primary" href="tetris/index.html">Run game <span aria-hidden="true">↗</span></a></div>
             </article>
         </section>
 
-        <footer><span>Built with JavaScript and a healthy sense of curiosity.</span></footer>
+        <footer class="directory-footer"><span>Build-free JavaScript</span><span>Modern editions + preserved originals</span><span>Local and online play</span></footer>
     </main>
     <script src="arcade.js"></script>
 </body>

@@ -9,9 +9,11 @@ const runtime = fs.readFileSync('arcade.js', 'utf8');
 const shared = fs.readFileSync('arcade.css', 'utf8');
 const games = fs.readFileSync('styles/modern-game.css', 'utf8');
 
-test('registry provides three curated themes with independent color preferences', () => {
-    for (const theme of ['playful', 'cabinet', 'calm']) assert.match(init, new RegExp(`id: '${theme}'`));
-    assert.match(init, /id: 'playful', name: 'Field Manual'/);
+test('registry provides four curated themes with independent color preferences', () => {
+    for (const theme of ['field-manual', 'playful', 'cabinet', 'calm']) assert.match(init, new RegExp(`id: '${theme}'`));
+    assert.match(init, /defaultTheme: 'field-manual'/);
+    assert.match(init, /id: 'field-manual', name: 'Field Manual'/);
+    assert.match(init, /id: 'playful', name: 'Playful'/);
     assert.match(init, /colorPreferences: Object\.freeze\(\['system', 'light', 'dark'\]\)/);
     assert.match(init, /arcade-experience-theme/);
     assert.match(init, /arcade-color-preference/);
@@ -25,10 +27,10 @@ test('appearance dialog exposes theme cards and an accessible color radiogroup',
     assert.match(runtime, /setColorPreference/);
 });
 
-test('alternative themes customize shared shell and game layouts', () => {
-    for (const theme of ['cabinet', 'calm']) {
+test('experience themes customize shared shell and game layouts', () => {
+    for (const theme of ['field-manual', 'playful', 'cabinet', 'calm']) {
         assert.match(shared, new RegExp(`data-arcade-theme="${theme}"`));
-        assert.match(games, new RegExp(`data-arcade-theme="${theme}"`));
+        if (theme !== 'field-manual') assert.match(games, new RegExp(`data-arcade-theme="${theme}"`));
     }
     assert.match(games, /grid-template-columns:minmax\(0,2fr\)/);
     assert.match(games, /box-shadow:none/);
@@ -48,7 +50,7 @@ test('no modern game selects an experience theme or embeds an experience palette
         const source = fs.readFileSync(file, 'utf8');
         assert.doesNotMatch(source, /dataset\.arcadeTheme/, `${file} must not select an experience theme`);
         assert.doesNotMatch(source, /\bpalettes?\s*=\s*\{/, `${file} must not embed an experience palette`);
-        assert.doesNotMatch(source, /(?:playful|cabinet|calm)\s*:\s*\{/, `${file} must not branch on registered themes`);
+        assert.doesNotMatch(source, /(?:field-manual|playful|cabinet|calm)\s*:\s*\{/, `${file} must not branch on registered themes`);
     }
 });
 
@@ -66,7 +68,7 @@ test('theme styles own the Tetris palette and sharing refreshes from its scoped 
     const script = fs.readFileSync('tetris/scripts/app.js', 'utf8');
     assert.match(script, /getComputedStyle\(boardElement\)/);
     assert.match(script, /arcade:theme[^\n]*updateTetrisTheme/);
-    assert.doesNotMatch(script, /dataset\.arcadeTheme|const palettes|playful\s*:|cabinet\s*:|calm\s*:/);
+    assert.doesNotMatch(script, /dataset\.arcadeTheme|const palettes|field-manual\s*:|playful\s*:|cabinet\s*:|calm\s*:/);
 });
 
 test('cabinet light mode keeps dialog text dark without changing topbar ink', () => {

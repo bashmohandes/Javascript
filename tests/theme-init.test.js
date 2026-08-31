@@ -35,7 +35,7 @@ test('invalid preferences fall back to the system', () => {
 
 test('initial theme validates experience choices independently from color mode', () => {
     assert.equal(resolveTheme({ 'arcade-experience-theme': 'cabinet' }).root.dataset.arcadeTheme, 'cabinet');
-    assert.equal(resolveTheme({ 'arcade-experience-theme': 'unknown' }).root.dataset.arcadeTheme, 'playful');
+    assert.equal(resolveTheme({ 'arcade-experience-theme': 'unknown' }).root.dataset.arcadeTheme, 'field-manual');
 });
 
 test('legacy light and dark preferences migrate to the new color key', () => {
