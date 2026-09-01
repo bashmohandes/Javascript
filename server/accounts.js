@@ -158,7 +158,7 @@ function validateResult(game, wonValue, details, trustedOnline = false) {
         const tetrises = integer(details.tetrises, 0, clearEventsMax, 'Tetris four-line clears');
         const softDropCells = integer(details.softDropCells, 0, pieces * 20, 'Tetris soft-drop distance');
         const hardDropCells = integer(details.hardDropCells, 0, pieces * 20 + 40, 'Tetris hard-drop distance');
-        const magicBlocksDestroyed = integer(details.magicBlocksDestroyed ?? 0, 0, magicPowerUps * 200, 'Tetris magic blocks destroyed');
+        const magicBlocksDestroyed = integer(details.magicBlocksDestroyed ?? 0, 0, Math.min(magicPowerUps * 200, pieces * 4), 'Tetris magic blocks destroyed');
         if (lines !== singles + doubles * 2 + triples * 3 + tetrises * 4 || singles + doubles + triples + tetrises > clearEventsMax || level !== Math.floor(lines / 10) + 1 || (magicBlocksDestroyed && !magicPowerUps)) throw new Error('Invalid Tetris statistics.');
         const score = singles * 100 + doubles * 300 + triples * 500 + tetrises * 800 + softDropCells + hardDropCells * 2 + magicBlocksDestroyed * 50;
         return { won: false, score, normalizedDetails: { mode: 'marathon', seconds, lines, level, pieces, singles, doubles, triples, tetrises, softDropCells, hardDropCells, magicPowerUps, magicBlocksDestroyed, shakePowerUps } };

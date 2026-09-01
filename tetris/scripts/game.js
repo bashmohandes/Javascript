@@ -130,7 +130,7 @@
             return cleared;
         }
         rollPowerUp() {
-            if (this.powerUpChance <= 0 || this.pieces < this.powerUpGrace || this.pieces - this.lastPowerUpPiece < this.powerUpCooldown || this.powerUpRandom() >= this.powerUpChance) return null;
+            if (this.powerUpChance <= 0 || this.pieces <= this.powerUpGrace || this.pieces - this.lastPowerUpPiece <= this.powerUpCooldown || this.powerUpRandom() >= this.powerUpChance) return null;
             return this.powerUpRandom() < .5 ? 'magic' : 'shake';
         }
         triggerPowerUp(type) {

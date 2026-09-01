@@ -53,6 +53,14 @@ test('random power-up rolls can replace the next tetromino with a magic block', 
     game.hardDrop(); assert.equal(game.pieces, 1); assert.equal(game.piece.type, 'M'); assert.equal(game.magicPowerUps, 1); assert.equal(game.lastPowerUp.type, 'magic');
 });
 
+test('power-up rolls wait for the complete grace and cooldown intervals', () => {
+    const game = new TetrisGame({ random:() => .2, powerUpRandom:() => 0, powerUpChance:1, powerUpGrace:5, powerUpCooldown:6 });
+    game.pieces = 5; assert.equal(game.rollPowerUp(), null);
+    game.pieces = 6; assert.equal(game.rollPowerUp(), 'magic');
+    game.lastPowerUpPiece = 6; game.pieces = 12; assert.equal(game.rollPowerUp(), null);
+    game.pieces = 13; assert.equal(game.rollPowerUp(), 'magic');
+});
+
 test('shake power-ups compact columns into gaps and clear newly completed rows', () => {
     const game = new TetrisGame({ random:() => .2, powerUpChance:0 });
     for (let x = 1; x < 10; x += 1) game.board[21][x] = 'S';
@@ -80,11 +88,13 @@ test('server derives Tetris scores and rejects impossible result facts', () => {
     const result = validateResult('tetris', false, tetrisDetails());
     assert.equal(result.score, 843); assert.equal(result.normalizedDetails.tetrises, 1);
     assert.equal(validateResult('tetris', false, tetrisDetails({ magicPowerUps:1, magicBlocksDestroyed:3 })).score, 843 + MAGIC_BLOCK_POINTS * 3);
+    assert.equal(validateResult('tetris', false, tetrisDetails({ pieces:5, magicPowerUps:1, magicBlocksDestroyed:20 })).score, 843 + MAGIC_BLOCK_POINTS * 20);
     assert.equal(validateResult('tetris', false, tetrisDetails({ lines:6, doubles:1, tetrises:1, shakePowerUps:1 })).score, 1143);
     assert.throws(() => validateResult('tetris', true, tetrisDetails()), /Invalid Tetris/);
     assert.throws(() => validateResult('tetris', false, tetrisDetails({ lines:5 })), /Invalid Tetris/);
     assert.throws(() => validateResult('tetris', false, tetrisDetails({ level:2 })), /Invalid Tetris/);
     assert.throws(() => validateResult('tetris', false, tetrisDetails({ magicBlocksDestroyed:1 })), /Tetris/);
+    assert.throws(() => validateResult('tetris', false, tetrisDetails({ pieces:5, magicPowerUps:1, magicBlocksDestroyed:21 })), /Tetris/);
     assert.throws(() => validateResult('tetris', false, tetrisDetails({ shakePowerUps:11 })), /Tetris/);
 });
 
