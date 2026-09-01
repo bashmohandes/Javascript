@@ -4,6 +4,7 @@
 // pull-request tooling accepts text patches only. The vector source remains in
 // icon.svg; this dependency-free renderer reproduces its palette and JS mark.
 const fs = require('node:fs');
+const path = require('node:path');
 const zlib = require('node:zlib');
 
 const colors = {
@@ -118,7 +119,20 @@ function renderIcon(size) {
     return encodePng(size, output);
 }
 
-for (const [filename, size] of [['apple-touch-icon.png', 180], ['icon-192.png', 192], ['icon-512.png', 512]]) {
-    fs.writeFileSync(filename, renderIcon(size));
-    console.log(`Generated ${filename} (${size}x${size})`);
+const iconSizes = [['apple-touch-icon.png', 180], ['icon-192.png', 192], ['icon-512.png', 512]];
+
+function generateIcons(outputDirectory = process.cwd(), options = {}) {
+    const generated = [];
+    for (const [filename, size] of iconSizes) {
+        const output = path.join(outputDirectory, filename);
+        if (options.onlyMissing && fs.existsSync(output)) continue;
+        fs.writeFileSync(output, renderIcon(size));
+        generated.push(output);
+        if (options.log !== false) console.log(`Generated ${filename} (${size}x${size})`);
+    }
+    return generated;
 }
+
+if (require.main === module) generateIcons();
+
+module.exports = { generateIcons };

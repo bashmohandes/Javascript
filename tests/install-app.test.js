@@ -2,7 +2,10 @@
 
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
 const test = require('node:test');
+const { generateIcons } = require('../scripts/generate-icons');
 
 const runtime = fs.readFileSync('arcade.js', 'utf8');
 const styles = fs.readFileSync('arcade.css', 'utf8');
@@ -20,6 +23,21 @@ test('shared shell owns one installable arcade manifest', () => {
     assert.match(runtime, /serviceWorker\.register\(`\$\{rootPath\}service-worker\.js`/);
     assert.match(worker, /addEventListener\('fetch'/);
     assert.match(worker, /url\.pathname\.includes\('\/api\/'\)/);
+    assert.doesNotMatch(worker.match(/const APP_SHELL = \[[\s\S]*?\];/)?.[0] || '', /icon-(?:192|512)\.png/);
+});
+
+test('clean direct-server checkouts can generate every install icon without overwriting existing files', () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'arcade-icons-'));
+    try {
+        const existing = path.join(directory, 'icon-192.png');
+        fs.writeFileSync(existing, 'keep-me');
+        const generated = generateIcons(directory, { onlyMissing: true, log: false });
+        assert.equal(fs.readFileSync(existing, 'utf8'), 'keep-me');
+        assert.deepEqual(generated.map(file => path.basename(file)).sort(), ['apple-touch-icon.png', 'icon-512.png']);
+        assert.deepEqual([...fs.readFileSync(path.join(directory, 'icon-512.png')).subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
+    } finally {
+        fs.rmSync(directory, { recursive: true, force: true });
+    }
 });
 
 test('install hint responds to native browser installation lifecycle', () => {

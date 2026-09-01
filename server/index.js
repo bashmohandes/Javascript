@@ -11,8 +11,10 @@ const { openDatabase } = require('./database');
 const { Accounts } = require('./accounts');
 const { Achievements } = require('./achievements');
 const { clientIp: getClientIp, isPrivatePath, originAllowed, parseCookies } = require('./http-security');
+const { generateIcons } = require('../scripts/generate-icons');
 
 const root = path.resolve(__dirname, '..');
+generateIcons(root, { onlyMissing: true });
 const port = Number(process.env.PORT) || 8080;
 const buildVersion = process.env.BUILD_VERSION || 'dev';
 const database = openDatabase();

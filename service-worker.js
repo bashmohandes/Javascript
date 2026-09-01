@@ -7,9 +7,7 @@ const APP_SHELL = [
     './arcade.css',
     './arcade.js',
     './theme-init.js',
-    './manifest.webmanifest',
-    './icon-192.png',
-    './icon-512.png'
+    './manifest.webmanifest'
 ];
 
 self.addEventListener('install', event => {

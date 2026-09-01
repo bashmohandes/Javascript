@@ -22,7 +22,10 @@ manifest and the Apple standalone metadata. Pong now references that same root
 manifest so every shared install action installs JavaScript Arcade rather than
 a game-specific application. The shell registers a root service worker that
 uses network-first static requests and a versioned cache. API requests are
-explicitly excluded from interception and caching.
+explicitly excluded from interception and caching. Generated raster icons are
+not part of the atomic app-shell precache, and the Node server creates any
+missing icons before it begins listening so clean direct-server checkouts remain
+installable.
 
 The shell shows the hint only when a native `beforeinstallprompt` event has been
 received or when the current Apple/Android browser has a known manual install
