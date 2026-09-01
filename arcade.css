@@ -26,6 +26,30 @@ body.arena-fullscreen .arcade-account { display:none; }
 .arcade-auth-actions button { flex: 1; padding: 11px; color: #10271f; background: #83e6c3; border: 0; border-radius: 10px; font: 700 14px system-ui; cursor: pointer; }
 .arcade-auth-actions .secondary { color: var(--arcade-nav-ink); background: var(--arcade-dialog-field); }
 .arcade-auth-message { min-height: 1.5em; color: #ffb3a7; }
+.arcade-install-hint { position:fixed; z-index:1900; bottom:max(16px,env(safe-area-inset-bottom)); left:max(16px,env(safe-area-inset-left)); display:flex; align-items:stretch; overflow:hidden; color:#10271f; background:#83e6c3; border:2px solid var(--arcade-nav-ink); border-radius:15px; box-shadow:5px 5px 0 var(--arcade-nav-ink),0 18px 50px var(--arcade-dialog-shadow); font:800 14px/1.15 system-ui,sans-serif; animation:arcade-install-in .35s ease-out; }
+.arcade-install-hint[hidden],body.arena-fullscreen .arcade-install-hint { display:none; }
+.arcade-install-hint button { color:inherit; background:transparent; border:0; font:inherit; cursor:pointer; }
+.arcade-install-open { display:flex; align-items:center; gap:9px; min-height:52px; padding:8px 10px 8px 13px; text-align:left; }
+.arcade-install-open>span:first-child { display:grid; width:30px; height:30px; place-items:center; color:#fff; background:#6c3bff; border-radius:9px; font-size:23px; line-height:1; }
+.arcade-install-open small { display:block; margin-bottom:2px; font-size:9px; letter-spacing:.1em; text-transform:uppercase; }
+.arcade-install-dismiss { width:38px; border-left:1px solid #10271f33!important; font-size:20px!important; }
+.arcade-install-hint button:focus-visible,.arcade-install-dialog button:focus-visible { outline:3px solid #d76b45; outline-offset:-3px; }
+.arcade-install-dialog { width:min(520px,calc(100% - 28px)); }
+.arcade-install-dialog form { display:grid; gap:18px; padding:24px; font:15px/1.5 system-ui,sans-serif; }
+.arcade-install-dialog header { display:flex; align-items:flex-start; justify-content:space-between; gap:18px; }
+.arcade-install-dialog :is(h2,p,ol) { margin:0; }
+.arcade-install-dialog h2 { margin-top:2px; font-size:clamp(23px,5vw,30px); line-height:1.15; }
+.arcade-install-dialog header small { color:#83e6c3; font-size:10px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; }
+.arcade-install-dialog header button { width:36px; height:36px; padding:0; color:var(--arcade-nav-ink); background:var(--arcade-dialog-field); border:0; border-radius:50%; font-size:24px; cursor:pointer; }
+.arcade-install-dialog>form>p { color:var(--arcade-dialog-muted); }
+.arcade-install-dialog ol { display:grid; gap:12px; padding:0; list-style:none; counter-reset:install-step; }
+.arcade-install-dialog li { position:relative; min-height:40px; padding:9px 12px 9px 52px; background:var(--arcade-dialog-field); border:1px solid var(--arcade-nav-line); border-radius:12px; counter-increment:install-step; }
+.arcade-install-dialog li::before { position:absolute; top:7px; left:9px; display:grid; width:30px; height:30px; place-items:center; color:#10271f; background:#83e6c3; border-radius:9px; content:counter(install-step); font-weight:900; }
+.arcade-install-actions { display:flex; justify-content:flex-end; gap:9px; }
+.arcade-install-actions button { padding:11px 15px; color:#10271f; background:#83e6c3; border:0; border-radius:10px; font:800 14px system-ui,sans-serif; cursor:pointer; }
+.arcade-install-actions button.secondary { color:var(--arcade-nav-ink); background:var(--arcade-dialog-field); }
+.arcade-install-status:empty { display:none; }
+@keyframes arcade-install-in { from { opacity:0; transform:translateY(14px); } }
 .result-share-dialog { width: min(680px, calc(100% - 28px)); overflow: hidden; }
 .result-share-content { display: grid; gap: 16px; padding: 22px; font: 15px/1.45 system-ui, sans-serif; }
 .result-share-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
@@ -43,7 +67,9 @@ body.arena-fullscreen .arcade-account { display:none; }
 .result-share-confirm { color: #10271f; background: #83e6c3; }
 @media (max-width: 760px) { .arcade-topbar-inner { align-items:flex-start; flex-direction:column; gap:11px; } .arcade-account { width:100%; justify-content:flex-start; overflow-x:auto; padding:2px 3px 5px; scrollbar-width:none; } .arcade-account::-webkit-scrollbar { display:none; } }
 @media (max-width: 520px) { .arcade-topbar { padding-inline:12px; } .arcade-home > span:last-child { font-size:14px; } .arcade-account > a:first-of-type { display:none; } .arcade-account a,.arcade-account button { white-space:nowrap; } }
+@media (max-width: 520px) { .arcade-install-hint { right:max(12px,env(safe-area-inset-right)); bottom:max(12px,env(safe-area-inset-bottom)); left:auto; } .arcade-install-dialog form { padding:19px; } }
 @media (max-width: 480px) { .result-share-content { padding: 17px; } .result-share-actions button { flex: 1; } }
+@media (prefers-reduced-motion: reduce) { .arcade-install-hint { animation:none; } }
 .arcade-build-version { margin: 24px auto calc(18px + env(safe-area-inset-bottom)); padding: 0 16px; color: var(--arcade-dialog-muted); font: 12px/1.4 system-ui, sans-serif; text-align: center; }
 .achievement-dialog { width:min(720px,calc(100% - 28px)); max-height:min(760px,calc(100vh - 40px)); }
 .achievement-dialog > header { position:sticky; z-index:1; top:0; display:flex; align-items:center; justify-content:space-between; padding:22px 24px; background:var(--arcade-dialog-bg); border-bottom:1px solid var(--arcade-nav-line); }
