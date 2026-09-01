@@ -31,6 +31,7 @@ Tetris separates its seven-bag/SRS marathon mechanics from DOM presentation,
 uses server-derived scores from bounded top-out facts, and keeps the board,
 status rail, previews, and touch controls together on phone screens. Read the
 [marathon ADR](adr/0010-tetris-marathon-integration.md),
+[power-up ADR](adr/0011-tetris-random-power-ups.md),
 [architecture overview](architecture.md), and
 [player-facing gameplay and mobile-layout guide](tetris.md). Primary coverage
 is in `tests/tetris.test.js`, `tests/accounts.test.js`, and

@@ -14,3 +14,4 @@ All records describe the current system retrospectively and have status
 8. [Separate experience themes from color modes](0008-experience-theming-system.md)
 9. [Authoritative deterministic Battle Tanks simulation](0009-authoritative-battle-tanks-simulation.md) — **Accepted**; one versioned mechanics core powers solo CPU, local play, and viewer-redacted, server-authoritative online rooms.
 10. [Build-free Tetris marathon with scoped themes and validated results](0010-tetris-marathon-integration.md) — **Accepted**; a testable local mechanics core feeds server-derived scores, shared account surfaces, achievements, responsive mobile presentation, and an encapsulated theme-token interface.
+11. [Deterministic Tetris power-ups with validated scoring](0011-tetris-random-power-ups.md) — **Accepted**; random magic destruction and motion-assisted stack compaction stay testable, accessible, theme-scoped, and server-scored.

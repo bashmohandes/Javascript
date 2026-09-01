@@ -24,7 +24,10 @@
     <section class="game-layout">
         <div class="tetris-stage">
             <div id="board" class="tetris-board" role="img" tabindex="-1" aria-label="Empty Tetris board"></div>
+            <div class="magic-destruction" id="magic-destruction" aria-hidden="true"></div>
+            <div class="compaction-effect" id="compaction-effect" aria-hidden="true"></div>
             <div class="line-clear-effect" id="line-clear-effect" aria-hidden="true"><div class="clear-flash"></div><div class="clear-burst" id="clear-burst"></div><div class="clear-streaks" id="clear-streaks"></div><div class="clear-multiplier"><strong id="clear-multiplier">x1</strong><span>line clear</span></div></div>
+            <div class="power-up-banner" id="power-up-banner" role="status" aria-live="assertive" hidden><span class="power-up-icon" id="power-up-icon" aria-hidden="true">✦</span><strong id="power-up-title">Magic breaker</strong><span id="power-up-message">Move through the stack to erase blocks.</span><button class="primary-button" id="use-shake" type="button" hidden>Compact now</button></div>
             <div class="record-callout" id="record-callout" aria-hidden="true"><strong>New high score!</strong><span>Keep stacking</span></div>
             <div class="result-layer" id="finish" hidden><article class="result-card" role="dialog" aria-modal="true" aria-labelledby="finish-title"><p class="eyebrow">Stack topped out</p><h2 id="finish-title">Run complete</h2><p id="finish-summary"></p><div class="result-actions"><button class="primary-button" id="play-again" type="button">Play again</button><button class="secondary-button" id="share-result" type="button">Share result</button></div></article></div>
         </div>
@@ -34,7 +37,7 @@
             <div class="piece-panels"><section><h2>Hold</h2><div id="hold" class="mini-board" aria-label="Held piece"></div></section><section><h2>Next</h2><div id="next" class="next-list" aria-label="Next pieces"></div></section></div>
             <div class="touch-controls" aria-label="Tetris controls"><button type="button" data-action="left" aria-label="Move left">←</button><button type="button" data-action="right" aria-label="Move right">→</button><button type="button" data-action="rotate-left" aria-label="Rotate counterclockwise">↶</button><button type="button" data-action="rotate-right" aria-label="Rotate clockwise">↷</button><button type="button" data-action="soft" aria-label="Soft drop">↓</button><button type="button" data-action="hard" aria-label="Hard drop">⇣</button><button type="button" data-action="hold" aria-label="Hold piece">Hold</button></div>
             <div class="control-actions"><button class="secondary-button" id="pause" type="button">Pause</button><button class="primary-button" id="new-game" type="button">New game</button></div>
-            <p class="instructions">Arrows move · Space hard drops · Z/X rotate · C or Shift holds · P pauses</p>
+            <p class="instructions">Arrows move · Space hard drops · Z/X rotate · C or Shift holds · S uses shake · P pauses</p>
         </aside>
     </section>
 </main>
