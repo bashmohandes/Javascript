@@ -49,6 +49,90 @@
         return body;
     };
     const rootPath = document.currentScript?.src ? new URL('.', document.currentScript.src).pathname : '/';
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register(`${rootPath}service-worker.js`, { scope: rootPath }).catch(() => { /* Installation guidance still works on manual platforms. */ });
+    const setupInstallGuide = () => {
+        const dismissedKey = 'arcade-install-hint-dismissed';
+        const isStandalone = () => window.matchMedia('(display-mode: standalone), (display-mode: fullscreen), (display-mode: minimal-ui)').matches || navigator.standalone === true;
+        const navigatorInfo = () => {
+            const userAgent = navigator.userAgent || '';
+            const isiPad = /iPad/.test(userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            const isiOS = isiPad || /iPhone|iPod/.test(userAgent);
+            const isAndroid = /Android/.test(userAgent) && !/; wv\)/.test(userAgent);
+            const isEdge = /Edg(?:A|iOS)?\//.test(userAgent);
+            const isChrome = /(?:Chrome|CriOS)\//.test(userAgent) && !isEdge;
+            const isSamsung = /SamsungBrowser\//.test(userAgent);
+            const isFirefox = /(?:Firefox|FxiOS)\//.test(userAgent);
+            const isSafari = /Safari\//.test(userAgent) && !isChrome && !isEdge && !isFirefox;
+            const safariVersion = Number(userAgent.match(/Version\/(\d+)/)?.[1] || 0);
+            return { isiPad, isiOS, isAndroid, isEdge, isChrome, isSamsung, isFirefox, isSafari, safariVersion };
+        };
+        const manualGuide = () => {
+            const info = navigatorInfo();
+            if (info.isiOS) return {
+                label: info.isiPad ? 'Install on this iPad' : 'Install on this iPhone',
+                intro: 'Keep the whole arcade one tap away from your Home Screen.',
+                steps: ['Open this page in your browser.', 'Tap the Share button in the browser toolbar.', 'Choose “Add to Home Screen.” You may need to scroll the share menu.', 'Tap “Add” to confirm.']
+            };
+            if (info.isAndroid && (info.isChrome || info.isEdge || info.isSamsung || info.isFirefox)) return {
+                label: 'Install on this device',
+                intro: 'Add the arcade to your apps for a full-screen launch.',
+                steps: ['Open the browser menu (usually ⋮).', 'Choose “Install app” or “Add to Home screen.”', 'Confirm Install or Add.']
+            };
+            if (info.isSafari && /Macintosh/.test(navigator.userAgent) && info.safariVersion >= 17) return {
+                label: 'Add to your Mac',
+                intro: 'Launch the arcade from your Dock like any other app.',
+                steps: ['Open the File menu in Safari.', 'Choose “Add to Dock.”', 'Confirm the name, then select Add.']
+            };
+            return null;
+        };
+
+        if (!document.querySelector('link[rel="manifest"]')) {
+            const manifest = document.createElement('link'); manifest.rel = 'manifest'; manifest.href = `${rootPath}manifest.webmanifest`; document.head.append(manifest);
+        }
+        const appleMeta = [
+            ['apple-mobile-web-app-capable', 'yes'],
+            ['apple-mobile-web-app-status-bar-style', 'black-translucent'],
+            ['apple-mobile-web-app-title', 'JS Arcade']
+        ];
+        appleMeta.forEach(([name, content]) => { if (!document.querySelector(`meta[name="${name}"]`)) { const meta = document.createElement('meta'); meta.name = name; meta.content = content; document.head.append(meta); } });
+
+        const hint = document.createElement('aside'); hint.className = 'arcade-install-hint'; hint.hidden = true;
+        hint.innerHTML = '<button type="button" class="arcade-install-open"><span aria-hidden="true">＋</span><span><small>Play anywhere</small>Install me</span></button><button type="button" class="arcade-install-dismiss" aria-label="Dismiss install suggestion">×</button>';
+        const installDialog = document.createElement('dialog'); installDialog.className = 'arcade-dialog arcade-install-dialog';
+        document.body.append(hint, installDialog);
+        let installPrompt = null;
+        const dismissed = () => { try { return sessionStorage.getItem(dismissedKey) === 'yes'; } catch { return false; } };
+        const hide = () => { hint.hidden = true; };
+        const updateHint = () => { hint.hidden = isStandalone() || dismissed() || (!installPrompt && !manualGuide()); };
+        const renderDialog = () => {
+            const guide = installPrompt ? {
+                label: 'Install JavaScript Arcade',
+                intro: 'Your browser can install the arcade now.',
+                steps: ['Select “Install now” below.', 'Confirm Install in your browser.', 'Open JavaScript Arcade from your apps, Home Screen, or Dock.']
+            } : manualGuide();
+            if (!guide) return false;
+            installDialog.innerHTML = `<form method="dialog"><header><div><small>JavaScript Arcade</small><h2>${guide.label}</h2></div><button value="close" aria-label="Close install instructions">×</button></header><p>${guide.intro}</p><ol>${guide.steps.map(step => `<li>${step}</li>`).join('')}</ol><p class="arcade-install-status" role="status" aria-live="polite"></p><div class="arcade-install-actions">${installPrompt ? '<button type="button" class="arcade-install-now">Install now</button>' : ''}<button value="close" class="secondary">${installPrompt ? 'Not now' : 'Got it'}</button></div></form>`;
+            installDialog.querySelector('.arcade-install-now')?.addEventListener('click', async event => {
+                event.currentTarget.disabled = true;
+                const prompt = installPrompt;
+                await prompt.prompt();
+                const choice = await prompt.userChoice;
+                installPrompt = null;
+                if (choice.outcome === 'accepted') { hide(); installDialog.close(); return; }
+                installDialog.querySelector('.arcade-install-status').textContent = 'Installation was canceled. You can try again from your browser menu.';
+                event.currentTarget.remove();
+            });
+            return true;
+        };
+        hint.querySelector('.arcade-install-open').addEventListener('click', () => { if (renderDialog()) installDialog.showModal(); });
+        hint.querySelector('.arcade-install-dismiss').addEventListener('click', () => { try { sessionStorage.setItem(dismissedKey, 'yes'); } catch { /* Dismiss for this page when storage is unavailable. */ } hide(); });
+        window.addEventListener('beforeinstallprompt', event => { event.preventDefault(); installPrompt = event; updateHint(); });
+        window.addEventListener('appinstalled', () => { installPrompt = null; hide(); if (installDialog.open) installDialog.close(); });
+        window.matchMedia('(display-mode: standalone)').addEventListener?.('change', updateHint);
+        updateHint();
+        return () => { if (renderDialog()) installDialog.showModal(); };
+    };
+    const showInstallGuide = setupInstallGuide();
     const topbar = document.createElement('header');
     topbar.className = 'arcade-topbar';
     const topbarInner = document.createElement('div');
@@ -165,6 +249,7 @@
         achievements: loadAchievements,
         notifyAchievements: showUnlocks,
         api,
+        install: showInstallGuide,
         appearance: () => ({ theme: themePreference, colorPreference, resolvedColorMode: document.documentElement.dataset.colorMode }),
         theme: () => ({ theme: themePreference, preference: colorPreference, resolved: document.documentElement.dataset.colorMode }),
         setTheme,
