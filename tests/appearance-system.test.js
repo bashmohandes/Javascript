@@ -61,7 +61,7 @@ test('theme styles own the Battle Tanks canvas palette', () => {
 });
 
 test('theme styles own the Tetris palette and sharing refreshes from its scoped interface', () => {
-    for (const token of ['board', 'grid', 'border', 'empty', 'ghost', 'ink', 'panel', 'overlay', 'i', 'j', 'l', 'o', 's', 't', 'z']) assert.match(games, new RegExp(`--tetris-${token}:`));
+    for (const token of ['board', 'grid', 'border', 'empty', 'ghost', 'ink', 'panel', 'overlay', 'magic', 'i', 'j', 'l', 'o', 's', 't', 'z']) assert.match(games, new RegExp(`--tetris-${token}:`));
     const script = fs.readFileSync('tetris/scripts/app.js', 'utf8');
     assert.match(script, /getComputedStyle\(boardElement\)/);
     assert.match(script, /arcade:theme[^\n]*updateTetrisTheme/);

@@ -77,7 +77,10 @@ interface. At phone widths, the controller's board and status rail use an
 approximately 70/30 viewport-aware layout while the touch controls remain
 available. Line-clear and live-record celebrations are non-authoritative,
 non-blocking presentation driven by mechanics events and local best-score state.
-See [ADR 0010](adr/0010-tetris-marathon-integration.md) and the
+Random magic breakers and motion-assisted stack compaction are mechanics-owned,
+use validated score facts, and retain keyboard and button fallbacks for sensor
+access. See [ADR 0010](adr/0010-tetris-marathon-integration.md),
+[ADR 0011](adr/0011-tetris-random-power-ups.md), and the
 [player guide](tetris.md).
 
 The coding-challenge folders (`leetcode/`, `codeforces/`, `codewars/`) are

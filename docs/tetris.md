@@ -12,8 +12,25 @@ gravity, and bounded lock-delay resets. A run ends when the stack tops out.
 
 Use the arrow keys to move and soft drop, <kbd>Z</kbd>/<kbd>X</kbd> or the up
 arrow to rotate, <kbd>Space</kbd> for a hard drop, <kbd>C</kbd> to hold, and
-<kbd>P</kbd> or <kbd>Escape</kbd> to pause. The visible touch controls provide
-the same actions on mobile.
+<kbd>P</kbd> or <kbd>Escape</kbd> to pause. When a stack shake is ready, physically
+shake a motion-enabled device, press <kbd>S</kbd>, or choose **Compact now**. The
+visible touch controls provide the standard placement actions on mobile.
+
+## Random power-ups
+
+Power-ups begin appearing randomly after the opening pieces, with a cooldown so
+they remain special rather than replacing normal stacking.
+
+The **magic breaker** is a glowing single-cell piece that passes through occupied
+blocks and destroys them. Move it left or right to carve through awkward areas,
+or press <kbd>Space</kbd> to send it to the floor and erase every block in its
+path. Each destroyed block is worth 50 points.
+
+The **stack shake** pauses gravity and asks the player to shake the device. Every
+block then falls to the lowest available space in its column, after which any
+newly completed rows clear normally. Browsers that gate motion sensors expose an
+enable step; **Compact now** and <kbd>S</kbd> always provide the same accessible
+result without a sensor.
 
 ## Mobile layout
 
@@ -41,7 +58,7 @@ leaderboard results.
 
 Only completed top-outs are submitted. Restarts, abandoned games, and unfinished
 page sessions are not recorded. The result contains bounded aggregate facts such
-as duration, lines, level, locked pieces, clear counts, and drop distances; the
-server validates those facts and derives the stored score rather than accepting
-a client-authored score. Signed-in results feed history, leaderboards,
+as duration, lines, level, locked pieces, clear counts, drop distances, and
+power-up totals; the server validates those facts and derives the stored score
+rather than accepting a client-authored score. Signed-in results feed history, leaderboards,
 top-score notifications, and the Tetris achievement catalog.
