@@ -24,7 +24,7 @@ class RoomManager {
     }
 
     makePlayer(socket, side, user, gamertag = '') {
-        return { id: token(), token: token(), side, userId: user?.id || null, gamertag: user?.gamertag || String(gamertag || ''), socket, connected: true, ready: false, disconnectedAt: null };
+        return { id: token(), token: token(), side, userId: user?.id || null, gamertag: user?.gamertag || String(gamertag || ''), socket, connected: true, ready: false, disconnectedAt: null, pendingResult: null };
     }
 
     create(socket, { visibility = 'private', passcode = '', gamertag = '', user = null } = {}) {
@@ -65,6 +65,7 @@ class RoomManager {
         player.connected = true;
         player.disconnectedAt = null;
         room.touchedAt = Date.now();
+        this.deliverResult(player);
         if (room.players.every(candidate => candidate?.connected) && room.game.running) room.game.paused = false;
         return { room, player };
     }
@@ -107,9 +108,16 @@ class RoomManager {
             if (!player?.userId || !this.recordResult) return;
             const won = room.game.winner === side;
             try {
-                this.recordResult(player.userId, { game: 'pong', won, details: { mode: 'online', score: `${room.game.score[side]}-${room.game.score[1 - side]}`, seconds } });
+                player.pendingResult = this.recordResult(player.userId, { game: 'pong', won, details: { mode: 'online', score: `${room.game.score[side]}-${room.game.score[1 - side]}`, seconds } }) || null;
+                this.deliverResult(player);
             } catch { /* A persistence failure must not stop the room simulation. */ }
         });
+    }
+
+    deliverResult(player) {
+        if (!player.pendingResult || player.socket?.readyState !== 1) return;
+        player.socket.send(JSON.stringify({ type: 'result-recorded', result: player.pendingResult }));
+        player.pendingResult = null;
     }
 
     disconnect(room, player, socket = player.socket) {

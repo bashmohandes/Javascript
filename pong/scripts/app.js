@@ -121,6 +121,7 @@ function handleOnlineMessage(message) {
         }
     } else if (message.type === 'match-started') { shareButton.hidden = true; readyOnlineButton.disabled = true; readyOnlineButton.textContent = 'Match in progress'; status.textContent = 'First to 7. The match is live!'; events.emit('game:started',{intensity:.2,danger:0,mode:'online'}); events.emit('pong:served', {}); }
     else if (message.type === 'ready-status') applyReadyStatus(message.ready);
+    else if (message.type === 'result-recorded') window.Arcade?.notifyResult(message.result);
     else if (message.type === 'state' && message.sequence > online.lastSequence) { online.lastSequence = message.sequence; applyOnlineState(message.state); }
     else if (message.type === 'peer-left') { setConnection('Reconnecting…', 'connecting'); status.textContent = `Opponent disconnected. Holding the match for ${Math.round(message.reconnectMs / 1000)} seconds.`; showOverlay('Opponent disconnected', 'The match will resume if they reconnect'); }
     else if (message.type === 'peer-reconnected') { setConnection('Connected', 'online'); status.textContent = 'Opponent reconnected. Match resumed.'; overlay.hidden = true; }
