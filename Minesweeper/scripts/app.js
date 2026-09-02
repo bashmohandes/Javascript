@@ -11,6 +11,7 @@
     const flagButton = document.querySelector('#flag-mode');
     const modal = document.querySelector('#finish-modal');
     const shareButton = document.querySelector('#share-result');
+    const events = window.ArcadeEvents;
     let cells = [], level, started, ended, elapsed, timerId, flagMode, focusedIndex, pressTimer, longPressed, lastResultWon;
 
     const formatTime = seconds => `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
@@ -31,6 +32,7 @@
         flagButton.setAttribute('aria-pressed', 'false'); flagButton.querySelector('small').textContent = 'Off';
         statusElement.textContent = 'Choose any tile to begin. Your first move is always safe.';
         boardElement.style.setProperty('--columns', level.columns); boardElement.setAttribute('aria-rowcount', level.rows); boardElement.setAttribute('aria-colcount', level.columns);
+        events.emit('game:started', { intensity: .08, danger: 0, difficulty: difficultyElement.value });
         updateBest(); render();
     }
 
@@ -47,6 +49,7 @@
         if (ended || cells[index].flagged || cells[index].revealed) return;
         if (!started) placeMines(index);
         if (cells[index].mine) { cells[index].revealed = true; endGame(false, index); return; }
+        const revealedBefore = cells.filter(cell => cell.revealed).length;
 
         // Reveal empty regions in one pass. Recursively calling reveal used to
         // rebuild the entire board once per cleared cell, which was especially
@@ -66,6 +69,10 @@
                 }
             });
         }
+        const revealedCount = cells.filter(cell => cell.revealed).length - revealedBefore;
+        events.emit('minesweeper:cells-revealed', { count: revealedCount });
+        const safeCells = cells.length - level.mines;
+        events.emit('game:progressed', { progress: cells.filter(cell => cell.revealed).length / safeCells, intensity: .12 + cells.filter(cell => cell.revealed).length / safeCells * .62, danger: 0 });
         statusElement.textContent = 'The field is opening up. Keep going.';
         if (cells.every(item => item.mine || item.revealed)) endGame(true);
         else render();
@@ -74,6 +81,7 @@
     function toggleFlag(index) {
         if (ended || cells[index].revealed) return;
         cells[index].flagged = !cells[index].flagged;
+        events.emit('minesweeper:flag-changed', { index, flagged: cells[index].flagged });
         statusElement.textContent = cells[index].flagged ? 'Mine marked.' : 'Flag removed.';
         render();
     }
@@ -81,6 +89,8 @@
     function activate(index) { flagMode ? toggleFlag(index) : reveal(index); }
     function endGame(won, explodedIndex) {
         ended = true; lastResultWon = won; clearInterval(timerId);
+        if (!won) events.emit('minesweeper:mine-triggered', { index: explodedIndex, damage: 50 });
+        events.emit('game:completed', { outcome: won ? 'win' : 'loss', seconds: elapsed });
         const difficulty = difficultyElement.value;
         window.Arcade?.record({ game: 'minesweeper', won, details: { difficulty, seconds: elapsed } }).catch(() => {});
         if (!won) cells.forEach((cell, index) => { if (cell.mine) cell.revealed = true; if (index === explodedIndex) cell.exploded = true; });

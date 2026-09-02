@@ -23,11 +23,13 @@ flowchart TB
   subgraph Browser
     Pages[Home, profile, game pages]
     Arcade[arcade.js: account, appearance, results, achievements]
+    Events[game-events.js: browser domain events]
     Shared[room UI, colors, sharing]
     Games[game-specific controllers and engines]
     Store[localStorage: preferences/best times\nsessionStorage: room resume tokens]
     Pages --> Arcade
-    Pages --> Shared --> Games
+    Pages --> Events
+    Games --> Events --> Shared
     Arcade --> Games
     Games --> Store
   end
@@ -53,7 +55,7 @@ flowchart TB
 theme registry. Experience (`playful`, `cabinet`, or `calm`) is independent
 from the `system`/`light`/`dark` color preference. `arcade.js` renders the
 appearance dialog, persists changes, synchronizes tabs, and emits the
-`arcade:theme` event for DOM and canvas games. Shared component and layout
+`system:theme-changed` domain event for DOM and canvas games. Shared component and layout
 tokens live in `arcade.css` and `styles/modern-game.css`; homepage and profile
 styles consume the same root attributes for their page-specific layouts.
 
@@ -66,6 +68,31 @@ service worker uses network-first static caching while excluding APIs. See
 
 See [ADR 0008](adr/0008-experience-theming-system.md) for the decision and
 extension constraints.
+
+## Audio system
+
+Modern game pages load `scripts/game-events.js` and then `scripts/audio.js`
+before the shared shell. Game controllers publish gameplay facts and lifecycle
+state without referencing audio. The audio adapter subscribes to those facts,
+creates a Web Audio graph only after gameplay interaction, and synthesizes all
+music and effects without media assets. `arcade.js` owns the persistent master
+mute and music/effects levels. Experience themes select shared timbres;
+individual game scripts never branch on theme names. Hidden pages and open
+dialogs suspend background music, and online clients deduplicate transition
+events independently from authoritative state. See [ADR 0013](adr/0013-procedural-arcade-audio.md), the
+[audio design](audio-design.md), and the [player-facing audio guide](audio.md).
+
+## Browser event system
+
+`scripts/game-events.js` provides a synchronous, page-local semantic event bus
+for optional browser features. Games publish accepted actions and lifecycle
+facts; audio and shared shell features subscribe without entering the mechanics
+boundary. The shell also publishes theme, account, validated achievement,
+validated top-score, and audio-preference changes. Events are immutable
+notifications, not commands or trusted records. Server-derived results,
+achievement progress, and authoritative online rooms remain outside this bus.
+See [ADR 0014](adr/0014-browser-domain-event-bus.md) and the
+[extension guide and event contract](game-events.md).
 
 ## Games and components
 

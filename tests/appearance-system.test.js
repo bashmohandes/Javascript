@@ -64,7 +64,7 @@ test('theme styles own the Tetris palette and sharing refreshes from its scoped 
     for (const token of ['board', 'grid', 'border', 'empty', 'ghost', 'ink', 'panel', 'overlay', 'magic', 'i', 'j', 'l', 'o', 's', 't', 'z']) assert.match(games, new RegExp(`--tetris-${token}:`));
     const script = fs.readFileSync('tetris/scripts/app.js', 'utf8');
     assert.match(script, /getComputedStyle\(boardElement\)/);
-    assert.match(script, /arcade:theme[^\n]*updateTetrisTheme/);
+    assert.match(script, /system:theme-changed[^\n]*updateTetrisTheme/);
     assert.doesNotMatch(script, /dataset\.arcadeTheme|const palettes|playful\s*:|cabinet\s*:|calm\s*:/);
 });
 

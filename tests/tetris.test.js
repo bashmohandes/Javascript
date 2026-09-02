@@ -118,7 +118,7 @@ test('Tetris is wired into themes, accounts, sharing, homepage, profile, and API
     const page = read('tetris/index.html'), app = read('tetris/scripts/app.js'), server = read('server/index.js');
     for (const asset of ['theme-init.js', 'styles/modern-game.css', 'arcade.css', 'scripts/share-result.js', 'scripts/game.js', 'scripts/app.js']) assert.ok(page.includes(asset), `${asset} should load on Tetris`);
     assert.match(page, /body class="modern-game game-tetris"/); assert.match(page, /single-player/i); assert.match(page, /id="board"[^>]*tabindex="-1"/);
-    assert.match(app, /Arcade\?\.record\(\{ game: 'tetris'/); assert.match(app, /arcade:theme/); assert.match(app, /ResultShare\.tetris/);
+    assert.match(app, /Arcade\?\.record\(\{ game: 'tetris'/); assert.match(app, /system:theme-changed/); assert.match(app, /ResultShare\.tetris/);
     assert.match(read('index.html'), /href="tetris\/index\.html"/); assert.match(read('profile.html'), /data-game="tetris"/); assert.match(read('profile.js'), /tetris: 'Tetris'/);
     assert.match(server, /leaderboards[^\n]*tetris/); assert.match(server, /achievements[^\n]*tetris/); assert.match(read('scripts/share-result.js'), /window\.ResultShare = \{[^}]*tetris/);
 });

@@ -160,7 +160,7 @@ test('Battle Tanks keeps reset, rematch, reconnect, results, callouts, and theme
     assert.match(app, /type:'resume',\.\.\.onlineSession/);
     assert.match(app, /Arcade\.record\(\{game:'battletanks'/);
     assert.match(app, /callout\.classList\.add\('show'\)/);
-    assert.match(app, /arcade:theme[\s\S]*updateArenaTheme/);
+    assert.match(app, /system:theme-changed[\s\S]*updateArenaTheme/);
     assert.match(app, /fullscreen-fire[\s\S]*fullscreen-weapon|fullscreen-weapon[\s\S]*fullscreen-fire/);
 });
 
