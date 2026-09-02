@@ -67,6 +67,18 @@ service worker uses network-first static caching while excluding APIs. See
 See [ADR 0008](adr/0008-experience-theming-system.md) for the decision and
 extension constraints.
 
+## Audio system
+
+Modern game pages load `scripts/audio.js` before the shared shell. The runtime
+creates a Web Audio graph only after gameplay interaction, synthesizes all music
+and effects without media assets, and exposes semantic cue and scene methods to
+game controllers. `arcade.js` owns the persistent master mute and music/effects
+levels. Experience themes select shared timbres; individual game scripts never
+branch on theme names. Hidden pages and open dialogs suspend background music,
+and online clients deduplicate transition sounds independently from authoritative
+state. See [ADR 0013](adr/0013-procedural-arcade-audio.md), the
+[audio design](audio-design.md), and the [player-facing audio guide](audio.md).
+
 ## Games and components
 
 | Game | Browser modes / components | Online authority | Platform integration |
