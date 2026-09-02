@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
 const fs = require('node:fs');
 const path = require('node:path');
-const { clientIp, contentSecurityPolicy, isPrivatePath, originAllowed, parseCookies, RateLimiter, requestOrigin, WebSocketGuard } = require('../server/http-security');
+const { clientIp, contentSecurityPolicy, isPrivatePath, originAllowed, parseCookies, RateLimiter, requestOrigin, useSecureCookies, WebSocketGuard } = require('../server/http-security');
 
 function request(headers = {}, encrypted = false) {
     return { headers, socket: { encrypted, remoteAddress: '127.0.0.1' } };
@@ -14,6 +14,14 @@ function request(headers = {}, encrypted = false) {
 test('cookie parsing tolerates malformed values and preserves equals signs', () => {
     assert.deepEqual(parseCookies('session=a%3Db; broken=%E0%A4%A; theme=dark'), { session: 'a=b', theme: 'dark' });
     assert.deepEqual(parseCookies('arcade_session=first; arcade_session=second'), { arcade_session: 'first' });
+});
+
+test('production cookies are always secure while development can opt in', () => {
+    assert.equal(useSecureCookies({ NODE_ENV: 'production' }), true);
+    assert.equal(useSecureCookies({ NODE_ENV: 'production', COOKIE_SECURE: 'false' }), true);
+    assert.equal(useSecureCookies({ NODE_ENV: 'development' }), false);
+    assert.equal(useSecureCookies({ NODE_ENV: 'development', COOKIE_SECURE: 'false' }), false);
+    assert.equal(useSecureCookies({ NODE_ENV: 'development', COOKIE_SECURE: 'true' }), true);
 });
 
 test('origin checks use direct connection details unless the proxy is trusted', () => {

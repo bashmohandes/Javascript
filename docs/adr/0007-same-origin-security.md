@@ -18,5 +18,7 @@ is constrained; split-origin clients require configuration and proxy trust must
 match the actual network boundary. Modern pages execute scripts only from the
 arcade origin. Resolved assets belonging to preserved classic p5.js pages receive
 a scoped cdnjs exception, while inline scripts, plugin objects, frames, and
-foreign form targets remain blocked.
+foreign form targets remain blocked. Production session and deletion cookies
+always carry the `Secure` attribute; development deployments may opt into it but
+cannot opt production out.
 

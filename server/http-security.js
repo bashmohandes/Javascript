@@ -74,6 +74,10 @@ function contentSecurityPolicy(assetPath = '') {
     ].join('; ');
 }
 
+function useSecureCookies(environment = process.env) {
+    return environment.NODE_ENV === 'production' || environment.COOKIE_SECURE === 'true';
+}
+
 function isPrivatePath(pathname) {
     const segments = pathname.split('/').filter(Boolean);
     if (segments.some(segment => segment.startsWith('.'))) return true;
@@ -183,4 +187,4 @@ class WebSocketGuard {
     ownRoom(socket, room) { this.roomOwners.set(room, this.socketIps.get(socket) || 'unknown'); }
 }
 
-module.exports = { clientIp, contentSecurityPolicy, isPrivatePath, originAllowed, parseCookies, RateLimiter, requestOrigin, WebSocketGuard };
+module.exports = { clientIp, contentSecurityPolicy, isPrivatePath, originAllowed, parseCookies, RateLimiter, requestOrigin, useSecureCookies, WebSocketGuard };
