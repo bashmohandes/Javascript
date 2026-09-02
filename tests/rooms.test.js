@@ -3,6 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { RoomManager } = require('../server/rooms');
+const { point } = require('../server/game');
 
 function socket() { return { readyState: 1, messages: [], send(body) { this.messages.push(JSON.parse(body)); }, close() {} }; }
 
@@ -105,4 +106,35 @@ test('either connected player can start a rematch for the whole room', () => {
     host.room.game.score[0] = 2;
     assert.equal(rooms.rematch(host.room), true, 'a concurrent second request is accepted');
     assert.deepEqual(host.room.game.score, [2, 0], 'a duplicate request must not reset the new match');
+});
+
+test('records authoritative online results once for authenticated Pong players', () => {
+    const records = [], rooms = new RoomManager({ recordResult: (userId, result) => records.push({ userId, result }) });
+    const host = rooms.create(socket(), { visibility: 'public', user: { id: 11, gamertag: 'Host' } });
+    const guest = rooms.join(host.room.code, socket(), '', '', { id: 22, gamertag: 'Guest' });
+    rooms.ready(host.room, host.player); rooms.ready(host.room, guest.player);
+    host.room.game.score = [6, 3]; host.room.game.elapsed = 42.4; point(host.room.game, 0);
+
+    rooms.tick(0); rooms.tick(0);
+
+    assert.deepEqual(records, [
+        { userId: 11, result: { game: 'pong', won: true, details: { mode: 'online', score: '7-3', seconds: 42 } } },
+        { userId: 22, result: { game: 'pong', won: false, details: { mode: 'online', score: '3-7', seconds: 42 } } }
+    ]);
+    assert.equal(host.room.recorded, true);
+    rooms.rematch(host.room);
+    assert.equal(host.room.recorded, false);
+    assert.equal(host.room.matchId, 2);
+});
+
+test('skips anonymous Pong players and isolates persistence failures', () => {
+    let attempts = 0;
+    const rooms = new RoomManager({ recordResult: () => { attempts += 1; throw new Error('offline'); } });
+    const host = rooms.create(socket(), { visibility: 'public', user: { id: 11, gamertag: 'Host' } });
+    const guest = rooms.join(host.room.code, socket());
+    rooms.ready(host.room, host.player); rooms.ready(host.room, guest.player);
+    host.room.game.score = [6, 0]; point(host.room.game, 0);
+    assert.doesNotThrow(() => rooms.tick(0));
+    assert.equal(attempts, 1);
+    assert.equal(host.room.recorded, true);
 });

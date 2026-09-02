@@ -8,11 +8,12 @@ const token = () => crypto.randomBytes(24).toString('base64url');
 const normalizePasscode = value => String(value || '').trim();
 
 class RoomManager {
-    constructor({ reconnectMs = 15000, roomTimeoutMs = 30 * 60 * 1000, random = Math.random } = {}) {
+    constructor({ reconnectMs = 15000, roomTimeoutMs = 30 * 60 * 1000, random = Math.random, recordResult = null } = {}) {
         this.rooms = new Map();
         this.reconnectMs = reconnectMs;
         this.roomTimeoutMs = roomTimeoutMs;
         this.random = random;
+        this.recordResult = recordResult;
         this.sequence = 0;
     }
 
@@ -22,23 +23,27 @@ class RoomManager {
         return code;
     }
 
-    create(socket, { visibility = 'private', passcode = '', gamertag = '' } = {}) {
+    makePlayer(socket, side, user, gamertag = '') {
+        return { id: token(), token: token(), side, userId: user?.id || null, gamertag: user?.gamertag || String(gamertag || ''), socket, connected: true, ready: false, disconnectedAt: null };
+    }
+
+    create(socket, { visibility = 'private', passcode = '', gamertag = '', user = null } = {}) {
         const isPublic = visibility === 'public';
         const normalizedPasscode = normalizePasscode(passcode);
         if (!isPublic && (normalizedPasscode.length < 4 || normalizedPasscode.length > 32)) throw new Error('Private room passcodes must be 4–32 characters.');
         const code = this.makeCode();
-        const player = { id: token(), token: token(), side: 0, gamertag: String(gamertag || ''), socket, connected: true, ready: false, disconnectedAt: null };
-        const room = { code, visibility: isPublic ? 'public' : 'private', passcode: isPublic ? '' : normalizedPasscode, players: [player, null], game: createGame(this.random), createdAt: Date.now(), touchedAt: Date.now(), countdownUntil: null };
+        const player = this.makePlayer(socket, 0, user, gamertag);
+        const room = { code, visibility: isPublic ? 'public' : 'private', passcode: isPublic ? '' : normalizedPasscode, players: [player, null], game: createGame(this.random), matchId: 0, recorded: false, createdAt: Date.now(), touchedAt: Date.now(), countdownUntil: null };
         this.rooms.set(code, room);
         return { room, player };
     }
 
-    join(code, socket, passcode = '', gamertag = '') {
+    join(code, socket, passcode = '', gamertag = '', user = null) {
         const room = this.rooms.get(String(code || '').toUpperCase());
         if (!room) throw new Error('Room not found. Check the code and try again.');
         if (room.players[1]) throw new Error('That room is already full.');
         if (room.visibility === 'private' && normalizePasscode(passcode) !== room.passcode) throw new Error('That passcode is incorrect.');
-        const player = { id: token(), token: token(), side: 1, gamertag: String(gamertag || ''), socket, connected: true, ready: false, disconnectedAt: null };
+        const player = this.makePlayer(socket, 1, user, gamertag);
         room.players[1] = player;
         room.touchedAt = Date.now();
         return { room, player };
@@ -69,7 +74,7 @@ class RoomManager {
         player.ready = true;
         if (room.players.every(candidate => candidate?.ready && candidate.connected)) {
             room.players.forEach(candidate => { candidate.ready = false; });
-            startGame(room.game);
+            this.start(room);
             return true;
         }
         return false;
@@ -83,9 +88,28 @@ class RoomManager {
         if (room.game.running && !room.game.over) return true;
         if (!room.game.over) throw new Error('The match must be finished before starting a rematch.');
         room.players.forEach(candidate => { candidate.ready = false; });
-        startGame(room.game);
+        this.start(room);
         room.touchedAt = Date.now();
         return true;
+    }
+
+    start(room) {
+        startGame(room.game);
+        room.matchId += 1;
+        room.recorded = false;
+    }
+
+    finish(room) {
+        if (room.recorded || !room.game.over) return;
+        room.recorded = true;
+        const seconds = Math.max(1, Math.min(86400, Math.round(room.game.elapsed)));
+        room.players.forEach((player, side) => {
+            if (!player?.userId || !this.recordResult) return;
+            const won = room.game.winner === side;
+            try {
+                this.recordResult(player.userId, { game: 'pong', won, details: { mode: 'online', score: `${room.game.score[side]}-${room.game.score[1 - side]}`, seconds } });
+            } catch { /* A persistence failure must not stop the room simulation. */ }
+        });
     }
 
     disconnect(room, player, socket = player.socket) {
@@ -110,6 +134,7 @@ class RoomManager {
             }
             if (room.game.running && !room.game.paused) room.touchedAt = now;
             update(room.game, dt);
+            if (room.game.over) this.finish(room);
         }
     }
 

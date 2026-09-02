@@ -205,6 +205,7 @@ function validateResult(game, wonValue, details, trustedOnline = false) {
     }
     if (game === 'tictactoe') {
         if (!['solo-easy', 'solo-medium', 'solo-hard', 'duo', 'online'].includes(details.mode)) throw new Error('Invalid Tic-tac-toe mode.');
+        if (details.mode === 'online' && !trustedOnline) throw new Error('Invalid Tic-tac-toe mode.');
         const seconds = integer(details.seconds, 1, 86400, 'Tic-tac-toe time');
         const moves = integer(details.moves, 3, 9, 'Tic-tac-toe move count');
         return { won, score: won ? 1000 + (10 - moves) * 100 + Math.max(0, 300 - seconds) : 0, normalizedDetails: { mode: details.mode, seconds, moves, outcome: won ? 'win' : details.outcome === 'draw' ? 'draw' : 'loss' } };
@@ -223,7 +224,7 @@ function validateResult(game, wonValue, details, trustedOnline = false) {
         const base = { easy: 1000, medium: 3000, hard: 6000 }[details.difficulty];
         return { won, score: won ? Math.max(1, base - seconds) : 0, normalizedDetails: { difficulty: details.difficulty, seconds } };
     }
-    if (!['solo', 'duo', 'online'].includes(details.mode) || !/^\d-\d$/.test(String(details.score))) throw new Error('Invalid Pong result.');
+    if (!['solo', 'duo', 'online'].includes(details.mode) || details.mode === 'online' && !trustedOnline || !/^\d-\d$/.test(String(details.score))) throw new Error('Invalid Pong result.');
     const [player, opponent] = String(details.score).split('-').map(Number);
     if ((player !== 7 && opponent !== 7) || (player === 7 && opponent === 7) || won !== (player === 7)) throw new Error('Invalid Pong result.');
     const seconds = integer(details.seconds, 1, 86400, 'Pong time');
