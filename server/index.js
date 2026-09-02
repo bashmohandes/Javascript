@@ -10,7 +10,7 @@ const { BattleTanksRooms } = require('./battle-tanks-rooms');
 const { openDatabase } = require('./database');
 const { Accounts } = require('./accounts');
 const { Achievements } = require('./achievements');
-const { clientIp: getClientIp, contentSecurityPolicy, isPrivatePath, originAllowed, parseCookies, RateLimiter, WebSocketGuard } = require('./http-security');
+const { clientIp: getClientIp, contentSecurityPolicy, isPrivatePath, originAllowed, parseCookies, RateLimiter, useSecureCookies, WebSocketGuard } = require('./http-security');
 const { generateIcons } = require('../scripts/generate-icons');
 
 const root = path.resolve(__dirname, '..');
@@ -60,7 +60,8 @@ function json(response, status, body, headers = {}) {
 }
 function cookies(request) { return parseCookies(request.headers.cookie); }
 function sessionUser(request) { return accounts.userForToken(cookies(request).arcade_session); }
-function sessionCookie(token, expiresAt) { return `arcade_session=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Strict; Expires=${new Date(expiresAt).toUTCString()}${process.env.COOKIE_SECURE === 'true' ? '; Secure' : ''}`; }
+function cookieSecurity() { return useSecureCookies() ? '; Secure' : ''; }
+function sessionCookie(token, expiresAt) { return `arcade_session=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Strict; Expires=${new Date(expiresAt).toUTCString()}${cookieSecurity()}`; }
 const loginLimiter = new RateLimiter(10, 15 * 60 * 1000);
 const loginIpLimiter = new RateLimiter(50, 15 * 60 * 1000);
 const registrationLimiter = new RateLimiter(5, 60 * 60 * 1000);
@@ -116,7 +117,7 @@ const server = http.createServer(async (request, response) => {
             }
             if (pathname === '/api/auth/logout' && request.method === 'POST') {
                 accounts.deleteSession(cookies(request).arcade_session);
-                return json(response, 200, { ok: true }, { 'set-cookie': 'arcade_session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0' });
+                return json(response, 200, { ok: true }, { 'set-cookie': `arcade_session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0${cookieSecurity()}` });
             }
             if (pathname === '/api/me' && request.method === 'GET') return json(response, 200, { user: sessionUser(request) });
             const leaderboard = pathname.match(/^\/api\/leaderboards\/(pong|sudoku|minesweeper|tictactoe|battletanks|tetris)$/);

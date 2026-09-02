@@ -156,6 +156,12 @@ proxy-adjacent forwarded client address and origin checks use the forwarded
 protocol. Leave it false if clients can connect directly to the container port
 and supply their own forwarding headers.
 
+The production image always marks session cookies `Secure`; this cannot be
+disabled with `COOKIE_SECURE=false`. The local Compose profile defaults to
+`NODE_ENV=development` so authentication remains available over localhost HTTP.
+Set `COOKIE_SECURE=true` to opt a non-production HTTPS environment into secure
+cookies.
+
 Authentication attempts are throttled by client address and gamertag, and
 passcode hashing runs asynchronously so it does not block game simulation.
 Scores are derived by the server from validated result fields rather than
