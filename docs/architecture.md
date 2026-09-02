@@ -101,7 +101,7 @@ See [ADR 0014](adr/0014-browser-domain-event-bus.md) and the
 
 | Game | Browser modes / components | Online authority | Platform integration |
 |---|---|---|---|
-| Sudoku | Modern controller with generated boards, notes, hints and solver; separate p5.js classic (`board`, `cell`, `builder`, `solver`, `sketch`) | None | Modern results, scores and achievements |
+| Sudoku | Shared modern mechanics core plus DOM controller for notes, hints and animated solving; separate p5.js classic (`board`, `cell`, `builder`, `solver`, `sketch`) | None | Modern results, scores and achievements |
 | Minesweeper | Modern controller plus tile/grid engine; separate p5.js classic (`sketch`, `tile`) | None | Modern results, browser best times, scores and achievements |
 | Pong | Modern canvas controller + motion prediction; solo, couch duo, online; separate p5.js classic (`board`, `ball`, `sketch`) | Server engine at 60 Hz; snapshots at 30 Hz | Modern results, scores and achievements |
 | Tic-tac-toe | Shared deterministic mechanics core, modern controller, minimax AI, couch duo and online | Room manager validates lifecycle and intent, then applies shared transitions | Results, scores and achievements |
@@ -126,6 +126,7 @@ independent scripts, not arcade games or runtime components.
 ```mermaid
 flowchart LR
   Shared[Shared browser shell] --> SU[Sudoku modern]
+  SU --> SG[Sudoku mechanics]
   Shared --> MS[Minesweeper modern]
   Shared --> PO[Pong modern]
   Shared --> TT[Tic-tac-toe]
@@ -254,6 +255,12 @@ transitions, terminal evaluation, and deterministic minimax selection. The
 browser retains difficulty/randomness and presentation, while the room manager
 retains lifecycle, turn authorization, online results, and broadcast authority.
 See [ADR 0022](adr/0022-shared-tictactoe-mechanics.md).
+
+Modern Sudoku uses a DOM-free mechanics core for validated grids, randomized
+solution generation, difficulty clue counts, placement rules, peer-note
+updates, and stepwise backtracking. The browser owns timer pacing, animated
+solver feedback, accessibility, input, events, sharing, and result recording.
+See [ADR 0023](adr/0023-testable-sudoku-mechanics.md).
 
 ## Battle Tanks boundaries and flow
 

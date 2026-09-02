@@ -62,10 +62,12 @@ test('competitive games consume the same shared color palette', () => {
 test('Sudoku visually separates boxes and highlights the active box', () => {
     const styles = read('Sudoku/styles.css');
     const script = read('Sudoku/scripts/app.js');
+    const mechanics = read('Sudoku/scripts/game.js');
     assert.match(styles, /--box-line:/);
     assert.match(styles, /\.cell:nth-child\(3n\)\s*{[^}]*3px solid var\(--box-line\)/);
     assert.match(styles, /\.cell\.same-box\s*{/);
     assert.match(script, /sameBox\([^)]*\)\) cell\.classList\.add\('same-box'\)/);
+    assert.match(mechanics, /function sameBox/);
 });
 
 test('shared arcade UI uses one safe-area-aware responsive top bar and displays the build version', () => {
