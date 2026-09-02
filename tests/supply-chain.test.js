@@ -18,3 +18,11 @@ test('container stages use one immutable multi-platform Node image digest', () =
     for (const image of images) assert.match(image, /^node:24-alpine@sha256:[0-9a-f]{64}$/, image);
     assert.equal(new Set(images).size, 1);
 });
+
+test('Dependabot checks every build dependency ecosystem daily', () => {
+    const configuration = fs.readFileSync('.github/dependabot.yml', 'utf8');
+    const ecosystems = [...configuration.matchAll(/^\s*- package-ecosystem:\s*(\S+)$/gm)].map(match => match[1]);
+    assert.deepEqual(ecosystems, ['github-actions', 'docker', 'npm']);
+    assert.equal([...configuration.matchAll(/^\s*interval:\s*daily$/gm)].length, ecosystems.length);
+    assert.equal([...configuration.matchAll(/^\s*applies-to:\s*security-updates$/gm)].length, ecosystems.length);
+});

@@ -130,7 +130,8 @@ displayed build version.
 The workflow's third-party actions and Node container base are pinned to
 immutable revisions. Update those pins deliberately after reviewing upstream
 release notes; the adjacent version comments identify the human-readable action
-releases.
+releases. Dependabot checks Actions, Docker, and npm every day and proposes
+reviewable version and security updates without weakening those pins.
 
 Set up Docker Hub once:
 

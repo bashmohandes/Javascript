@@ -1,0 +1,44 @@
+version: 2
+
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: daily
+      time: "09:00"
+      timezone: America/Los_Angeles
+    groups:
+      action-versions:
+        applies-to: version-updates
+        patterns: ["*"]
+      action-security:
+        applies-to: security-updates
+        patterns: ["*"]
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: daily
+      time: "09:15"
+      timezone: America/Los_Angeles
+    groups:
+      container-versions:
+        applies-to: version-updates
+        patterns: ["*"]
+      container-security:
+        applies-to: security-updates
+        patterns: ["*"]
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: daily
+      time: "09:30"
+      timezone: America/Los_Angeles
+    groups:
+      npm-versions:
+        applies-to: version-updates
+        patterns: ["*"]
+      npm-security:
+        applies-to: security-updates
+        patterns: ["*"]
