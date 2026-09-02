@@ -305,7 +305,7 @@ flowchart LR
 ```
 
 The server blocks private source/data paths, applies response security headers
-and a route-aware Content Security Policy,
+and a resolved-asset-aware Content Security Policy,
 checks HTTP/WebSocket origins, caps JSON and WebSocket payloads, and uses a
 heartbeat. WebSocket admission also bounds connections, messages, lobby
 actions, active rooms, and public listings before unauthenticated work can grow

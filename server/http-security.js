@@ -53,8 +53,8 @@ function originAllowed(request, allowedOrigins, trustProxy = false, requireOrigi
     return origin === requestOrigin(request, trustProxy) || allowedOrigins.includes(origin);
 }
 
-function contentSecurityPolicy(pathname = '') {
-    const classicGame = /^\/(?:Sudoku|Minesweeper|pong)\/classic(?:\/|$)/.test(pathname);
+function contentSecurityPolicy(assetPath = '') {
+    const classicGame = /^(?:Sudoku|Minesweeper|pong)\/classic(?:\/|$)/.test(assetPath);
     const scriptSources = classicGame ? "'self' https://cdnjs.cloudflare.com" : "'self'";
     return [
         "default-src 'self'",

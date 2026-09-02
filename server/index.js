@@ -84,7 +84,7 @@ const server = http.createServer(async (request, response) => {
     let pathname;
     try { pathname = decodeURIComponent(new URL(request.url, 'http://localhost').pathname); }
     catch { response.writeHead(400, { 'content-type': 'text/plain; charset=utf-8' }).end('Bad request'); return; }
-    response.setHeader('content-security-policy', contentSecurityPolicy(pathname));
+    response.setHeader('content-security-policy', contentSecurityPolicy());
     if (pathname === '/healthz') {
         response.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
         response.end(JSON.stringify({ status: 'ok', rooms: rooms.rooms.size }));
@@ -150,6 +150,8 @@ const server = http.createServer(async (request, response) => {
     try {
         if (fs.statSync(filePath).isDirectory()) filePath = path.join(filePath, 'index.html');
     } catch { /* handled by readFile */ }
+    const assetPath = path.relative(root, filePath).split(path.sep).join('/');
+    response.setHeader('content-security-policy', contentSecurityPolicy(assetPath));
     fs.readFile(filePath, (error, content) => {
         if (error) { response.writeHead(error.code === 'ENOENT' ? 404 : 500).end(error.code === 'ENOENT' ? 'Not found' : 'Server error'); return; }
         response.writeHead(200, { 'content-type': mime[path.extname(filePath)] || 'application/octet-stream' });

@@ -4,6 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
 const fs = require('node:fs');
+const path = require('node:path');
 const { clientIp, contentSecurityPolicy, isPrivatePath, originAllowed, parseCookies, RateLimiter, requestOrigin, WebSocketGuard } = require('../server/http-security');
 
 function request(headers = {}, encrypted = false) {
@@ -30,7 +31,7 @@ test('origin checks can require the header for WebSocket handshakes', () => {
 });
 
 test('content security policy keeps modern scripts local and narrowly permits the classic CDN', () => {
-    const modern = contentSecurityPolicy('/pong/');
+    const modern = contentSecurityPolicy('pong/index.html');
     assert.match(modern, /default-src 'self'/);
     assert.match(modern, /script-src 'self';/);
     assert.match(modern, /script-src-attr 'none'/);
@@ -38,11 +39,16 @@ test('content security policy keeps modern scripts local and narrowly permits th
     assert.match(modern, /frame-ancestors 'none'/);
     assert.match(modern, /form-action 'self'/);
     assert.doesNotMatch(modern, /cdnjs/);
-    for (const [pathname, file] of [['/pong/classic/', 'pong/classic/index.html'], ['/Minesweeper/classic/index.html', 'Minesweeper/classic/index.html'], ['/Sudoku/classic/', 'Sudoku/classic/index.html']]) {
-        assert.match(contentSecurityPolicy(pathname), /script-src 'self' https:\/\/cdnjs\.cloudflare\.com;/, pathname);
+    for (const file of ['pong/classic/index.html', 'Minesweeper/classic/index.html', 'Sudoku/classic/index.html']) {
+        assert.match(contentSecurityPolicy(file), /script-src 'self' https:\/\/cdnjs\.cloudflare\.com;/, file);
         assert.doesNotMatch(fs.readFileSync(file, 'utf8'), /src="\/\/cdnjs\.cloudflare\.com/);
     }
-    assert.doesNotMatch(contentSecurityPolicy('/classic-looking/path'), /cdnjs/);
+    assert.doesNotMatch(contentSecurityPolicy('classic-looking/path'), /cdnjs/);
+    const root = path.resolve(__dirname, '..');
+    const traversal = decodeURIComponent('/pong/classic/%2e%2e%2f%2e%2e%2findex.html');
+    const resolvedAsset = path.relative(root, path.resolve(root, `.${traversal}`)).split(path.sep).join('/');
+    assert.equal(resolvedAsset, 'index.html');
+    assert.doesNotMatch(contentSecurityPolicy(resolvedAsset), /cdnjs/);
 });
 
 test('trusted proxy addresses must be valid and use the proxy-adjacent value', () => {
