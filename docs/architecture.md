@@ -63,7 +63,8 @@ The shared shell also owns the progressive-web-app install surface. It points
 modern pages at the root arcade manifest, uses the browser's native install
 prompt when offered, provides platform-specific manual steps on Apple and
 Android browsers, and suppresses the hint when already installed. Its root
-service worker uses network-first static caching while excluding APIs. See
+service worker uses network-first navigation and stale-while-revalidate static
+assets while excluding APIs. See
 [ADR 0012](adr/0012-shared-app-install-surface.md).
 
 See [ADR 0008](adr/0008-experience-theming-system.md) for the decision and

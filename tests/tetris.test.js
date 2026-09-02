@@ -65,7 +65,7 @@ test('shake power-ups compact columns into gaps and clear newly completed rows',
     const game = new TetrisGame({ random:() => .2, powerUpChance:0 });
     for (let x = 1; x < 10; x += 1) game.board[21][x] = 'S';
     game.board[10][0] = 'I'; game.triggerPowerUp('shake');
-    assert.equal(game.shakeReady, true); assert.equal(game.move(1), false); assert.equal(game.update(5000), undefined);
+    assert.equal(game.shakeReady, true); assert.equal(game.move(1), false); assert.equal(game.update(5000), false);
     const result = game.useShake();
     assert.equal(result.count, 1); assert.equal(result.cleared, 1); assert.deepEqual(result.moved[0], { x:0, from:8, to:19, type:'I' });
     assert.equal(game.shakeReady, false); assert.equal(game.shakePowerUps, 1); assert.equal(game.lines, 1); assert.equal(game.score, 100); assert.ok(game.board[21].every(cell => cell === null));
@@ -79,8 +79,8 @@ test('shake compaction scores more than four completed rows in standard clear gr
 });
 
 test('lock delay pauses safely and top-out ends the run', () => {
-    const game = new TetrisGame(); game.piece.y = game.ghostY(); game.update(499); assert.equal(game.pieces, 0); game.update(1); assert.equal(game.pieces, 1);
-    game.paused = true; const before = game.piece.y; game.update(5000); assert.equal(game.piece.y, before);
+    const game = new TetrisGame(); game.piece.y = game.ghostY(); assert.equal(game.update(499), false); assert.equal(game.pieces, 0); assert.equal(game.update(1), true); assert.equal(game.pieces, 1);
+    game.paused = true; const before = game.piece.y; assert.equal(game.update(5000), false); assert.equal(game.piece.y, before);
     game.paused = false; game.board[0].fill('Z'); game.spawn('O'); assert.equal(game.gameOver, true);
 });
 

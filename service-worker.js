@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE_NAME = 'javascript-arcade-v1';
+const CACHE_NAME = 'javascript-arcade-v2';
 const APP_SHELL = [
     './',
     './index.html',
@@ -25,19 +25,11 @@ self.addEventListener('fetch', event => {
     const request = event.request;
     const url = new URL(request.url);
     if (request.method !== 'GET' || url.origin !== self.location.origin || url.pathname.includes('/api/')) return;
-    event.respondWith((async () => {
-        try {
-            const response = await fetch(request);
-            if (response.ok) {
-                const cache = await caches.open(CACHE_NAME);
-                await cache.put(request, response.clone());
-            }
-            return response;
-        } catch {
-            const cached = await caches.match(request);
-            if (cached) return cached;
-            if (request.mode === 'navigate') return caches.match('./index.html');
-            throw new Error('Offline asset is not cached.');
-        }
-    })());
+    const network = fetch(request);
+    event.waitUntil(network.then(response => response.ok ? caches.open(CACHE_NAME).then(cache => cache.put(request, response.clone())) : undefined).catch(() => {}));
+    if (request.mode === 'navigate') {
+        event.respondWith(network.catch(() => caches.match(request).then(response => response || caches.match('./index.html'))));
+        return;
+    }
+    event.respondWith(caches.match(request).then(response => response || network));
 });

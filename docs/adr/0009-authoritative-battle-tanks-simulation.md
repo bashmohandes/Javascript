@@ -57,6 +57,13 @@ transitions and authoritative online state, never from UI actions.
 13. Homing guidance may use a bounded clearance waypoint while intact barrier
     cells block the direct route, then transitions to normal target pursuit.
     Guidance changes steering only; shared collision remains authoritative.
+14. Version 3 online snapshots send complete arena geometry when a player joins,
+    resumes, starts a match, or observes a new impact revision. Intermediate
+    projectile snapshots omit the unchanged arena; the client retains the last
+    authoritative geometry and still applies viewer-specific redaction.
+15. Solo CPU planning uses a bounded coarse-to-fine search over the shared
+    mechanics. Canvas presentation caches the static arena layer and schedules
+    frames only while simulation or timed effects are active.
 
 ## Considered alternatives
 
@@ -84,6 +91,8 @@ The design gives deterministic, testable solo/local/online parity and stronger
 protection for online hidden information. Its cost is larger, more complex
 snapshots plus additional schema validation and compatibility responsibilities.
 Destructible terrain and reflected lasers make collision queries more expensive.
+Revision-aware arena delivery avoids repeatedly transmitting that large static
+portion, while reconnect and match boundaries always restore a complete baseline.
 
 Terrain samples, crater events, laser bounces, pickup histories, match
 aggregates, and presentation events must all remain bounded to prevent snapshot
@@ -114,6 +123,7 @@ for as long as callers require it.
   achievement data.
 * A seed produces the same initial arena and pickup schedule.
 * Match snapshots never expose concealed opponent coordinates.
+* A client receives complete arena geometry before any geometry-omitting delta.
 * Damage is applied once per resolved explosion.
 * Shield absorption precedes health damage.
 * Every acquisition event has a stable match-scoped ID.

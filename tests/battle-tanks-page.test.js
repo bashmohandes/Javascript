@@ -31,6 +31,16 @@ test('Battle Tanks renders high-impact projectile and explosion feedback', () =>
     assert.match(styles, /@keyframes arena-impact-shake/); assert.match(styles, /@keyframes impact-flash/); assert.match(styles, /impact-mega-pop/);
 });
 
+test('Battle Tanks renders static terrain once and only animates active effects', () => {
+    const app = read('battle-tanks/scripts/app.js');
+    assert.match(app, /arenaCacheSignature/);
+    assert.match(app, /function needsAnimation\(\)\{return state\.phase==='projectile-flight'\|\|combatEffects\.length>0;\}/);
+    assert.match(app, /function requestRenderFrame\(\)[^\r\n]+if\(last===null\)last=performance\.now\(\)/, 'restarting an idle loop must reset its physics clock');
+    assert.match(app, /function frame\(now\)[^\r\n]+if\(animationFrame===null\)last=null;/, 'an inactive loop must mark its physics clock idle');
+    assert.match(app, /function shoot\(\)[^\r\n]+sync\(\);render\(\);\}/, 'firing from an idle frame must start the animation loop');
+    assert.match(app, /function dismissPowerCard\(\)[^\r\n]+showNextPowerCard\(\);render\(\);\}/, 'closing the final acquisition card must wake a waiting CPU turn');
+});
+
 test('Battle Tanks resets its impact callout guard for local and synchronized rematches', () => {
     const app = read('battle-tanks/scripts/app.js');
     assert.match(app, /\(state\.impactSerial\|\|0\)<lastImpactSerial\)lastImpactSerial=0/, 'a lower synchronized serial should identify a new match');

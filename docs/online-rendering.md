@@ -81,10 +81,13 @@ y(t)  = y₀ + vy·t + ½g·t²
 vy(t) = vy + g·t
 ```
 
-Each snapshot replaces the render sample. Clients must never extrapolate homing
-guidance, laser reflections, terrain destruction, damage, or pickup acquisition
-in a way treated as authoritative. The server resolves collisions and sends an
-immediate corrected state, preventing duplicate impacts or incorrect turns.
+Each snapshot replaces dynamic synchronized fields. Version 3 sends complete
+arena geometry at join, resume, match start, and new impact revisions; snapshots
+between those boundaries omit the unchanged arena and retain the client's last
+authoritative copy. Clients must never extrapolate homing guidance, laser
+reflections, terrain destruction, damage, or pickup acquisition in a way treated
+as authoritative. The server resolves collisions and sends an immediate
+corrected state, preventing duplicate impacts or incorrect turns.
 
 While an invisible opponent's projectile remains on its concealed side, its
 position and velocity are omitted. Once it crosses the authoritative disclosure
@@ -103,7 +106,8 @@ snapshot rather than replaying concealed history.
   remains server-only.
 * Server snapshots are throttled independently of render refresh to control
   bandwidth. Pong sends at 30 Hz; Battle Tanks sends only during projectile
-  flight and immediately on resolution.
+  flight and immediately on resolution. Battle Tanks also omits unchanged arena
+  geometry after each viewer has received the current impact revision.
 * Monotonic `performance.now()` measures local sample age without depending on
   client/server wall-clock synchronization.
 * Sequence rejection protects Pong from out-of-order snapshots. Room lifecycle,
