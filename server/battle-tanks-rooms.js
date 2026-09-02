@@ -1,21 +1,20 @@
 'use strict';
 
-const crypto = require('node:crypto');
 const game = require('../battle-tanks/scripts/game');
+const { createRoomCode, createRoomToken, normalizePasscode } = require('./room-identity');
 
-const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-const token = () => crypto.randomBytes(24).toString('base64url');
-const cleanPasscode = value => String(value || '').trim();
+const POWER_STATISTIC_FIELDS = Object.freeze(['powerUpsAcquired', 'powerUpsUsed', 'shieldDamageAbsorbed', 'healthRestored', 'invisibilityActivations', 'laserRicochetHits', 'laserSelfDamage', 'homingHits', 'heavyProjectileMaxDamage', 'poweredHits']);
+const createPlayerStatistics = () => ({ shots: 0, hits: 0, damageTaken: 0, ...Object.fromEntries(POWER_STATISTIC_FIELDS.map(name => [name, 0])), powerUpTypesUsed: [] });
 
 class BattleTanksRooms {
     constructor({ reconnectMs = 15000, roomTimeoutMs = 1800000, random = Math.random, recordResult = null } = {}) {
         Object.assign(this, { reconnectMs, roomTimeoutMs, random, recordResult });
         this.rooms = new Map();
     }
-    makeCode() { let code; do { code = Array.from({ length: 5 }, () => ALPHABET[Math.floor(this.random() * ALPHABET.length)]).join(''); } while (this.rooms.has(code)); return code; }
-    makePlayer(socket, side, user) { return { token: token(), socket, side, userId: user?.id || null, gamertag: user?.gamertag || '', connected: true, ready: false, disconnectedAt: null, commands: [], arenaVersion: null }; }
+    makeCode() { return createRoomCode(this.rooms, this.random); }
+    makePlayer(socket, side, user) { return { token: createRoomToken(), socket, side, userId: user?.id || null, gamertag: user?.gamertag || '', connected: true, ready: false, disconnectedAt: null, commands: [], arenaVersion: null }; }
     create(socket, { visibility = 'private', passcode = '', user = null } = {}) {
-        const isPublic = visibility === 'public', secret = cleanPasscode(passcode);
+        const isPublic = visibility === 'public', secret = normalizePasscode(passcode);
         if (!isPublic && (secret.length < 4 || secret.length > 32)) throw new Error('Private room passcodes must be 4–32 characters.');
         const player = this.makePlayer(socket, 0, user), code = this.makeCode();
         const room = { code, visibility: isPublic ? 'public' : 'private', passcode: isPublic ? '' : secret, players: [player, null], game: game.createInitialState(), colors: ['#fffdf8', '#d76b45'], matchId: 0, turnId: 0, stats: null, recorded: false, paused: false, createdAt: Date.now(), touchedAt: Date.now(), lastBroadcast: 0 };
@@ -26,7 +25,7 @@ class BattleTanksRooms {
         const room = this.rooms.get(String(code || '').toUpperCase());
         if (!room) throw new Error('Room not found. Check the code and try again.');
         if (room.players[1]) throw new Error('That room is already full.');
-        if (room.visibility === 'private' && cleanPasscode(passcode) !== room.passcode) throw new Error('That passcode is incorrect.');
+        if (room.visibility === 'private' && normalizePasscode(passcode) !== room.passcode) throw new Error('That passcode is incorrect.');
         const player = this.makePlayer(socket, 1, user); room.players[1] = player; room.touchedAt = Date.now(); return { room, player };
     }
     resume(code, playerToken, socket) {
@@ -41,7 +40,7 @@ class BattleTanksRooms {
         // never consulted for terrain or barrier geometry.
         const arenaSeed = Math.floor(this.random() * 0x100000000) >>> 0;
         game.resetMatch(room.game, arenaSeed); room.matchId += 1; room.turnId = 1; room.recorded = false; room.paused = false; room.players.forEach(player => { if (player) player.arenaVersion = null; });
-        room.stats = [0, 1].map(() => ({ shots: 0, hits: 0, damageTaken: 0, powerUpsAcquired: 0, powerUpsUsed: 0, powerUpTypesUsed: [], shieldDamageAbsorbed: 0, healthRestored: 0, invisibilityActivations: 0, laserRicochetHits: 0, laserSelfDamage: 0, homingHits: 0, heavyProjectileMaxDamage: 0, poweredHits: 0 })); room.startedAt = Date.now();
+        room.stats = [createPlayerStatistics(), createPlayerStatistics()]; room.startedAt = Date.now();
     }
     ready(room, player) {
         if (room.game.phase !== 'setup' && room.game.phase !== 'game-over') throw new Error('The match is already in progress.');
@@ -132,8 +131,8 @@ class BattleTanksRooms {
         }
         return state;
     }
-    syncPowerStatistics(room) { if (!room.stats || !room.game.statistics) return; const names = ['powerUpsAcquired', 'powerUpsUsed', 'shieldDamageAbsorbed', 'healthRestored', 'invisibilityActivations', 'laserRicochetHits', 'laserSelfDamage', 'homingHits', 'heavyProjectileMaxDamage', 'poweredHits']; room.stats.forEach((target, side) => { for (const name of names) target[name] = room.game.statistics[name][side]; target.powerUpTypesUsed = [...room.game.statistics.powerUpTypesUsed[side]]; }); }
-    optionalStatistics(statistics, side) { if (!statistics) return {}; const result = {}, fields = ['powerUpsAcquired','powerUpsUsed','shieldDamageAbsorbed','healthRestored','invisibilityActivations','laserRicochetHits','laserSelfDamage','homingHits','heavyProjectileMaxDamage','poweredHits']; const weapons = statistics.weapons?.[side]; if (weapons && typeof weapons === 'object') result.weapons = weapons; for (const name of fields) if (Number.isSafeInteger(statistics[name]?.[side])) result[name] = statistics[name][side]; const types = statistics.powerUpTypesUsed?.[side]; result.powerUpTypesUsed = Array.isArray(types) ? [...new Set(types.filter(id => game.POWER_UP_CATALOG[id]))] : []; return result; }
+    syncPowerStatistics(room) { if (!room.stats || !room.game.statistics) return; room.stats.forEach((target, side) => { for (const name of POWER_STATISTIC_FIELDS) target[name] = room.game.statistics[name][side]; target.powerUpTypesUsed = [...room.game.statistics.powerUpTypesUsed[side]]; }); }
+    optionalStatistics(statistics, side) { if (!statistics) return {}; const result = {}; const weapons = statistics.weapons?.[side]; if (weapons && typeof weapons === 'object') result.weapons = weapons; for (const name of POWER_STATISTIC_FIELDS) if (Number.isSafeInteger(statistics[name]?.[side])) result[name] = statistics[name][side]; const types = statistics.powerUpTypesUsed?.[side]; result.powerUpTypesUsed = Array.isArray(types) ? [...new Set(types.filter(id => game.POWER_UP_CATALOG[id]))] : []; return result; }
     finish(room) {
         this.syncPowerStatistics(room);
         if (room.recorded || room.game.phase !== 'game-over') return; room.recorded = true;
