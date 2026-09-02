@@ -92,15 +92,16 @@ test('the active music scene schedules melody, moving bass, harmony, and a beat 
     assert.ok(new Set(context.oscillators.map(source => source.frequency.value)).size >= 5, 'the arrangement should contain distinct harmonic voices');
 });
 
-test('the Tetris track opens with the transcribed Korobeiniki melody', async () => {
+test('the Tetris track preserves the Korobeiniki phrase at starting intensity in Calm mode', async () => {
     FakeAudioContext.instances.length = 0;
     const { env, intervals } = environment();
+    env.document.documentElement.dataset.arcadeTheme = 'calm';
     const audio = createArcadeAudio(env);
-    audio.setScene('active', { intensity: .5 });
+    audio.setScene('active', { intensity: .2 });
     await audio.activate();
     const context = FakeAudioContext.instances[0], schedule = intervals.values().next().value;
     for (let step = 0; step < 34; step += 1) { context.currentTime += .26; schedule(); }
-    const melody = context.oscillators.filter(source => source.type === 'sine' && source.frequency.value > 100).map(source => source.frequency.value);
+    const melody = context.oscillators.filter(source => source.type === 'triangle' && source.frequency.value > 100).map(source => source.frequency.value);
     const expected = [69,64,65,67,65,64,62,62,65,69,67,65,64,65,67,69,65,62,62].map(midi => 440 * Math.pow(2, (midi - 69) / 12));
     assert.deepEqual(melody.slice(0, expected.length).map(value => Math.round(value * 1000)), expected.map(value => Math.round(value * 1000)));
 });

@@ -169,7 +169,8 @@
         const track = TRACKS[game], timbre = currentTimbre(), intensity = clamp(sceneDetail.intensity ?? .35), danger = clamp(sceneDetail.danger ?? 0);
         const degree = track.melody[index % track.melody.length];
         const rhythm = track.rhythm[index % track.rhythm.length];
-        if (degree !== null && rhythm > 0 && (rhythm > 1 || intensity > .28) && (timbre.density >= 1 || index % 4 === 0)) {
+        const melodyAllowed = track.phrased || ((rhythm > 1 || intensity > .28) && (timbre.density >= 1 || index % 4 === 0));
+        if (degree !== null && rhythm > 0 && melodyAllowed) {
             const midi = scaleMidi(track, degree, 12);
             const duration = track.phrased ? beat * Math.max(.52, rhythm - .18) : beat * (rhythm > 1 ? .82 : .52);
             tone({ midi, at, duration, gain: .04 + intensity * .022, type: timbre.lead, bus: musicBus, isMusic: true });
