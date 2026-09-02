@@ -44,7 +44,6 @@ let balls = [];
 let onlineBallSample = null;
 const online = { socket: null, roomCode: '', token: '', side: 0, gamertags: [null, null], connected: false, lastSequence: 0, reconnectTimer: null, intentionalClose: false, awaitingResumeState: false };
 let lastProgressEvent = '', lastPauseEvent = null;
-let recordedOnlineResult = null;
 const formatDuration = seconds => {
     const total = Math.max(0, Math.round(seconds));
     const hours = Math.floor(total / 3600), minutes = Math.floor(total % 3600 / 60), remainder = total % 60;
@@ -93,7 +92,7 @@ function applyOnlineState(state) {
     const progressEvent = state.score.join('-');
     if (progressEvent !== lastProgressEvent) { lastProgressEvent = progressEvent; events.emit('game:progressed', { intensity: .2 + Math.min(.65, (state.score[0] + state.score[1]) / 14), danger: Math.max(...state.score) / 7 }); }
     if (!resumedSnapshot && state.score.some((value, side) => value > previousScore[side])) events.emit('pong:point-scored', { score: [...state.score] });
-    if (state.over) { const won = state.winner === online.side; if (!wasOver && !resumedSnapshot) events.emit('game:completed', { outcome: won ? 'win' : 'loss', score: [...state.score] }); const resultKey = `${online.roomCode}:${state.score.join('-')}:${state.elapsed}`; if (recordedOnlineResult !== resultKey) { recordedOnlineResult = resultKey; window.Arcade?.record({ game: 'pong', won, details: { mode: 'online', score: `${state.score[online.side]}-${state.score[1 - online.side]}`, seconds: Math.max(1, Math.round(state.elapsed)) } }).catch(() => {}); } status.textContent = won ? 'You won the online match!' : 'Your opponent won the online match.'; showOverlay(won ? 'You win!' : 'Opponent wins', `Finished in ${formatDuration(state.elapsed)} · Choose rematch when ready`); shareButton.hidden = false; readyOnlineButton.disabled = false; readyOnlineButton.textContent = 'Ready for rematch'; }
+    if (state.over) { const won = state.winner === online.side; if (!wasOver && !resumedSnapshot) events.emit('game:completed', { outcome: won ? 'win' : 'loss', score: [...state.score] }); status.textContent = won ? 'You won the online match!' : 'Your opponent won the online match.'; showOverlay(won ? 'You win!' : 'Opponent wins', `Finished in ${formatDuration(state.elapsed)} · Choose rematch when ready`); shareButton.hidden = false; readyOnlineButton.disabled = false; readyOnlineButton.textContent = 'Ready for rematch'; }
     else if (state.running && !state.paused) overlay.hidden = true;
 }
 function applyReadyStatus(ready = []) {
@@ -122,6 +121,7 @@ function handleOnlineMessage(message) {
         }
     } else if (message.type === 'match-started') { shareButton.hidden = true; readyOnlineButton.disabled = true; readyOnlineButton.textContent = 'Match in progress'; status.textContent = 'First to 7. The match is live!'; events.emit('game:started',{intensity:.2,danger:0,mode:'online'}); events.emit('pong:served', {}); }
     else if (message.type === 'ready-status') applyReadyStatus(message.ready);
+    else if (message.type === 'result-recorded') window.Arcade?.notifyResult(message.result);
     else if (message.type === 'state' && message.sequence > online.lastSequence) { online.lastSequence = message.sequence; applyOnlineState(message.state); }
     else if (message.type === 'peer-left') { setConnection('Reconnecting…', 'connecting'); status.textContent = `Opponent disconnected. Holding the match for ${Math.round(message.reconnectMs / 1000)} seconds.`; showOverlay('Opponent disconnected', 'The match will resume if they reconnect'); }
     else if (message.type === 'peer-reconnected') { setConnection('Connected', 'online'); status.textContent = 'Opponent reconnected. Match resumed.'; overlay.hidden = true; }
@@ -158,7 +158,6 @@ function setScore(side, value) { (side ? scoreRight : scoreLeft).textContent = v
 function clearPowerUps() { game.powerUps = []; game.effects = [{}, {}]; paddles.forEach(paddle => paddle.h = paddle.baseH); }
 function schedulePowerUp(first = false) { game.nextPowerUp = game.elapsed + (first ? 5 : 8 + Math.random() * 6); }
 function newGame() {
-    recordedOnlineResult = null;
     shareButton.hidden = true;
     game.score = [0, 0]; game.over = false; game.elapsed = 0; game.lastTouch = 0; setScore(0, 0); setScore(1, 0);
     paddles.forEach(paddle => { paddle.y = 240; paddle.h = paddle.baseH; }); clearPowerUps(); schedulePowerUp(true);

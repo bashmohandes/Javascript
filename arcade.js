@@ -237,6 +237,12 @@
     };
     const showUnlocks = unlocked => enqueueNotifications(unlocked.map(detail => ({ type: 'achievement', detail })));
     const showTopScore = topScore => { if (topScore) enqueueNotifications([{ type: 'top-score', detail: topScore }]); };
+    const notifyResult = result => {
+        if (!result || typeof result !== 'object') return result;
+        showTopScore(result.topScore);
+        showUnlocks(Array.isArray(result.unlocked) ? result.unlocked : []);
+        return result;
+    };
     const loadAchievements = async () => {
         if (!game || !achievementDialog) return;
         const result = await api(`/api/achievements/${game}`);
@@ -278,9 +284,10 @@
     window.Arcade = {
         user: () => currentUser,
         signIn: () => dialog.showModal(),
-        record: async result => { if (!currentUser) return null; const recorded = await api('/api/results', { method: 'POST', body: JSON.stringify(result) }); showTopScore(recorded.topScore); showUnlocks(recorded.unlocked || []); return recorded; },
+        record: async result => { if (!currentUser) return null; return notifyResult(await api('/api/results', { method: 'POST', body: JSON.stringify(result) })); },
         achievements: loadAchievements,
         notifyAchievements: showUnlocks,
+        notifyResult,
         api,
         install: showInstallGuide,
         appearance: () => ({ theme: themePreference, colorPreference, resolvedColorMode: document.documentElement.dataset.colorMode }),
