@@ -42,7 +42,12 @@ const CURVE_SHOT_ACCELERATION = 700;
 const CURVE_SHOT_DURATION = 0.8;
 let balls = [];
 let onlineBallSample = null;
-const online = { socket: null, roomCode: '', token: '', side: 0, gamertags: [null, null], connected: false, lastSequence: 0, reconnectTimer: null, intentionalClose: false, awaitingResumeState: false };
+const onlineClient = window.PongOnlineClient.create({
+    rooms: OnlineRooms, WebSocketCtor: WebSocket, location, storage: sessionStorage,
+    onMessage: handleOnlineMessage, onConnection: setConnection,
+    onInvalidMessage: () => { status.textContent = 'Received an invalid server update.'; }
+});
+const online = onlineClient.state;
 let lastProgressEvent = '', lastPauseEvent = null;
 const formatDuration = seconds => {
     const total = Math.max(0, Math.round(seconds));
@@ -51,10 +56,8 @@ const formatDuration = seconds => {
 };
 
 function setConnection(label, state = 'offline') { OnlineRooms.setConnection(connectionState, label, state); }
-function sendOnline(message) { if (online.socket?.readyState === WebSocket.OPEN) online.socket.send(JSON.stringify(message)); }
-const onlinePointerInput = OnlineRooms.createCoalescedSender(message => sendOnline(message), 50);
-function saveSession() { sessionStorage.setItem('pong-online-session', JSON.stringify({ roomCode: online.roomCode, playerToken: online.token })); }
-function clearSession() { sessionStorage.removeItem('pong-online-session'); online.roomCode = ''; online.token = ''; }
+function sendOnline(message) { onlineClient.send(message); }
+const onlinePointerInput = onlineClient.sendInput;
 function showOnlineRoom(code) { onlineLobby.hidden = true; onlineRoom.hidden = false; document.querySelector('#room-code-display').textContent = code; }
 function updateOnlineIdentity() {
     const sideName = online.side === 0 ? 'Left' : 'Right';
@@ -106,7 +109,7 @@ function applyReadyStatus(ready = []) {
 }
 function handleOnlineMessage(message) {
     if (message.type === 'session') {
-        online.roomCode = message.roomCode; online.token = message.playerToken; online.side = message.side; online.gamertags = message.gamertags || [null, null]; saveSession(); showOnlineRoom(message.roomCode); updateOnlineIdentity(); setConnection('Connected', 'online');
+        showOnlineRoom(message.roomCode); updateOnlineIdentity(); setConnection('Connected', 'online');
         document.querySelector('#room-visibility-display').textContent = message.visibility === 'public' ? 'Public room' : 'Private room';
         const url = new URL(location.href); url.searchParams.set('room', message.roomCode); history.replaceState(null, '', url); status.textContent = message.side === 0 ? 'Room created. Share the invite and wait for your opponent.' : 'Joined room. Press “I’m ready” when set.';
     } else if (message.type === 'room-status') {
@@ -123,34 +126,18 @@ function handleOnlineMessage(message) {
     } else if (message.type === 'match-started') { shareButton.hidden = true; readyOnlineButton.disabled = true; readyOnlineButton.textContent = 'Match in progress'; status.textContent = 'First to 7. The match is live!'; events.emit('game:started',{intensity:.2,danger:0,mode:'online'}); events.emit('pong:served', {}); }
     else if (message.type === 'ready-status') applyReadyStatus(message.ready);
     else if (message.type === 'result-recorded') window.Arcade?.notifyResult(message.result);
-    else if (message.type === 'state' && message.sequence > online.lastSequence) { online.lastSequence = message.sequence; applyOnlineState(message.state); }
+    else if (message.type === 'state') applyOnlineState(message.state);
     else if (message.type === 'peer-left') { setConnection('Reconnecting…', 'connecting'); status.textContent = `Opponent disconnected. Holding the match for ${Math.round(message.reconnectMs / 1000)} seconds.`; showOverlay('Opponent disconnected', 'The match will resume if they reconnect'); }
     else if (message.type === 'peer-reconnected') { setConnection('Connected', 'online'); status.textContent = 'Opponent reconnected. Match resumed.'; overlay.hidden = true; }
     else if (message.type === 'room-closed') { status.textContent = message.reason; leaveOnline(false); }
     else if (message.type === 'error') { status.textContent = message.message; setConnection('Error', 'offline'); }
 }
-function connectOnline(action) {
-    onlinePointerInput.clear();
-    if (online.socket && online.socket.readyState < WebSocket.CLOSING) online.socket.close();
-    online.intentionalClose = false; online.awaitingResumeState = action.type === 'resume'; setConnection('Connecting…', 'connecting');
-    const scheme = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const socket = new WebSocket(`${scheme}//${location.host}/ws`); online.socket = socket;
-    socket.addEventListener('open', () => { online.connected = true; sendOnline(action); });
-    socket.addEventListener('message', event => { try { handleOnlineMessage(OnlineRooms.parseMessage(event.data)); } catch { status.textContent = 'Received an invalid server update.'; } });
-    socket.addEventListener('close', () => {
-        if (socket !== online.socket) return;
-        online.connected = false;
-        if (online.intentionalClose || game.mode !== 'online') { setConnection('Offline'); return; }
-        setConnection('Reconnecting…', 'connecting');
-        if (online.roomCode && online.token) online.reconnectTimer = setTimeout(() => connectOnline({ type: 'resume', roomCode: online.roomCode, playerToken: online.token }), 1000);
-        else setConnection('Offline');
-    });
-}
+function connectOnline(action) { onlineClient.connect(action); }
 function leaveOnline(notify = true) {
-    clearTimeout(online.reconnectTimer); onlinePointerInput.clear(); if (notify) sendOnline({ type: 'leave' }); online.intentionalClose = true; online.socket?.close(); clearSession(); onlineBallSample = null;
+    onlineClient.leave(notify); onlineBallSample = null;
     onlineLobby.hidden = false; onlineRoom.hidden = true; resetColorControls(); setConnection('Offline'); refreshRooms(); const url = new URL(location.href); url.searchParams.delete('room'); history.replaceState(null, '', url);
 }
-function onlineInput() { onlinePointerInput.clear(); sendOnline({ type: 'input', up: game.keys.has('KeyW') || game.keys.has('ArrowUp'), down: game.keys.has('KeyS') || game.keys.has('ArrowDown'), targetY: null }); }
+function onlineInput() { onlineClient.clearInput(); sendOnline({ type: 'input', up: game.keys.has('KeyW') || game.keys.has('ArrowUp'), down: game.keys.has('KeyS') || game.keys.has('ArrowDown'), targetY: null }); }
 
 function makeBall(x = game.width / 2, y = game.height / 2, vx = 0, vy = 0, decoy = false) { return { x, y, r: 10, vx, vy, decoy, curveAcceleration: 0, curveTime: 0 }; }
 function resize() { const ratio = Math.min(window.devicePixelRatio || 1, 2); canvas.width = game.width * ratio; canvas.height = game.height * ratio; ctx.setTransform(ratio, 0, 0, ratio, 0, 0); draw(); }

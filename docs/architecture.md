@@ -103,7 +103,7 @@ See [ADR 0014](adr/0014-browser-domain-event-bus.md) and the
 |---|---|---|---|
 | Sudoku | Shared modern mechanics core plus DOM controller for notes, hints and animated solving; separate p5.js classic (`board`, `cell`, `builder`, `solver`, `sketch`) | None | Modern results, scores and achievements |
 | Minesweeper | Modern controller plus tile/grid engine; separate p5.js classic (`sketch`, `tile`) | None | Modern results, browser best times, scores and achievements |
-| Pong | Modern canvas controller + motion prediction; solo, couch duo, online; separate p5.js classic (`board`, `ball`, `sketch`) | Server engine at 60 Hz; snapshots at 30 Hz | Modern results, scores and achievements |
+| Pong | Modern canvas controller + tested online lifecycle adapter + motion prediction; solo, couch duo, online; separate p5.js classic (`board`, `ball`, `sketch`) | Server engine at 60 Hz; snapshots at 30 Hz | Modern results, scores and achievements |
 | Tic-tac-toe | Shared deterministic mechanics core, modern controller, minimax AI, couch duo and online | Room manager validates lifecycle and intent, then applies shared transitions | Results, scores and achievements |
 | Battle Tanks | Shared deterministic engine + canvas controller; solo CPU, local duo and online | Server validates commands and owns physics, damage, turns and online result recording | Results, scores and achievements |
 | Tetris | Modern DOM controller plus testable seven-bag/SRS mechanics engine; endless solo marathon | None | Results, scores, history and achievements |
@@ -129,6 +129,7 @@ flowchart LR
   SU --> SG[Sudoku mechanics]
   Shared --> MS[Minesweeper modern]
   Shared --> PO[Pong modern]
+  PO --> PC[Pong online client]
   Shared --> TT[Tic-tac-toe]
   Shared --> BT[Battle Tanks]
   Shared --> TE[Tetris]
@@ -245,6 +246,10 @@ command, authority, and viewer-redaction decisions. Browser clients use
 validation while retaining their game-specific dispatch and reconnect policy.
 See [ADR 0021](adr/0021-shared-online-room-contracts.md) for the compatibility
 constraints on this boundary.
+Pong further isolates active-socket ownership, opaque resume credentials,
+reconnect scheduling, input coalescing, and per-room snapshot sequencing in a
+tested browser adapter. Canvas presentation and authoritative server simulation
+remain separate. See [ADR 0024](adr/0024-pong-online-client-lifecycle.md).
 The public result API rejects browser submissions claiming an online mode; each
 room persists its terminal state at most once per match.
 See [online rendering](online-rendering.md) for snapshot smoothing, client-side
