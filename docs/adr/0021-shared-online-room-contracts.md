@@ -2,8 +2,9 @@
 
 ## Status
 
-Accepted. This record refines ADR 0004's server-side room boundary; room
-managers remain authoritative for lifecycle and game state.
+Accepted. This record refines ADR 0004's server-side room boundary and the
+browser clients that consume it; room managers remain authoritative for
+lifecycle and game state.
 
 ## Context
 
@@ -17,6 +18,10 @@ These common mechanics are transport and identity contracts, not game rules.
 Moving them into shared modules must not give generic code authority over room
 lifecycle, command validation, state simulation, result recording, or
 viewer-specific redaction.
+
+The browser clients also duplicated server-message parsing and stored-session
+recovery. Their copies accepted different malformed values, and Pong's original
+stored token field used a different name from the other games.
 
 ## Decision
 
@@ -33,6 +38,14 @@ authoritative state, and viewer-safe serialization. Game-specific fields remain
 explicit options; in particular, Pong's existing `playerId` is not added to the
 other games' session payloads.
 
+Use `scripts/online-rooms.js` to require server updates to be JSON objects and
+to recover normalized room credentials from session storage. Stored sessions
+use `playerToken`; the reader continues to accept Pong's legacy `token` field so
+existing sessions survive the change. Game controllers retain message dispatch,
+socket replacement and reconnection policy, presentation state, and game-state
+compatibility checks. A replaced socket must not update UI state or schedule a
+reconnect for the active client.
+
 Preserve the existing wire and identity formats during this consolidation:
 readable five-character room codes, 32-character base64url tokens, trimmed
 passcodes, the `Invalid message.` error for malformed input, and the established
@@ -45,6 +58,8 @@ consumer.
 - Security-sensitive identity primitives and common payload shapes have one
   reviewable implementation.
 - All online games reject non-object JSON messages consistently.
+- Browser clients share stored-session validation without sharing presentation
+  or game-state policy.
 - Room managers remain the authoritative boundary described by ADR 0004 and do
   not move game policy into generic helpers.
 - A shared-helper change can affect every online game, so compatibility tests

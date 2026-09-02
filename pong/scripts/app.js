@@ -53,7 +53,7 @@ const formatDuration = seconds => {
 function setConnection(label, state = 'offline') { OnlineRooms.setConnection(connectionState, label, state); }
 function sendOnline(message) { if (online.socket?.readyState === WebSocket.OPEN) online.socket.send(JSON.stringify(message)); }
 const onlinePointerInput = OnlineRooms.createCoalescedSender(message => sendOnline(message), 50);
-function saveSession() { sessionStorage.setItem('pong-online-session', JSON.stringify({ roomCode: online.roomCode, token: online.token })); }
+function saveSession() { sessionStorage.setItem('pong-online-session', JSON.stringify({ roomCode: online.roomCode, playerToken: online.token })); }
 function clearSession() { sessionStorage.removeItem('pong-online-session'); online.roomCode = ''; online.token = ''; }
 function showOnlineRoom(code) { onlineLobby.hidden = true; onlineRoom.hidden = false; document.querySelector('#room-code-display').textContent = code; }
 function updateOnlineIdentity() {
@@ -136,7 +136,7 @@ function connectOnline(action) {
     const scheme = location.protocol === 'https:' ? 'wss:' : 'ws:';
     const socket = new WebSocket(`${scheme}//${location.host}/ws`); online.socket = socket;
     socket.addEventListener('open', () => { online.connected = true; sendOnline(action); });
-    socket.addEventListener('message', event => { try { handleOnlineMessage(JSON.parse(event.data)); } catch { status.textContent = 'Received an invalid server update.'; } });
+    socket.addEventListener('message', event => { try { handleOnlineMessage(OnlineRooms.parseMessage(event.data)); } catch { status.textContent = 'Received an invalid server update.'; } });
     socket.addEventListener('close', () => {
         if (socket !== online.socket) return;
         online.connected = false;
@@ -343,13 +343,12 @@ addEventListener('keydown', event => { if (event.code === 'Escape') { document.q
 document.querySelectorAll('[data-key]').forEach(button => { const key = button.dataset.key; const on = event => { event.preventDefault(); game.keys.add(key); if (game.mode === 'online') onlineInput(); }; const off = event => { event.preventDefault(); game.keys.delete(key); if (game.mode === 'online') onlineInput(); }; button.addEventListener('pointerdown', on); button.addEventListener('pointerup', off); button.addEventListener('pointercancel', off); button.addEventListener('pointerleave', off); });
 addEventListener('resize', resize); resize(); requestAnimationFrame(frame);
 const invitedRoom = new URLSearchParams(location.search).get('room');
-let savedOnlineSession = null;
-try { savedOnlineSession = JSON.parse(sessionStorage.getItem('pong-online-session')); } catch { clearSession(); }
+const savedOnlineSession = OnlineRooms.readSession(sessionStorage, 'pong-online-session');
 if (invitedRoom) {
     document.querySelector('[data-mode="online"]').click();
     const normalizedRoom=OnlineRooms.normalizeCode(invitedRoom);
-    if (savedOnlineSession?.roomCode === normalizedRoom && savedOnlineSession.token) {
-        online.roomCode = savedOnlineSession.roomCode; online.token = savedOnlineSession.token;
+    if (savedOnlineSession?.roomCode === normalizedRoom) {
+        online.roomCode = savedOnlineSession.roomCode; online.token = savedOnlineSession.playerToken;
         connectOnline({ type: 'resume', roomCode: online.roomCode, playerToken: online.token });
     } else {
         document.querySelector('#room-code').value = normalizedRoom;
