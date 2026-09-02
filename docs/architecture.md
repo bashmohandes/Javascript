@@ -304,7 +304,8 @@ flowchart LR
   C --> V[(arcade-data volume)]
 ```
 
-The server blocks private source/data paths, applies response security headers,
+The server blocks private source/data paths, applies response security headers
+and a resolved-asset-aware Content Security Policy,
 checks HTTP/WebSocket origins, caps JSON and WebSocket payloads, and uses a
 heartbeat. WebSocket admission also bounds connections, messages, lobby
 actions, active rooms, and public listings before unauthenticated work can grow
