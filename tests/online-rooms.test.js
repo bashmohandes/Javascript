@@ -39,14 +39,17 @@ test('coalesced senders immediately send the first value and trail with the late
  now=70;sender('discarded');sender.clear();assert.equal(timer,null);assert.deepEqual(sent,['first','latest','final']);
 });
 test('online Pong bounds pointer messages and clears queued targets across sessions',()=>{
- const app=fs.readFileSync('pong/scripts/app.js','utf8');
- assert.match(app,/createCoalescedSender\(message => sendOnline\(message\), 50\)/);
+ const app=fs.readFileSync('pong/scripts/app.js','utf8'),client=fs.readFileSync('pong/scripts/online-client.js','utf8');
+ assert.match(client,/createCoalescedSender\(message=>send\(message\),50\)/);
  assert.match(app,/onlinePointerInput\(\{ type: 'input', up: false, down: false, targetY: pointerY \}\)/);
  assert.match(app,/releasePointer[\s\S]*onlinePointerInput\.flush\(\)/);
- assert.ok((app.match(/onlinePointerInput\.clear\(\)/g)||[]).length>=3);
+ assert.ok((client.match(/sendInput\.clear\(\)/g)||[]).length>=2);
 });
 test('online clients share message and stored-session validation',()=>{
- for(const file of ['pong/scripts/app.js','tictactoe/scripts/app.js','battle-tanks/scripts/app.js']){
+ const pongClient=fs.readFileSync('pong/scripts/online-client.js','utf8'),pongApp=fs.readFileSync('pong/scripts/app.js','utf8');
+ assert.match(pongClient,/rooms\.parseMessage\(/,'Pong online client must validate server messages through the shared contract');
+ assert.match(pongApp,/OnlineRooms\.readSession\(sessionStorage,/,'Pong app must validate stored room credentials');
+ for(const file of ['tictactoe/scripts/app.js','battle-tanks/scripts/app.js']){
   const app=fs.readFileSync(file,'utf8');
   assert.match(app,/OnlineRooms\.parseMessage\(/,`${file} must validate server messages through the shared contract`);
   assert.match(app,/OnlineRooms\.readSession\(sessionStorage,/,`${file} must validate stored room credentials`);
