@@ -132,6 +132,10 @@ immutable revisions. Update those pins deliberately after reviewing upstream
 release notes; the adjacent version comments identify the human-readable action
 releases. Dependabot checks Actions, Docker, and npm every day and proposes
 reviewable version and security updates without weakening those pins.
+Every container build is also scanned for fixable high or critical
+vulnerabilities with a digest-pinned Trivy image. A daily scheduled run repeats
+the test, build, and scan against current vulnerability data without publishing
+an image.
 
 Set up Docker Hub once:
 

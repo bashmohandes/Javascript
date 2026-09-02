@@ -16,7 +16,9 @@ updates:
         patterns: ["*"]
 
   - package-ecosystem: docker
-    directory: /
+    directories:
+      - "/"
+      - "/security"
     schedule:
       interval: daily
       time: "09:15"
