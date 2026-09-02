@@ -155,3 +155,28 @@ test('every arcade page opts into shared iPhone safe-area handling', () => {
         assert.match(html, /arcade\.css/, `${page} should load the shared safe-area styles`);
     }
 });
+
+test('every game page prevents accidental gameplay zoom without locking browsing pages', () => {
+    const gamePages = [
+        'pong/index.html',
+        'pong/classic/index.html',
+        'Sudoku/index.html',
+        'Sudoku/classic/index.html',
+        'Minesweeper/index.html',
+        'Minesweeper/classic/index.html',
+        'tictactoe/index.html',
+        'battle-tanks/index.html',
+        'tetris/index.html'
+    ];
+
+    for (const page of gamePages) {
+        const html = read(page);
+        assert.match(html, /maximum-scale=1/, `${page} should limit gameplay zoom`);
+        assert.match(html, /user-scalable=no/, `${page} should ignore accidental zoom gestures`);
+    }
+
+    for (const page of ['index.html', 'profile.html']) {
+        const html = read(page);
+        assert.doesNotMatch(html, /maximum-scale|user-scalable/, `${page} should retain browser zoom`);
+    }
+});
