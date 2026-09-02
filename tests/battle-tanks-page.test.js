@@ -31,6 +31,18 @@ test('Battle Tanks renders high-impact projectile and explosion feedback', () =>
     assert.match(styles, /@keyframes arena-impact-shake/); assert.match(styles, /@keyframes impact-flash/); assert.match(styles, /impact-mega-pop/);
 });
 
+test('Battle Tanks renders a layered, resolution-aware battlefield', () => {
+    const app = read('battle-tanks/scripts/app.js'), styles = read('battle-tanks/styles.css');
+    assert.match(app, /function syncCanvasResolution/);
+    assert.match(app, /window\.devicePixelRatio/);
+    assert.match(app, /ctx\.setTransform\(renderScale/);
+    assert.match(app, /function drawBackdrop/);
+    assert.match(app, /function drawTerrain/);
+    assert.match(app, /Layered tread plates, wheels, armour and highlights/);
+    assert.match(styles, /image-rendering:auto/);
+    assert.doesNotMatch(styles, /image-rendering:pixelated/);
+});
+
 test('Battle Tanks renders static terrain once and only animates active effects', () => {
     const app = read('battle-tanks/scripts/app.js');
     assert.match(app, /arenaCacheSignature/);
@@ -68,8 +80,10 @@ test('Battle Tanks keeps mobile and short-landscape controls visible without cov
     assert.match(app, /mobileEffectStatus\.hidden=!effects\.length/);
     assert.match(styles, /\.mobile-controls\{position:sticky[^}]*bottom:max\(6px,env\(safe-area-inset-bottom\)\)/);
     assert.match(styles, /max-width:620px\) and \(orientation:portrait\)[^}]*place-items:start center/);
-    assert.match(styles, /orientation:landscape[^}]*max-height:500px[\s\S]*height:calc\(100dvh - 72px - env\(safe-area-inset-bottom\)\)/);
-    assert.match(styles, /max-width:650px\)[^}]*height:calc\(100dvh - 120px - env\(safe-area-inset-bottom\)\)[\s\S]*grid-template-areas:"readouts inventory inventory inventory fire"/);
+    assert.match(styles, /orientation:landscape[^}]*--battle-command-deck:clamp\(150px,18vw,280px\)/);
+    assert.match(styles, /grid-template-columns:minmax\(0,1fr\) var\(--battle-command-deck\)/);
+    assert.match(styles, /fullscreen-controls[^}]*height:100%[^}]*grid-column:2/);
+    assert.match(styles, /max-height:500px[^}]*--battle-command-deck:clamp\(148px,18vw,190px\)/);
     assert.match(styles, /fullscreen-inventory[^}]*overflow:hidden/);
 });
 

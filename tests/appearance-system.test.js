@@ -66,7 +66,7 @@ test('no modern game selects an experience theme or embeds an experience palette
 });
 
 test('theme styles own the Battle Tanks canvas palette', () => {
-    for (const token of ['sky-top', 'sky-bottom', 'terrain', 'terrain-edge', 'barrier', 'barrier-line', 'ink', 'active', 'aim']) {
+    for (const token of ['sky-top', 'sky-bottom', 'sky-glow', 'ridge-far', 'ridge-near', 'terrain', 'terrain-shade', 'terrain-edge', 'terrain-detail', 'barrier', 'barrier-line', 'barrier-highlight', 'ink', 'active', 'aim']) {
         assert.match(games, new RegExp(`--battle-${token}:`));
     }
     const battleTanks = fs.readFileSync('battle-tanks/scripts/app.js', 'utf8');
