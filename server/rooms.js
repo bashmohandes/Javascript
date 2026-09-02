@@ -1,11 +1,7 @@
 'use strict';
 
-const crypto = require('node:crypto');
 const { createGame, startGame, update, setInput, setColor, snapshot } = require('./game');
-
-const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-const token = () => crypto.randomBytes(24).toString('base64url');
-const normalizePasscode = value => String(value || '').trim();
+const { createRoomCode, createRoomToken, normalizePasscode } = require('./room-identity');
 
 class RoomManager {
     constructor({ reconnectMs = 15000, roomTimeoutMs = 30 * 60 * 1000, random = Math.random, recordResult = null } = {}) {
@@ -18,13 +14,11 @@ class RoomManager {
     }
 
     makeCode() {
-        let code;
-        do { code = Array.from({ length: 5 }, () => CODE_ALPHABET[Math.floor(this.random() * CODE_ALPHABET.length)]).join(''); } while (this.rooms.has(code));
-        return code;
+        return createRoomCode(this.rooms, this.random);
     }
 
     makePlayer(socket, side, user, gamertag = '') {
-        return { id: token(), token: token(), side, userId: user?.id || null, gamertag: user?.gamertag || String(gamertag || ''), socket, connected: true, ready: false, disconnectedAt: null, pendingResult: null };
+        return { id: createRoomToken(), token: createRoomToken(), side, userId: user?.id || null, gamertag: user?.gamertag || String(gamertag || ''), socket, connected: true, ready: false, disconnectedAt: null, pendingResult: null };
     }
 
     create(socket, { visibility = 'private', passcode = '', gamertag = '', user = null } = {}) {

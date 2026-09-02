@@ -11,6 +11,7 @@ const { Accounts } = require('./accounts');
 const { Achievements } = require('./achievements');
 const { clientIp: getClientIp, contentSecurityPolicy, isPrivatePath, originAllowed, parseCookies, RateLimiter, useSecureCookies, WebSocketGuard } = require('./http-security');
 const { createStaticAssetHandler } = require('./static-assets');
+const { parseMessage, roomStatusMessage, send, sessionMessage } = require('./websocket-messages');
 const { generateIcons } = require('../scripts/generate-icons');
 
 const root = path.resolve(__dirname, '..');
@@ -175,8 +176,6 @@ server.on('upgrade', (request, socket, head) => {
     }
 });
 
-function send(socket, message) { if (socket.readyState === 1) socket.send(JSON.stringify(message)); }
-function credentials(room, player) { return { type: 'session', roomCode: room.code, playerId: player.id, playerToken: player.token, side: player.side, gamertags: room.players.map(candidate => candidate?.gamertag || null) }; }
 function createRoom(socket, manager, callback) {
     const allowed = websocketGuard.checkCreate(socket, roomManagers, manager);
     if (!allowed.ok) throw new Error(allowed.message);
@@ -208,9 +207,8 @@ websocketServer.on('connection', (socket, request) => {
     const user = sessionUser(request), gamertag = user?.gamertag || '';
     socket.on('message', raw => {
         if (!acceptMessage(socket)) return;
-        let message;
-        try { message = JSON.parse(raw.toString()); } catch { send(socket, { type: 'error', message: 'Invalid message.' }); return; }
         try {
+            const message = parseMessage(raw);
             if (membership && membership.player.socket !== socket) throw new Error('This connection has been replaced by a newer session.');
             if (!membership && message.type === 'create-room') membership = createRoom(socket, rooms, () => rooms.create(socket, { visibility: message.visibility, passcode: message.passcode, user }));
             else if (!membership && message.type === 'join-room') membership = joinRoom(socket, () => rooms.join(message.roomCode, socket, message.passcode, gamertag, user));
@@ -226,13 +224,8 @@ websocketServer.on('connection', (socket, request) => {
             else throw new Error('Unsupported message type.');
 
             if (membership && ['create-room', 'join-room', 'resume'].includes(message.type)) {
-                send(socket, { ...credentials(membership.room, membership.player), visibility: membership.room.visibility });
-                rooms.broadcast(membership.room, {
-                    type: 'room-status',
-                    players: membership.room.players.map(player => Boolean(player?.connected)),
-                    gamertags: membership.room.players.map(player => player?.gamertag || null),
-                    ready: membership.room.players.map(player => Boolean(player?.ready))
-                });
+                send(socket, sessionMessage(membership.room, membership.player, { includePlayerId: true }));
+                rooms.broadcast(membership.room, roomStatusMessage(membership.room));
                 if (message.type === 'resume') rooms.broadcast(membership.room, { type: 'peer-reconnected' });
             }
         } catch (error) { send(socket, { type: 'error', message: error.message }); }
@@ -251,7 +244,7 @@ function handleTicSocket(socket, request) {
     socket.on('message', raw => {
         if (!acceptMessage(socket)) return;
         try {
-            const message = JSON.parse(raw.toString());
+            const message = parseMessage(raw);
             if (!membership && message.type === 'create-room') membership = createRoom(socket, ticRooms, () => ticRooms.create(socket, { ...message, user }));
             else if (!membership && message.type === 'join-room') membership = joinRoom(socket, () => ticRooms.join(message.roomCode, socket, message.passcode, gamertag, user));
             else if (!membership && message.type === 'resume') membership = ticRooms.resume(message.roomCode, message.playerToken, socket);
@@ -262,8 +255,8 @@ function handleTicSocket(socket, request) {
             else if (message.type === 'color') ticRooms.color(membership.room, membership.player, message.color);
             else if (message.type === 'leave') { ticRooms.disconnect(membership.room, membership.player, socket); membership = null; return; }
             else throw new Error('Unsupported message type.');
-            if (['create-room', 'join-room', 'resume'].includes(message.type)) send(socket, { type: 'session', roomCode: membership.room.code, playerToken: membership.player.token, side: membership.player.side, visibility: membership.room.visibility, gamertags: membership.room.players.map(item => item?.gamertag || null) });
-            ticRooms.broadcast(membership.room, { type: 'room-status', players: membership.room.players.map(item => Boolean(item?.connected)), ready: membership.room.players.map(item => Boolean(item?.ready)), gamertags: membership.room.players.map(item => item?.gamertag || null) }); publish();
+            if (['create-room', 'join-room', 'resume'].includes(message.type)) send(socket, sessionMessage(membership.room, membership.player));
+            ticRooms.broadcast(membership.room, roomStatusMessage(membership.room)); publish();
         } catch (error) { send(socket, { type: 'error', message: error.message }); }
     });
     socket.on('close', () => { if (membership && ticRooms.disconnect(membership.room, membership.player, socket)) ticRooms.broadcast(membership.room, { type: 'peer-left', reconnectMs: ticRooms.reconnectMs }); });
@@ -275,8 +268,7 @@ function handleTankSocket(socket, request) {
     socket.on('message', raw => {
         if (!acceptMessage(socket)) return;
         try {
-            const message = JSON.parse(raw.toString());
-            if (!message || typeof message !== 'object' || Array.isArray(message)) throw new Error('Invalid message.');
+            const message = parseMessage(raw);
             if (membership && membership.player.socket !== socket) throw new Error('This connection has been replaced by a newer session.');
             if (!membership && message.type === 'create-room') membership = createRoom(socket, tankRooms, () => tankRooms.create(socket, { ...message, user }));
             else if (!membership && message.type === 'join-room') membership = joinRoom(socket, () => tankRooms.join(message.roomCode, socket, message.passcode, user));
@@ -288,9 +280,9 @@ function handleTankSocket(socket, request) {
             else if (message.type === 'color') tankRooms.color(membership.room, membership.player, message.color);
             else if (message.type === 'leave') { tankRooms.disconnect(membership.room, membership.player, socket); membership = null; return; }
             else throw new Error('Unsupported message type.');
-            if (membership && ['create-room', 'join-room', 'resume'].includes(message.type)) send(socket, { type: 'session', roomCode: membership.room.code, playerToken: membership.player.token, side: membership.player.side, visibility: membership.room.visibility, gamertags: membership.room.players.map(item => item?.gamertag || null) });
+            if (membership && ['create-room', 'join-room', 'resume'].includes(message.type)) send(socket, sessionMessage(membership.room, membership.player));
             if (membership) {
-                if (['create-room', 'join-room', 'resume', 'ready', 'rematch'].includes(message.type)) tankRooms.broadcast(membership.room, { type: 'room-status', players: membership.room.players.map(item => Boolean(item?.connected)), ready: membership.room.players.map(item => Boolean(item?.ready)), gamertags: membership.room.players.map(item => item?.gamertag || null) });
+                if (['create-room', 'join-room', 'resume', 'ready', 'rematch'].includes(message.type)) tankRooms.broadcast(membership.room, roomStatusMessage(membership.room));
                 publish();
             }
         } catch (error) { send(socket, { type: 'error', message: error.message }); }

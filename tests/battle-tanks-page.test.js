@@ -34,6 +34,8 @@ test('Battle Tanks renders high-impact projectile and explosion feedback', () =>
 test('Battle Tanks renders static terrain once and only animates active effects', () => {
     const app = read('battle-tanks/scripts/app.js');
     assert.match(app, /arenaCacheSignature/);
+    assert.match(app, /drawBarrier\(cache,barrier\)/);
+    assert.doesNotMatch(app, /ctx=arenaCacheContext/, 'cache rendering must not replace the visible canvas context');
     assert.match(app, /function needsAnimation\(\)\{return state\.phase==='projectile-flight'\|\|combatEffects\.length>0;\}/);
     assert.match(app, /function requestRenderFrame\(\)[^\r\n]+if\(last===null\)last=performance\.now\(\)/, 'restarting an idle loop must reset its physics clock');
     assert.match(app, /function frame\(now\)[^\r\n]+if\(animationFrame===null\)last=null;/, 'an inactive loop must mark its physics clock idle');
