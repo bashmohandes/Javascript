@@ -93,6 +93,8 @@ test('top-score and achievement notifications share one sequential queue', () =>
     assert.match(script, /notificationQueue\.push\(\.\.\.notifications\)/);
     assert.match(script, /showUnlocks = unlocked => enqueueNotifications/);
     assert.match(script, /showTopScore = topScore => \{ if \(topScore\) enqueueNotifications/);
+    assert.match(script, /notifyResult = result =>/);
+    assert.match(script, /record: async result =>.*notifyResult\(await api/);
     assert.match(script, /showNextNotification\(\)/);
     assert.doesNotMatch(script, /index \* 450/);
 });

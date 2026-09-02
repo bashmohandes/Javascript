@@ -22,12 +22,14 @@ const achievements = new Achievements(database);
 const accounts = new Accounts(database, achievements);
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').map(value => value.trim()).filter(Boolean);
 const trustProxy = process.env.TRUST_PROXY === 'true';
+const trustedResult = (userId, result) => accounts.record(userId, result, { trustedOnline: true });
 const rooms = new RoomManager({
     reconnectMs: Number(process.env.RECONNECT_GRACE_MS) || 15000,
-    roomTimeoutMs: Number(process.env.ROOM_TIMEOUT_MS) || 1800000
+    roomTimeoutMs: Number(process.env.ROOM_TIMEOUT_MS) || 1800000,
+    recordResult: trustedResult
 });
-const ticRooms = new TicTacToeRooms({ reconnectMs: Number(process.env.RECONNECT_GRACE_MS) || 15000, roomTimeoutMs: Number(process.env.ROOM_TIMEOUT_MS) || 1800000 });
-const tankRooms = new BattleTanksRooms({ reconnectMs: Number(process.env.RECONNECT_GRACE_MS) || 15000, roomTimeoutMs: Number(process.env.ROOM_TIMEOUT_MS) || 1800000, recordResult: (userId, result) => accounts.record(userId, result, { trustedOnline: true }) });
+const ticRooms = new TicTacToeRooms({ reconnectMs: Number(process.env.RECONNECT_GRACE_MS) || 15000, roomTimeoutMs: Number(process.env.ROOM_TIMEOUT_MS) || 1800000, recordResult: trustedResult });
+const tankRooms = new BattleTanksRooms({ reconnectMs: Number(process.env.RECONNECT_GRACE_MS) || 15000, roomTimeoutMs: Number(process.env.ROOM_TIMEOUT_MS) || 1800000, recordResult: trustedResult });
 const positiveInteger = (value, fallback) => Number.isSafeInteger(Number(value)) && Number(value) > 0 ? Number(value) : fallback;
 const websocketGuard = new WebSocketGuard({
     maxConnections: positiveInteger(process.env.WS_MAX_CONNECTIONS, 250),
@@ -209,15 +211,15 @@ websocketServer.on('connection', (socket, request) => {
     if (new URL(request.url, 'http://localhost').pathname === '/ws/battle-tanks') { handleTankSocket(socket, request); return; }
     if (new URL(request.url, 'http://localhost').pathname === '/ws/tictactoe') { handleTicSocket(socket, request); return; }
     let membership = null;
-    const gamertag = sessionUser(request)?.gamertag || '';
+    const user = sessionUser(request), gamertag = user?.gamertag || '';
     socket.on('message', raw => {
         if (!acceptMessage(socket)) return;
         let message;
         try { message = JSON.parse(raw.toString()); } catch { send(socket, { type: 'error', message: 'Invalid message.' }); return; }
         try {
             if (membership && membership.player.socket !== socket) throw new Error('This connection has been replaced by a newer session.');
-            if (!membership && message.type === 'create-room') membership = createRoom(socket, rooms, () => rooms.create(socket, { visibility: message.visibility, passcode: message.passcode, gamertag }));
-            else if (!membership && message.type === 'join-room') membership = joinRoom(socket, () => rooms.join(message.roomCode, socket, message.passcode, gamertag));
+            if (!membership && message.type === 'create-room') membership = createRoom(socket, rooms, () => rooms.create(socket, { visibility: message.visibility, passcode: message.passcode, user }));
+            else if (!membership && message.type === 'join-room') membership = joinRoom(socket, () => rooms.join(message.roomCode, socket, message.passcode, gamertag, user));
             else if (!membership && message.type === 'resume') membership = rooms.resume(message.roomCode, message.playerToken, socket);
             else if (!membership) throw new Error('Create or join a room first.');
             else if (message.type === 'ready' || message.type === 'rematch') {
@@ -250,14 +252,14 @@ websocketServer.on('connection', (socket, request) => {
 });
 
 function handleTicSocket(socket, request) {
-    let membership = null; const gamertag = sessionUser(request)?.gamertag || '';
+    let membership = null; const user = sessionUser(request), gamertag = user?.gamertag || '';
     const publish = () => membership && ticRooms.broadcast(membership.room, { type: 'state', state: ticRooms.state(membership.room) });
     socket.on('message', raw => {
         if (!acceptMessage(socket)) return;
         try {
             const message = JSON.parse(raw.toString());
-            if (!membership && message.type === 'create-room') membership = createRoom(socket, ticRooms, () => ticRooms.create(socket, { ...message, gamertag }));
-            else if (!membership && message.type === 'join-room') membership = joinRoom(socket, () => ticRooms.join(message.roomCode, socket, message.passcode, gamertag));
+            if (!membership && message.type === 'create-room') membership = createRoom(socket, ticRooms, () => ticRooms.create(socket, { ...message, user }));
+            else if (!membership && message.type === 'join-room') membership = joinRoom(socket, () => ticRooms.join(message.roomCode, socket, message.passcode, gamertag, user));
             else if (!membership && message.type === 'resume') membership = ticRooms.resume(message.roomCode, message.playerToken, socket);
             else if (!membership) throw new Error('Create or join a room first.');
             else if (message.type === 'ready') ticRooms.ready(membership.room, membership.player);

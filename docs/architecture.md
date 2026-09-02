@@ -228,12 +228,14 @@ sequenceDiagram
 | Endpoint | `/ws` | `/ws/tictactoe` | `/ws/battle-tanks` |
 | Client command | continuous paddle input | discrete cell move | versioned move/aim/fire command |
 | State delivery | 30 Hz snapshots | after actions | 60 Hz physics; projectile snapshots capped at 25 Hz (typically about 20 Hz because the 40 ms throttle is sampled by a 60 Hz timer) |
-| Result source | validated client report | validated client report | room manager records authenticated players |
+| Result source | room manager records authenticated players | room manager records authenticated players | room manager records authenticated players |
 | Shared lifecycle | public/private five-character rooms, ready, rematch, invitation, resume token, reconnection grace, inactivity expiry, heartbeat |
 
 Rooms and resume tokens are ephemeral and vanish on expiry/restart. Account
 sessions are separate from room identity: login adds a gamertag to a room, and
-Battle Tanks also associates the user id for trusted online result recording.
+all room managers also associate the user id for trusted online result recording.
+The public result API rejects browser submissions claiming an online mode; each
+room persists its terminal state at most once per match.
 See [online rendering](online-rendering.md) for snapshot smoothing, client-side
 prediction, safeguards, and alternatives.
 

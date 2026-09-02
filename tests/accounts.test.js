@@ -48,9 +48,13 @@ test('validates result structure and derives scores on the server', async t => {
     const sudoku = accounts.record(user.id, { game: 'sudoku', score: 100000000, won: true, details: { difficulty: 'medium', seconds: 300, mistakes: 1, hintsUsed: 2 } });
     assert.equal(sudoku.score, 1650);
     assert.throws(() => accounts.record(user.id, { game: 'pong', won: true, details: { mode: 'online', score: '6-0' } }), /Invalid Pong/);
-    const pong = accounts.record(user.id, { game: 'pong', won: true, details: { mode: 'online', score: '7-3', seconds: 125 } });
+    assert.throws(() => accounts.record(user.id, { game: 'pong', won: true, details: { mode: 'online', score: '7-3', seconds: 125 } }), /Invalid Pong/);
+    const pong = accounts.record(user.id, { game: 'pong', won: true, details: { mode: 'online', score: '7-3', seconds: 125 } }, { trustedOnline: true });
     assert.equal(pong.score, 703);
     assert.equal(accounts.leaderboard('pong')[0].details.seconds, 125);
+    const ticTacToe = { game: 'tictactoe', won: true, details: { mode: 'online', moves: 5, seconds: 30, outcome: 'win' } };
+    assert.throws(() => accounts.record(user.id, ticTacToe), /Invalid Tic-tac-toe/);
+    assert.doesNotThrow(() => accounts.record(user.id, ticTacToe, { trustedOnline: true }));
     assert.throws(() => accounts.record(user.id, { game: 'minesweeper', won: true, details: { difficulty: 'impossible', seconds: 1 } }), /Invalid Minesweeper/);
 });
 
