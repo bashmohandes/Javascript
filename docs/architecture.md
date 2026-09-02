@@ -238,8 +238,10 @@ all room managers also associate the user id for trusted online result recording
 `server/room-identity.js` owns the common code, token, and passcode primitives;
 `server/websocket-messages.js` owns JSON message validation and the shared
 session and room-status payload shapes. Game-specific managers retain lifecycle,
-command, authority, and viewer-redaction decisions. See
-[ADR 0021](adr/0021-shared-online-room-contracts.md) for the compatibility
+command, authority, and viewer-redaction decisions. Browser clients use
+`scripts/online-rooms.js` for room input, server-message, and stored-session
+validation while retaining their game-specific dispatch and reconnect policy.
+See [ADR 0021](adr/0021-shared-online-room-contracts.md) for the compatibility
 constraints on this boundary.
 The public result API rejects browser submissions claiming an online mode; each
 room persists its terminal state at most once per match.

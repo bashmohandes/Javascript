@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE_NAME = 'javascript-arcade-v2';
+const CACHE_NAME = 'javascript-arcade-v3';
 const APP_SHELL = [
     './',
     './index.html',
