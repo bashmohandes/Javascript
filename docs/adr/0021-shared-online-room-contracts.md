@@ -46,6 +46,12 @@ socket replacement and reconnection policy, presentation state, and game-state
 compatibility checks. A replaced socket must not update UI state or schedule a
 reconnect for the active client.
 
+The shared browser helper exposes a contract version, and every game loads it
+with that version in the script URL. Adding a required helper API must increment
+the contract URL so an older cache-first service worker cannot combine a new
+controller with an incompatible cached helper. Deployments that change this
+contract also rotate the service-worker cache generation to retire old entries.
+
 Preserve the existing wire and identity formats during this consolidation:
 readable five-character room codes, 32-character base64url tokens, trimmed
 passcodes, the `Invalid message.` error for malformed input, and the established

@@ -53,6 +53,15 @@ test('online clients share message and stored-session validation',()=>{
   assert.doesNotMatch(app,/JSON\.parse\((?:event|e)\.data/,`${file} must not bypass shared message validation`);
  }
 });
+test('online pages cache-bust shared contract changes',()=>{
+ assert.equal(rooms.CONTRACT_VERSION,2);
+ for(const file of ['pong/index.html','tictactoe/index.html','battle-tanks/index.html']){
+  const page=fs.readFileSync(file,'utf8');
+  assert.match(page,new RegExp(`scripts/online-rooms\\.js\\?v=${rooms.CONTRACT_VERSION}`),`${file} must request the current shared contract`);
+ }
+ const worker=fs.readFileSync('service-worker.js','utf8');
+ assert.match(worker,/CACHE_NAME = 'javascript-arcade-v3'/);
+});
 test('Battle Tanks ignores obsolete sockets and owns one reconnect timer',()=>{
  const app=fs.readFileSync('battle-tanks/scripts/app.js','utf8');
  assert.match(app,/if\(nextSocket!==socket\)return/);
