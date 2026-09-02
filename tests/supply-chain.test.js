@@ -15,7 +15,7 @@ test('container stages use one immutable multi-platform Node image digest', () =
     const dockerfile = fs.readFileSync('Dockerfile', 'utf8');
     const images = [...dockerfile.matchAll(/^FROM\s+(node:[^\s]+)(?:\s+AS\s+\S+)?$/gmi)].map(match => match[1]);
     assert.equal(images.length, 2);
-    for (const image of images) assert.match(image, /^node:24-alpine@sha256:[0-9a-f]{64}$/, image);
+    for (const image of images) assert.match(image, /^node:26-alpine@sha256:[0-9a-f]{64}$/, image);
     assert.equal(new Set(images).size, 1);
     assert.match(dockerfile, /apk add --no-cache --upgrade libcrypto3=\d+\.\d+\.\d+-r\d+ libssl3=\d+\.\d+\.\d+-r\d+/);
     assert.match(dockerfile, /rm -rf \/usr\/local\/lib\/node_modules\/npm \/usr\/local\/lib\/node_modules\/corepack \/opt\/yarn-v\*/);
