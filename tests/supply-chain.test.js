@@ -19,10 +19,21 @@ test('container stages use one immutable multi-platform Node image digest', () =
     assert.equal(new Set(images).size, 1);
 });
 
+test('container scanning uses an immutable Trivy image and cannot publish on schedule', () => {
+    const scanner = fs.readFileSync('security/Dockerfile', 'utf8');
+    assert.match(scanner, /^FROM aquasec\/trivy:\d+\.\d+\.\d+@sha256:[0-9a-f]{64}$/m);
+    const workflow = fs.readFileSync('.github/workflows/container.yml', 'utf8');
+    assert.match(workflow, /^\s*schedule:\s*$[\s\S]*?^\s*- cron:/m);
+    assert.match(workflow, /^\s*load:\s*true$/m);
+    assert.match(workflow, /arcade-trivy:ci image[\s\S]*?--severity HIGH,CRITICAL[\s\S]*?javascript-pong:ci/);
+    assert.match(workflow, /^\s*if: github\.event_name == 'push' \|\| github\.event_name == 'workflow_dispatch'$/m);
+});
+
 test('Dependabot checks every build dependency ecosystem daily', () => {
     const configuration = fs.readFileSync('.github/dependabot.yml', 'utf8');
     const ecosystems = [...configuration.matchAll(/^\s*- package-ecosystem:\s*(\S+)$/gm)].map(match => match[1]);
     assert.deepEqual(ecosystems, ['github-actions', 'docker', 'npm']);
     assert.equal([...configuration.matchAll(/^\s*interval:\s*daily$/gm)].length, ecosystems.length);
     assert.equal([...configuration.matchAll(/^\s*applies-to:\s*security-updates$/gm)].length, ecosystems.length);
+    assert.match(configuration, /^\s*- "\/security"$/m);
 });
