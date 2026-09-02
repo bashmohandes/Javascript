@@ -102,16 +102,21 @@
         return true;
     };
     const forgetVoice = entry => { voices.delete(entry); musicVoices.delete(entry); };
-    const stopVoice = entry => {
-        try { entry.source.stop(); } catch { /* It may already have stopped. */ }
-        try { entry.source.disconnect(); } catch { /* Disconnection is best effort. */ }
+    const disconnectVoice = entry => {
+        if (entry.disconnected) return;
+        entry.disconnected = true;
+        entry.nodes.forEach(node => { try { node.disconnect(); } catch { /* Disconnection is best effort. */ } });
         forgetVoice(entry);
     };
-    const claimVoice = (source, isMusic) => {
+    const stopVoice = entry => {
+        try { entry.source.stop(); } catch { /* It may already have stopped. */ }
+        disconnectVoice(entry);
+    };
+    const claimVoice = (source, isMusic, nodes) => {
         while (voices.size >= MAX_VOICES) stopVoice(voices.values().next().value);
-        const entry = { source };
+        const entry = { source, nodes, disconnected: false };
         voices.add(entry); if (isMusic) musicVoices.add(entry);
-        source.addEventListener?.('ended', () => forgetVoice(entry), { once: true });
+        source.addEventListener?.('ended', () => disconnectVoice(entry), { once: true });
         return entry;
     };
     const tone = ({ midi, hz, at, duration = .12, gain = .08, type, bus = effectsBus, isMusic = false, detune = 0, filter = true }) => {
@@ -125,21 +130,24 @@
         safeParam(envelope.gain, .0001, start);
         envelope.gain.exponentialRampToValueAtTime?.(peak, start + Math.max(.003, attack));
         envelope.gain.exponentialRampToValueAtTime?.(.0001, start + Math.max(attack + .01, duration + release));
+        const nodes = [oscillator, envelope];
         if (filter && typeof context.createBiquadFilter === 'function') {
             const filterNode = context.createBiquadFilter(); filterNode.type = 'lowpass'; safeParam(filterNode.frequency, timbre.brightness, start);
-            oscillator.connect(filterNode); filterNode.connect(envelope);
+            oscillator.connect(filterNode); filterNode.connect(envelope); nodes.push(filterNode);
         } else oscillator.connect(envelope);
-        envelope.connect(bus); claimVoice(oscillator, isMusic); oscillator.start(start); oscillator.stop(start + duration + release + .03);
+        envelope.connect(bus); claimVoice(oscillator, isMusic, nodes); oscillator.start(start); oscillator.stop(start + duration + release + .03);
     };
     const noise = ({ at, duration = .12, gain = .09, frequency: cutoff = 900, type = 'lowpass' }) => {
         if (!context || !noiseBuffer) return;
         const start = Math.max(context.currentTime, at ?? context.currentTime), source = context.createBufferSource(), envelope = context.createGain();
         source.buffer = noiseBuffer;
+        const nodes = [source, envelope];
         if (typeof context.createBiquadFilter === 'function') {
             const filterNode = context.createBiquadFilter(); filterNode.type = type; safeParam(filterNode.frequency, cutoff, start); source.connect(filterNode); filterNode.connect(envelope);
+            nodes.push(filterNode);
         } else source.connect(envelope);
         safeParam(envelope.gain, Math.max(.0001, gain), start); envelope.gain.exponentialRampToValueAtTime?.(.0001, start + duration); envelope.connect(effectsBus);
-        claimVoice(source, false); source.start(start); source.stop(start + duration + .02);
+        claimVoice(source, false, nodes); source.start(start); source.stop(start + duration + .02);
     };
     const sequence = (notes, { at = context?.currentTime || 0, gain = .075, type, gap = .015 } = {}) => {
         let cursor = at;
@@ -268,6 +276,7 @@
     subscribe('game:started', event => { api.setPaused(false); api.setScene('active', event.detail); api.activate(); });
     subscribe('game:progressed', event => api.setScene('active', event.detail));
     subscribe('game:paused', event => api.setPaused(event.detail.paused));
+    subscribe('game:stopped', () => { api.setPaused(false); api.setScene('idle'); });
     subscribe('game:completed', event => { api.setScene('complete'); api.cue(game === 'sudoku' && event.detail.outcome === 'win' ? 'complete' : event.detail.outcome || 'loss', event.detail); });
     doc.addEventListener('visibilitychange', () => { hidden = doc.hidden; updateScheduler(); if (hidden && context?.state === 'running') context.suspend().catch(() => {}); else if (!hidden && activated && !preferences.muted) activate(); });
     root.addEventListener('storage', event => {

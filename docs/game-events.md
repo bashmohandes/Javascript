@@ -65,6 +65,7 @@ name: prefer `pong:paddle-hit` over `audio:play-hit`.
 | `game:started` | `mode`, normalized `intensity`, `danger` | A fresh local or accepted online match began. |
 | `game:progressed` | normalized `intensity`, `danger`; optional `progress` | Meaningful state changed during active play. High-frequency games may coalesce this. |
 | `game:paused` | `paused` | The effective pause state changed or was synchronized. |
+| `game:stopped` | `reason` | Play ended or returned to an idle/waiting state without producing a competitive result, such as entering an online lobby or using an auto-solver. |
 | `game:completed` | `outcome`: `win`, `loss`, or `draw`; bounded summary facts | A newly observed match completed. Resume snapshots must not emit it. |
 | `system:theme-changed` | theme and resolved color fields | Shared appearance changed. |
 | `account:user-changed` | `user` | The shell established a signed-in user or anonymous state. |

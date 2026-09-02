@@ -298,6 +298,7 @@
                 autoSolveButton.disabled = true;
                 statusElement.setAttribute('aria-live', 'polite');
                 statusElement.textContent = `Solved with ${attempts} tries and ${backtracks} backtrack${backtracks === 1 ? '' : 's'}.`;
+                events.emit('game:stopped', { reason: 'auto-solved' });
                 render();
                 return;
             }
@@ -311,6 +312,7 @@
                 autoSolveButton.disabled = true;
                 statusElement.setAttribute('aria-live', 'polite');
                 statusElement.textContent = 'No solution exists for this puzzle.';
+                events.emit('game:stopped', { reason: 'unsolvable' });
                 return;
             }
 

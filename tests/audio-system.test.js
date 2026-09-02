@@ -33,13 +33,13 @@ class FakeSource extends FakeNode {
 
 class FakeAudioContext {
     static instances = [];
-    constructor() { this.state = 'suspended'; this.currentTime = 1; this.sampleRate = 8000; this.destination = new FakeNode(); this.oscillators = []; this.sources = []; FakeAudioContext.instances.push(this); }
-    createGain() { const node = new FakeNode(); node.gain = new FakeParam(1); return node; }
+    constructor() { this.state = 'suspended'; this.currentTime = 1; this.sampleRate = 8000; this.destination = new FakeNode(); this.oscillators = []; this.sources = []; this.gains = []; this.filters = []; FakeAudioContext.instances.push(this); }
+    createGain() { const node = new FakeNode(); node.gain = new FakeParam(1); this.gains.push(node); return node; }
     createDynamicsCompressor() { const node = new FakeNode(); node.threshold = new FakeParam(); node.knee = new FakeParam(); node.ratio = new FakeParam(); return node; }
     createBuffer(_channels, length) { const data = new Float32Array(length); return { getChannelData: () => data }; }
     createOscillator() { const source = new FakeSource(); this.oscillators.push(source); return source; }
     createBufferSource() { const source = new FakeSource(); this.sources.push(source); return source; }
-    createBiquadFilter() { const node = new FakeNode(); node.frequency = new FakeParam(); return node; }
+    createBiquadFilter() { const node = new FakeNode(); node.frequency = new FakeParam(); this.filters.push(node); return node; }
     async resume() { this.state = 'running'; }
     async suspend() { this.state = 'suspended'; }
     async close() { this.state = 'closed'; }
@@ -110,6 +110,31 @@ test('audio refuses automatic activation and bounds overlapping voices', async (
     assert.ok(FakeAudioContext.instances[0].oscillators.some(source => source.disconnected), 'old voices should be stolen and disconnected');
 });
 
+test('naturally ended voices disconnect every per-voice audio node', async () => {
+    FakeAudioContext.instances.length = 0;
+    const { env } = environment();
+    const audio = createArcadeAudio(env);
+    await audio.cue('valid');
+    const context = FakeAudioContext.instances[0], source = context.oscillators.at(-1);
+    const filter = source.connections[0], envelope = filter.connections[0];
+    source.listeners.ended();
+    assert.equal(source.disconnected, true);
+    assert.equal(filter.disconnected, true);
+    assert.equal(envelope.disconnected, true);
+});
+
+test('stopped lifecycle events return active audio to its idle scene', async () => {
+    FakeAudioContext.instances.length = 0;
+    const { env, intervals } = environment();
+    env.ArcadeEvents = createArcadeEvents(env);
+    createArcadeAudio(env);
+    env.ArcadeEvents.emit('game:started', { intensity: .3, danger: 0 });
+    await Promise.resolve(); await Promise.resolve();
+    assert.ok(intervals.size > 0);
+    env.ArcadeEvents.emit('game:stopped', { reason: 'waiting-for-online-match' });
+    assert.equal(intervals.size, 0);
+});
+
 test('audio preferences clamp, persist, mute, and reset independently', async () => {
     FakeAudioContext.instances.length = 0;
     const { env, storage } = environment();
@@ -176,6 +201,15 @@ test('online games establish presentation-event watermarks without replaying res
     assert.match(pong, /awaitingResumeState/); assert.match(pong, /!resumedSnapshot[^\n]*events\.emit/);
     assert.match(tic, /awaitingResumeState/); assert.match(tic, /if\(!resumedSnapshot\)/);
     assert.match(tanks, /suppressNextOnlineEvents/); assert.match(tanks, /lastImpactSerial=message\.state\.lastImpact/);
+});
+
+test('non-result exits and online match starts publish accurate lifecycle facts', () => {
+    const sudoku = read('Sudoku/scripts/app.js'), tic = read('tictactoe/scripts/app.js');
+    assert.match(sudoku, /game:stopped[^\n]*auto-solved/);
+    assert.match(sudoku, /game:stopped[^\n]*unsolvable/);
+    assert.match(tic, /game\.mode==='online'\?'game:stopped':'game:started'/);
+    assert.match(tic, /game\.running&&!wasRunning\)events\.emit\('game:started'/);
+    assert.match(tic, /if\(game\.running\)events\.emit\('game:progressed'/);
 });
 
 test('the arcade ships no audio media files', () => {
