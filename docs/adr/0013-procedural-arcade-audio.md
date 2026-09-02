@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted
+Accepted. ADR 0015 amends the open-dialog lifecycle rule for the dedicated
+sound mixer; all other decisions in this record remain current.
 
 ## Context
 

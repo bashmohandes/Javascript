@@ -55,6 +55,7 @@
     const gamePath = location.pathname.match(/\/(pong|Sudoku|Minesweeper|tictactoe|battle-tanks|tetris)\//)?.[1];
     const game = ({ pong:'pong', Sudoku:'sudoku', Minesweeper:'minesweeper', tictactoe:'tictactoe', 'battle-tanks':'battletanks', tetris:'tetris' })[gamePath];
     const audio = game ? window.ArcadeAudio : null;
+    const AUDIO_PRESETS = Object.freeze({ quiet: { music: .3, effects: .45 }, balanced: { music: .6, effects: .8 }, bold: { music: .9, effects: 1 } });
     if ('serviceWorker' in navigator) navigator.serviceWorker.register(`${rootPath}service-worker.js`, { scope: rootPath }).catch(() => { /* Installation guidance still works on manual platforms. */ });
     const setupInstallGuide = () => {
         const dismissedKey = 'arcade-install-hint-dismissed';
@@ -151,24 +152,38 @@
     account.className = 'arcade-account'; account.setAttribute('aria-label', 'Arcade account and appearance');
     topbarInner.append(home, account); topbar.append(topbarInner);
     const appearanceButton = document.createElement('button'); appearanceButton.type = 'button'; appearanceButton.className = 'arcade-appearance-button'; appearanceButton.textContent = 'Appearance';
-    const audioButton = document.createElement('button'); audioButton.type = 'button'; audioButton.className = 'arcade-audio-button';
+    const audioButton = document.createElement('button'); audioButton.type = 'button'; audioButton.className = 'arcade-audio-button'; audioButton.textContent = 'Sound'; audioButton.setAttribute('aria-haspopup', 'dialog');
     const appearanceDialog = document.createElement('dialog'); appearanceDialog.className = 'arcade-dialog arcade-appearance-dialog';
     appearanceDialog.innerHTML = `<form method="dialog"><header><div><small>Make it yours</small><h2>Appearance & sound</h2></div><button value="close" aria-label="Close appearance and sound settings">×</button></header><p class="arcade-appearance-intro">Choose an experience and color mode${game ? ', then tune the game audio' : ''}. Your choices follow you across the arcade.</p><div class="arcade-theme-grid">${THEMES.map(theme => `<button type="button" data-theme-option="${theme.id}" aria-pressed="false"><span class="arcade-theme-preview preview-${theme.id}" aria-hidden="true"><i></i><i></i><i></i></span><strong>${theme.name}</strong><small>${theme.description}</small></button>`).join('')}</div><fieldset><legend>Color mode</legend><div class="arcade-color-modes" role="radiogroup">${COLOR_PREFERENCES.map(mode => `<button type="button" role="radio" data-color-option="${mode}" aria-checked="false">${mode[0].toUpperCase()}${mode.slice(1)}</button>`).join('')}</div></fieldset>${game ? '<fieldset class="arcade-audio-settings"><legend>Game audio</legend><div class="arcade-audio-levels"><label><span>Music</span><input type="range" min="0" max="1" step="0.05" data-audio-volume="music" aria-label="Music volume"></label><label><span>Effects</span><input type="range" min="0" max="1" step="0.05" data-audio-volume="effects" aria-label="Effects volume"></label></div><p class="arcade-audio-status" role="status" aria-live="polite"></p></fieldset>' : ''}<div class="arcade-appearance-footer"><p class="arcade-appearance-status" role="status" aria-live="polite"></p><button type="button" class="arcade-appearance-reset">Reset defaults</button></div></form>`;
     if (!game) { appearanceDialog.querySelector('h2').textContent = 'Appearance'; appearanceDialog.querySelector('header button').setAttribute('aria-label', 'Close appearance settings'); }
+    const audioDialog = audio ? document.createElement('dialog') : null;
+    if (audioDialog) {
+        audioDialog.className = 'arcade-dialog arcade-audio-dialog';
+        audioDialog.innerHTML = `<form method="dialog"><header><div><small>Make it sing</small><h2>Sound mixer</h2></div><button value="close" aria-label="Close sound mixer">×</button></header><p>Choose a starting mix or fine-tune music and action effects independently. Changes apply immediately and follow you across the arcade.</p><div class="arcade-audio-presets" aria-label="Sound presets">${Object.keys(AUDIO_PRESETS).map(name => `<button type="button" data-audio-preset="${name}">${name[0].toUpperCase()}${name.slice(1)}</button>`).join('')}</div><div class="arcade-audio-levels"><label><span>Music <output data-audio-output="music">0%</output></span><input type="range" min="0" max="1" step="0.05" data-audio-volume="music" aria-label="Music volume"></label><label><span>Effects <output data-audio-output="effects">0%</output></span><input type="range" min="0" max="1" step="0.05" data-audio-volume="effects" aria-label="Effects volume"></label></div><div class="arcade-audio-actions"><button type="button" data-audio-mute></button><button type="button" data-audio-preview>Test effects</button><button type="button" data-audio-reset>Reset sound</button></div><p class="arcade-audio-status" role="status" aria-live="polite"></p></form>`;
+    }
     const announceAppearance = () => { const theme = THEMES.find(item => item.id === themePreference); appearanceDialog.querySelector('.arcade-appearance-status').textContent = `${theme.name} theme, ${colorPreference} color mode selected.`; };
     const updateAudioControls = () => {
         if (!audio) return;
         const values = audio.preferences();
-        audioButton.textContent = values.muted ? 'Sound off' : 'Sound on'; audioButton.setAttribute('aria-pressed', String(!values.muted)); audioButton.setAttribute('aria-label', values.muted ? 'Turn game sound on' : 'Mute game sound'); audioButton.dataset.audioActivated = String(values.activated); audioButton.disabled = !values.available;
-        appearanceDialog.querySelectorAll('[data-audio-volume]').forEach(input => { input.value = values[input.dataset.audioVolume]; input.disabled = !values.available; });
-        const status = appearanceDialog.querySelector('.arcade-audio-status');
-        status.textContent = values.available ? `${values.muted ? 'Muted · ' : ''}Music ${Math.round(values.music * 100)}% · Effects ${Math.round(values.effects * 100)}%` : 'Web Audio is not supported by this browser.';
+        audioButton.textContent = values.muted ? 'Sound off' : 'Sound'; audioButton.setAttribute('aria-label', `Open game sound settings${values.muted ? ', currently muted' : ''}`); audioButton.dataset.audioMuted = String(values.muted); audioButton.dataset.audioActivated = String(values.activated); audioButton.disabled = !values.available;
+        document.querySelectorAll('[data-audio-volume]').forEach(input => { input.value = values[input.dataset.audioVolume]; input.disabled = !values.available; });
+        audioDialog.querySelectorAll('[data-audio-output]').forEach(output => { output.value = `${Math.round(values[output.dataset.audioOutput] * 100)}%`; });
+        const mute = audioDialog.querySelector('[data-audio-mute]'); mute.textContent = values.muted ? 'Unmute all' : 'Mute all'; mute.setAttribute('aria-pressed', String(values.muted)); mute.disabled = !values.available;
+        document.querySelectorAll('.arcade-audio-status').forEach(status => { status.textContent = values.available ? `${values.muted ? 'Muted · ' : ''}Music ${Math.round(values.music * 100)}% · Effects ${Math.round(values.effects * 100)}%` : 'Web Audio is not supported by this browser.'; });
     };
     appearanceDialog.addEventListener('click', event => { if (event.target.closest('[data-theme-option]')) { setTheme(event.target.closest('[data-theme-option]').dataset.themeOption); announceAppearance(); } if (event.target.dataset.colorOption) { setColorPreference(event.target.dataset.colorOption); announceAppearance(); } if (event.target.classList.contains('arcade-appearance-reset')) { setTheme(config.defaultTheme); setColorPreference('system'); audio?.reset(); announceAppearance(); } });
     appearanceDialog.addEventListener('input', event => { if (event.target.dataset.audioVolume === 'music') audio?.setMusicVolume(event.target.value); if (event.target.dataset.audioVolume === 'effects') audio?.setEffectsVolume(event.target.value); });
+    audioDialog?.addEventListener('input', event => { if (audio.preferences().muted) audio.setMuted(false); if (event.target.dataset.audioVolume === 'music') audio.setMusicVolume(event.target.value); if (event.target.dataset.audioVolume === 'effects') audio.setEffectsVolume(event.target.value); audio.activate(); });
+    audioDialog?.addEventListener('click', event => {
+        if (event.target.dataset.audioMute !== undefined) { const muted = audio.preferences().muted; audio.setMuted(!muted); if (muted) audio.activate(); }
+        if (event.target.dataset.audioPreview !== undefined) { if (audio.preferences().muted) audio.setMuted(false); audio.cue('achievement'); }
+        if (event.target.dataset.audioReset !== undefined) audio.reset();
+        const preset = AUDIO_PRESETS[event.target.dataset.audioPreset];
+        if (preset) { if (audio.preferences().muted) audio.setMuted(false); audio.setMusicVolume(preset.music); audio.setEffectsVolume(preset.effects); audio.activate(); }
+    });
     appearanceDialog.querySelector('.arcade-color-modes').addEventListener('keydown', event => { if (!['ArrowLeft','ArrowRight'].includes(event.key)) return; event.preventDefault(); const offset=event.key==='ArrowRight'?1:-1; const next=COLOR_PREFERENCES[(COLOR_PREFERENCES.indexOf(colorPreference)+offset+COLOR_PREFERENCES.length)%COLOR_PREFERENCES.length]; setColorPreference(next); appearanceDialog.querySelector(`[data-color-option="${next}"]`).focus(); announceAppearance(); });
     appearanceButton.addEventListener('click', () => { applyTheme(); updateAudioControls(); appearanceDialog.showModal(); });
-    audioButton.addEventListener('click', () => { const muted = audio.preferences().muted; audio.setMuted(!muted); if (muted) audio.activate(); });
+    audioButton.addEventListener('click', () => { updateAudioControls(); audioDialog.showModal(); audio.activate(); });
     events.on('audio:preferences-changed', updateAudioControls);
     const dialog = document.createElement('dialog'); dialog.className = 'arcade-dialog';
     dialog.innerHTML = `<form class="arcade-auth" method="dialog"><h2>Arcade account</h2><p>Use one gamertag to save play history and scores across every game.</p><label>Gamertag<input name="gamertag" minlength="3" maxlength="24" pattern="[A-Za-z0-9_-]+" autocomplete="username" required></label><label>Passcode<input name="passcode" type="password" minlength="4" maxlength="128" autocomplete="current-password" required></label><p class="arcade-auth-message" role="status"></p><div class="arcade-auth-actions"><button value="login">Sign in</button><button value="register" class="secondary">Create account</button><button value="cancel" class="secondary" formnovalidate>Cancel</button></div></form>`;
@@ -177,7 +192,7 @@
     buildVersion.textContent = 'Build …';
     document.body.classList.add('arcade-has-topbar');
     document.body.prepend(topbar);
-    document.body.append(dialog, appearanceDialog, buildVersion);
+    document.body.append(dialog, appearanceDialog, ...(audioDialog ? [audioDialog] : []), buildVersion);
     let achievementDialog;
     const shareAchievement = async achievement => {
         const text = `${achievement.icon} Achievement unlocked: “${achievement.title}” in JavaScript Arcade — ${achievement.condition}`;

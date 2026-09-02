@@ -28,10 +28,10 @@ action/noise voices ──────> effects gain ┘
 ```
 
 Music, effects, and master gains use short ramps so preference changes do not
-click. Oscillators and generated noise buffers always receive a scheduled stop,
-disconnect after completion, and share a 32-voice ceiling. The compressor is a
-safety boundary for overlapping action cues, not a substitute for conservative
-voice gains.
+click. The normalized player levels feed calibrated pre-compressor bus gains,
+letting the top of each slider provide meaningful headroom without bypassing the
+shared dynamics safety boundary. Oscillators and generated noise buffers always
+receive a scheduled stop, disconnect after completion, and share a 32-voice ceiling.
 
 ## Event adapter and internal audio contract
 
@@ -51,12 +51,14 @@ change game state or return mechanics decisions.
 
 ## Sequencing and adaptation
 
-Each game owns an original scale, bass cycle, melody-index pattern, base tempo,
-and root pitch in the shared catalog. A 45 ms timer schedules roughly 160 ms
-ahead against `AudioContext.currentTime`, keeping note timing stable without an
-audio worklet. `intensity` adds melodic and pulse layers and may increase tempo by
-at most 10 BPM. `danger` adds a restrained high pulse; it never rewrites game
-timing.
+Each game owns an original scale, 32-step melody, accent rhythm, moving bass,
+chord progression, swing amount, base tempo, and root pitch in the shared
+catalog. A 45 ms timer schedules roughly 160 ms ahead against
+`AudioContext.currentTime`, keeping note timing stable without an audio worklet.
+The normal arrangement combines lead, bass, chord stabs, a synthesized kick, and
+filtered-noise offbeats. `intensity` increases melodic detail and may increase
+tempo by at most 10 BPM; `danger` introduces a restrained counter-line. Neither
+value rewrites game timing.
 
 Theme profiles change oscillator types, brightness, envelope shape, density, and
 gain. The active composition remains recognizable across themes. Theme changes
@@ -64,17 +66,20 @@ affect newly scheduled voices and do not require controllers to know theme names
 
 ## Lifecycle and preferences
 
-First-time defaults are master unmuted, music 35%, and effects 70%. The three
+First-time defaults are master unmuted, music 60%, and effects 80%. The three
 values use independent local-storage keys and synchronize through the browser
-`storage` event. The topbar exposes a quick master toggle; labelled sliders live
-in the shared appearance-and-sound dialog.
+`storage` event. The topbar Sound control opens a dedicated mixer with Quiet,
+Balanced, and Bold starting points, labelled percentage sliders, master mute,
+and an effects preview. The existing appearance-and-sound surface exposes the
+same underlying levels, so all controls remain synchronized.
 
 The scheduler runs only when the context is activated, the document is visible,
-no dialog is open, the master/music buses are audible, the game is not paused,
+no blocking dialog is open, the master/music buses are audible, the game is not paused,
 and the scene is `active`. Hiding the document suspends the context. Returning to
-the page resumes only a context that the player previously activated. Dialogs
-duck the master and stop background scheduling so account, achievement, sharing,
-and settings surfaces remain comfortable.
+the page resumes only a context that the player previously activated. Ordinary
+dialogs duck the master and stop background scheduling so account, achievement,
+sharing, and appearance surfaces remain comfortable. The sound mixer is exempt
+so the player can hear changes and preview effects while tuning the mix.
 
 ## Game integration and online deduplication
 

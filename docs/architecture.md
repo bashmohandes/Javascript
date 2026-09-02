@@ -76,11 +76,13 @@ before the shared shell. Game controllers publish gameplay facts and lifecycle
 state without referencing audio. The audio adapter subscribes to those facts,
 creates a Web Audio graph only after gameplay interaction, and synthesizes all
 music and effects without media assets. `arcade.js` owns the persistent master
-mute and music/effects levels. Experience themes select shared timbres;
-individual game scripts never branch on theme names. Hidden pages and open
+mute, discoverable sound presets, and independently persistent music/effects
+levels. Experience themes select shared timbres;
+individual game scripts never branch on theme names. Hidden pages and non-audio
 dialogs suspend background music, and online clients deduplicate transition
 events independently from authoritative state. See [ADR 0013](adr/0013-procedural-arcade-audio.md), the
-[audio design](audio-design.md), and the [player-facing audio guide](audio.md).
+[audio design](audio-design.md), the [player-facing audio guide](audio.md), and
+[ADR 0015](adr/0015-audible-sound-mixer.md) for the audible mixer exception.
 
 ## Browser event system
 

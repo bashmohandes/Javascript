@@ -11,15 +11,16 @@
     const pathGame = root.location?.pathname?.match(/\/(pong|Sudoku|Minesweeper|tictactoe|battle-tanks|tetris)\//)?.[1];
     const game = GAME_NAMES[pathGame] || null;
     const STORAGE = Object.freeze({ muted: 'arcade-audio-muted', music: 'arcade-music-volume', effects: 'arcade-effects-volume' });
-    const DEFAULTS = Object.freeze({ muted: false, music: .35, effects: .7 });
+    const DEFAULTS = Object.freeze({ muted: false, music: .6, effects: .8 });
+    const BUS_GAIN = Object.freeze({ music: 1.7, effects: 1.35 });
     const MAX_VOICES = 32;
     const TRACKS = Object.freeze({
-        sudoku: { bpm: 74, root: 48, scale: [0, 2, 4, 7, 9], melody: [0, 2, 4, 7, 4, 2, 9, 7, 4, 2, 0, 4, 7, 9, 7, 2], bass: [0, 0, 7, 7, 9, 9, 4, 4] },
-        minesweeper: { bpm: 92, root: 45, scale: [0, 3, 5, 7, 10], melody: [0, 2, 1, 3, 2, 4, 3, 1, 0, 3, 4, 2, 1, 4, 2, 3], bass: [0, 0, 5, 5, 3, 3, 7, 7] },
-        pong: { bpm: 118, root: 43, scale: [0, 2, 5, 7, 9], melody: [0, 3, 2, 4, 3, 1, 2, 4, 0, 2, 3, 1, 4, 2, 1, 3], bass: [0, 7, 5, 9, 0, 7, 5, 2] },
-        tictactoe: { bpm: 88, root: 50, scale: [0, 2, 3, 7, 9], melody: [0, null, 2, null, 4, 3, null, 1, 0, null, 3, null, 4, 2, null, 1], bass: [0, 0, 3, 3, 7, 7, 2, 2] },
-        battletanks: { bpm: 104, root: 38, scale: [0, 2, 3, 7, 8], melody: [0, 2, 3, 1, 4, 3, 2, 1, 0, 3, 4, 2, 1, 4, 3, 2], bass: [0, 0, 3, 3, 8, 8, 7, 7] },
-        tetris: { bpm: 112, root: 45, scale: [0, 2, 3, 5, 7, 8, 10], melody: [0, 2, 4, 3, 5, 4, 6, 2, 0, 3, 5, 1, 4, 6, 3, 2], bass: [0, 0, 5, 5, 3, 3, 7, 7] }
+        sudoku: { bpm: 88, root: 48, scale: [0,2,4,7,9], melody: [0,2,4,7,4,2,9,7,4,7,9,11,9,7,4,2,0,4,7,9,7,4,2,4,7,9,11,9,7,4,2,0], rhythm: [2,0,1,1,2,1,0,1,2,0,1,1,2,1,1,0], bass: [0,7,9,4,0,7,4,9], chords: [[0,4,7],[7,11,14],[9,12,16],[5,9,12]], swing: .08 },
+        minesweeper: { bpm: 108, root: 45, scale: [0,3,5,7,10], melody: [0,2,1,3,2,4,3,1,0,3,4,2,1,4,2,3,5,3,1,2,4,2,0,3,1,4,3,5,4,2,1,0], rhythm: [2,1,0,1,2,0,1,1,2,1,1,0,2,1,0,1], bass: [0,5,3,7,0,10,7,5], chords: [[0,3,7],[5,8,12],[3,7,10],[7,10,14]], swing: .14 },
+        pong: { bpm: 126, root: 43, scale: [0,2,5,7,9], melody: [0,3,2,4,3,1,2,4,5,3,1,4,2,5,4,2,0,2,3,5,4,2,1,3,5,4,2,3,1,4,2,0], rhythm: [2,1,1,0,2,1,0,1,2,1,1,1,2,0,1,1], bass: [0,7,5,9,0,7,5,2], chords: [[0,4,7],[7,11,14],[5,9,12],[9,12,16]], swing: .1 },
+        tictactoe: { bpm: 98, root: 50, scale: [0,2,3,7,9], melody: [0,null,2,3,4,3,null,1,0,2,3,null,4,5,2,1,0,2,null,4,3,1,2,4,5,3,1,null,4,2,1,0], rhythm: [2,0,1,1,2,1,0,1,2,1,1,0,2,1,0,1], bass: [0,3,7,2,0,9,7,3], chords: [[0,3,7],[3,7,10],[7,10,14],[2,5,9]], swing: .16 },
+        battletanks: { bpm: 114, root: 38, scale: [0,2,3,7,8], melody: [0,2,3,1,4,3,2,1,0,3,4,2,1,4,5,3,0,2,4,3,5,4,2,1,3,5,4,2,1,3,2,0], rhythm: [2,0,1,1,2,1,1,0,2,1,0,1,2,1,1,1], bass: [0,3,8,7,0,10,8,7], chords: [[0,3,7],[3,7,10],[8,12,15],[7,10,14]], swing: .06 },
+        tetris: { bpm: 124, root: 45, scale: [0,2,3,5,7,8,10], melody: [0,2,4,3,5,4,6,2,0,3,5,1,4,6,3,2,7,5,3,4,6,5,2,4,0,2,5,3,6,4,2,1], rhythm: [2,1,1,0,2,1,1,1,2,0,1,1,2,1,0,1], bass: [0,5,3,7,0,8,7,10], chords: [[0,3,7],[5,8,12],[3,7,10],[7,10,14]], swing: .04 }
     });
     const TIMBRES = Object.freeze({
         playful: { music: 'triangle', lead: 'sine', effects: 'triangle', attack: .008, release: .16, brightness: 2800, density: 1, gain: 1 },
@@ -49,6 +50,7 @@
 
     const currentTimbre = () => TIMBRES[theme] || TIMBRES.playful;
     const frequency = midi => 440 * Math.pow(2, (midi - 69) / 12);
+    const scaleMidi = (track, degree, baseOctave) => track.root + baseOctave + track.scale[degree % track.scale.length] + Math.floor(degree / track.scale.length) * 12;
     const safeParam = (param, value, time = context?.currentTime || 0) => {
         if (!param) return;
         if (typeof param.cancelScheduledValues === 'function') param.cancelScheduledValues(time);
@@ -75,11 +77,12 @@
         } catch { /* Preferences still apply for this page. */ }
     };
     const effectiveMaster = () => preferences.muted ? 0 : ducked ? .24 : 1;
+    const effectiveBus = key => preferences[key] * BUS_GAIN[key];
     const applyMix = () => {
         if (!context) return;
         rampParam(master.gain, effectiveMaster());
-        rampParam(musicBus.gain, preferences.music);
-        rampParam(effectsBus.gain, preferences.effects);
+        rampParam(musicBus.gain, effectiveBus('music'));
+        rampParam(effectsBus.gain, effectiveBus('effects'));
     };
     const makeNoiseBuffer = () => {
         const buffer = context.createBuffer(1, Math.max(1, Math.floor(context.sampleRate * .45)), context.sampleRate);
@@ -97,7 +100,7 @@
         if (compressor.knee) safeParam(compressor.knee, 16);
         if (compressor.ratio) safeParam(compressor.ratio, 8);
         musicBus.connect(compressor); effectsBus.connect(compressor); compressor.connect(master); master.connect(context.destination);
-        safeParam(master.gain, effectiveMaster()); safeParam(musicBus.gain, preferences.music); safeParam(effectsBus.gain, preferences.effects);
+        safeParam(master.gain, effectiveMaster()); safeParam(musicBus.gain, effectiveBus('music')); safeParam(effectsBus.gain, effectiveBus('effects'));
         noiseBuffer = makeNoiseBuffer();
         return true;
     };
@@ -137,7 +140,7 @@
         } else oscillator.connect(envelope);
         envelope.connect(bus); claimVoice(oscillator, isMusic, nodes); oscillator.start(start); oscillator.stop(start + duration + release + .03);
     };
-    const noise = ({ at, duration = .12, gain = .09, frequency: cutoff = 900, type = 'lowpass' }) => {
+    const noise = ({ at, duration = .12, gain = .09, frequency: cutoff = 900, type = 'lowpass', bus = effectsBus, isMusic = false }) => {
         if (!context || !noiseBuffer) return;
         const start = Math.max(context.currentTime, at ?? context.currentTime), source = context.createBufferSource(), envelope = context.createGain();
         source.buffer = noiseBuffer;
@@ -146,8 +149,8 @@
             const filterNode = context.createBiquadFilter(); filterNode.type = type; safeParam(filterNode.frequency, cutoff, start); source.connect(filterNode); filterNode.connect(envelope);
             nodes.push(filterNode);
         } else source.connect(envelope);
-        safeParam(envelope.gain, Math.max(.0001, gain), start); envelope.gain.exponentialRampToValueAtTime?.(.0001, start + duration); envelope.connect(effectsBus);
-        claimVoice(source, false, nodes); source.start(start); source.stop(start + duration + .02);
+        safeParam(envelope.gain, Math.max(.0001, gain), start); envelope.gain.exponentialRampToValueAtTime?.(.0001, start + duration); envelope.connect(bus);
+        claimVoice(source, isMusic, nodes); source.start(start); source.stop(start + duration + .02);
     };
     const sequence = (notes, { at = context?.currentTime || 0, gain = .075, type, gap = .015 } = {}) => {
         let cursor = at;
@@ -156,24 +159,34 @@
     const chord = (notes, options = {}) => notes.forEach((midi, index) => tone({ midi, detune: index ? (index % 2 ? 2 : -2) : 0, ...options }));
     const stopMusicVoices = () => [...musicVoices].forEach(stopVoice);
     const musicAllowed = () => activated && context?.state === 'running' && !preferences.muted && preferences.music > 0 && !paused && !hidden && !ducked && scene === 'active' && Boolean(TRACKS[game]);
-    const scheduleStep = (index, at) => {
+    const scheduleStep = (index, at, beat) => {
         const track = TRACKS[game], timbre = currentTimbre(), intensity = clamp(sceneDetail.intensity ?? .35), danger = clamp(sceneDetail.danger ?? 0);
         const degree = track.melody[index % track.melody.length];
-        if (degree !== null && (index % 2 === 0 || intensity > .42) && (timbre.density >= 1 || index % 4 === 0)) {
-            const midi = track.root + 12 + track.scale[degree % track.scale.length] + (degree >= track.scale.length ? 12 : 0);
-            tone({ midi, at, duration: .12 + (1 - intensity) * .12, gain: .028 + intensity * .018, type: timbre.lead, bus: musicBus, isMusic: true });
+        const rhythm = track.rhythm[index % track.rhythm.length];
+        if (degree !== null && rhythm > 0 && (rhythm > 1 || intensity > .28) && (timbre.density >= 1 || index % 4 === 0)) {
+            const midi = scaleMidi(track, degree, 12);
+            tone({ midi, at, duration: beat * (rhythm > 1 ? .82 : .52), gain: .04 + intensity * .022, type: timbre.lead, bus: musicBus, isMusic: true });
         }
-        if (index % 4 === 0) {
-            const bass = track.root + track.bass[Math.floor(index / 4) % track.bass.length];
-            tone({ midi: bass, at, duration: .28, gain: .032 + intensity * .018, bus: musicBus, isMusic: true });
+        if (index % 2 === 0) {
+            const bass = track.root + track.bass[Math.floor(index / 2) % track.bass.length];
+            tone({ midi: bass, at, duration: beat * 1.35, gain: .045 + intensity * .02, bus: musicBus, isMusic: true });
         }
-        if ((intensity > .55 || danger > .35) && index % 2 === 0) tone({ midi: track.root + 24 + (index % 4 ? 7 : 0), at, duration: .045, gain: .012 + danger * .014, type: 'sine', bus: musicBus, isMusic: true, filter: false });
+        if (index % 8 === 0) {
+            const notes = track.chords[Math.floor(index / 8) % track.chords.length].map(offset => track.root + 12 + offset);
+            chord(notes, { at, duration: beat * 2.8, gain: .016 + intensity * .008, type: timbre.music, bus: musicBus, isMusic: true });
+        }
+        if (timbre.density >= 1 && index % 2 === 1) noise({ at, duration: .035, gain: .012 + intensity * .006, frequency: 2600, type: 'highpass', bus: musicBus, isMusic: true });
+        if (index % 4 === 0) tone({ hz: 72, at, duration: .07, gain: .025 + intensity * .012, type: 'sine', bus: musicBus, isMusic: true, filter: false });
+        if ((intensity > .52 || danger > .35) && index % 4 === 2) {
+            const counterDegree = (degree ?? 0) + 2, counter = scaleMidi(track, counterDegree, 24);
+            tone({ midi: counter, at, duration: beat * .42, gain: .018 + danger * .012, type: 'sine', bus: musicBus, isMusic: true, filter: false });
+        }
     };
     const scheduleMusic = () => {
         if (!musicAllowed()) return;
         const track = TRACKS[game], intensity = clamp(sceneDetail.intensity ?? .35), beat = 60 / (track.bpm + intensity * 10) / 2;
         if (nextStepTime < context.currentTime - .2) nextStepTime = context.currentTime + .04;
-        while (nextStepTime < context.currentTime + .16) { scheduleStep(stepIndex, nextStepTime); stepIndex += 1; nextStepTime += beat; }
+        while (nextStepTime < context.currentTime + .16) { scheduleStep(stepIndex, nextStepTime + (stepIndex % 2 ? beat * track.swing : 0), beat); stepIndex += 1; nextStepTime += beat; }
     };
     const stopScheduler = () => { if (scheduler) root.clearInterval(scheduler); scheduler = null; stopMusicVoices(); };
     const updateScheduler = () => {
@@ -285,7 +298,7 @@
         applyMix(); updateScheduler(); emit();
     });
     if (root.MutationObserver) {
-        const observer = new root.MutationObserver(() => { const next = Boolean(doc.querySelector('dialog[open]')); if (next === ducked) return; ducked = next; applyMix(); updateScheduler(); });
+        const observer = new root.MutationObserver(() => { const next = Boolean(doc.querySelector('dialog[open]:not(.arcade-audio-dialog)')); if (next === ducked) return; ducked = next; applyMix(); updateScheduler(); });
         observer.observe(doc.documentElement, { attributes: true, subtree: true, attributeFilter: ['open'] });
     }
     return Object.freeze(api);
