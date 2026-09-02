@@ -35,7 +35,7 @@ class BattleTanksRooms {
         player.socket?.close(4001, 'Session resumed elsewhere'); Object.assign(player, { socket, connected: true, disconnectedAt: null });
         room.paused = !room.players.every(item => item?.connected); room.touchedAt = Date.now(); return { room, player };
     }
-    publicRooms() { return [...this.rooms.values()].filter(room => room.visibility === 'public' && !room.players[1]).sort((a, b) => b.createdAt - a.createdAt).map(room => ({ code: room.code, players: room.players.filter(item => item?.connected).length, host: room.players[0]?.gamertag || 'Guest', createdAt: room.createdAt })); }
+    publicRooms(limit = 50) { return [...this.rooms.values()].filter(room => room.visibility === 'public' && !room.players[1]).sort((a, b) => b.createdAt - a.createdAt).slice(0, limit).map(room => ({ code: room.code, players: room.players.filter(item => item?.connected).length, host: room.players[0]?.gamertag || 'Guest', createdAt: room.createdAt })); }
     start(room) {
         // The server alone chooses the arena seed. Client command payloads are
         // never consulted for terrain or barrier geometry.

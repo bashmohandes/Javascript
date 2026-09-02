@@ -146,6 +146,8 @@ PONG_PORT=8080
 ALLOWED_ORIGINS=https://js-playground.tail01f640.ts.net
 COOKIE_SECURE=true
 TRUST_PROXY=true
+WS_MAX_CONNECTIONS_PER_IP=20
+ROOM_MAX_PER_IP=5
 ```
 
 `TRUST_PROXY=true` is appropriate when the container is reachable only through
@@ -159,6 +161,16 @@ passcode hashing runs asynchronously so it does not block game simulation.
 Scores are derived by the server from validated result fields rather than
 accepted from the browser. Profile changes require the current passcode, revoke
 all existing sessions, and rotate the active session cookie.
+
+WebSockets default to 250 concurrent connections globally and 20 per client
+address. Each socket may send 300 messages per ten seconds; each address may
+create 10 rooms and attempt 60 joins per minute. Active rooms are capped at 200
+globally, 100 per game, and 5 per address, while public room responses return at
+most 50 entries. Override these with `WS_MAX_CONNECTIONS`,
+`WS_MAX_CONNECTIONS_PER_IP`, `WS_MESSAGES_PER_10S`,
+`WS_ROOM_CREATES_PER_MINUTE`, `WS_JOINS_PER_MINUTE`, `ROOM_MAX_TOTAL`,
+`ROOM_MAX_PER_GAME`, `ROOM_MAX_PER_IP`, and `PUBLIC_ROOM_LIMIT`. Proxy-level
+limits are still recommended for internet-facing deployments.
 
 Then deploy or update without cloning the source repository:
 

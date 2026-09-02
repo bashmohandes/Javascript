@@ -52,6 +52,7 @@ const formatDuration = seconds => {
 
 function setConnection(label, state = 'offline') { OnlineRooms.setConnection(connectionState, label, state); }
 function sendOnline(message) { if (online.socket?.readyState === WebSocket.OPEN) online.socket.send(JSON.stringify(message)); }
+const onlinePointerInput = OnlineRooms.createCoalescedSender(message => sendOnline(message), 50);
 function saveSession() { sessionStorage.setItem('pong-online-session', JSON.stringify({ roomCode: online.roomCode, token: online.token })); }
 function clearSession() { sessionStorage.removeItem('pong-online-session'); online.roomCode = ''; online.token = ''; }
 function showOnlineRoom(code) { onlineLobby.hidden = true; onlineRoom.hidden = false; document.querySelector('#room-code-display').textContent = code; }
@@ -129,6 +130,7 @@ function handleOnlineMessage(message) {
     else if (message.type === 'error') { status.textContent = message.message; setConnection('Error', 'offline'); }
 }
 function connectOnline(action) {
+    onlinePointerInput.clear();
     if (online.socket && online.socket.readyState < WebSocket.CLOSING) online.socket.close();
     online.intentionalClose = false; online.awaitingResumeState = action.type === 'resume'; setConnection('Connecting…', 'connecting');
     const scheme = location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -145,10 +147,10 @@ function connectOnline(action) {
     });
 }
 function leaveOnline(notify = true) {
-    clearTimeout(online.reconnectTimer); if (notify) sendOnline({ type: 'leave' }); online.intentionalClose = true; online.socket?.close(); clearSession(); onlineBallSample = null;
+    clearTimeout(online.reconnectTimer); onlinePointerInput.clear(); if (notify) sendOnline({ type: 'leave' }); online.intentionalClose = true; online.socket?.close(); clearSession(); onlineBallSample = null;
     onlineLobby.hidden = false; onlineRoom.hidden = true; resetColorControls(); setConnection('Offline'); refreshRooms(); const url = new URL(location.href); url.searchParams.delete('room'); history.replaceState(null, '', url);
 }
-function onlineInput() { sendOnline({ type: 'input', up: game.keys.has('KeyW') || game.keys.has('ArrowUp'), down: game.keys.has('KeyS') || game.keys.has('ArrowDown'), targetY: null }); }
+function onlineInput() { onlinePointerInput.clear(); sendOnline({ type: 'input', up: game.keys.has('KeyW') || game.keys.has('ArrowUp'), down: game.keys.has('KeyS') || game.keys.has('ArrowDown'), targetY: null }); }
 
 function makeBall(x = game.width / 2, y = game.height / 2, vx = 0, vy = 0, decoy = false) { return { x, y, r: 10, vx, vy, decoy, curveAcceleration: 0, curveTime: 0 }; }
 function resize() { const ratio = Math.min(window.devicePixelRatio || 1, 2); canvas.width = game.width * ratio; canvas.height = game.height * ratio; ctx.setTransform(ratio, 0, 0, ratio, 0, 0); draw(); }
@@ -231,7 +233,7 @@ function movePaddleToPointer(side, event) {
     const paddle = paddles[side];
     const rect = canvas.getBoundingClientRect();
     const pointerY = (event.clientY - rect.top) * game.height / rect.height;
-    if (game.mode === 'online') { sendOnline({ type: 'input', up: false, down: false, targetY: pointerY }); return; }
+    if (game.mode === 'online') { onlinePointerInput({ type: 'input', up: false, down: false, targetY: pointerY }); return; }
     paddle.y = Math.max(12, Math.min(game.height - paddle.h - 12, pointerY - paddle.h / 2));
 }
 canvas.addEventListener('pointerdown', event => {
@@ -254,7 +256,7 @@ canvas.addEventListener('pointermove', event => {
 });
 function releasePointer(event) {
     const side = [0, 1].find(index => game.pointerControls.get(index) === event.pointerId);
-    if (side !== undefined) game.pointerControls.delete(side);
+    if (side !== undefined) { game.pointerControls.delete(side); if (game.mode === 'online') onlinePointerInput.flush(); }
 }
 canvas.addEventListener('pointerup', releasePointer);
 canvas.addEventListener('pointercancel', releasePointer);

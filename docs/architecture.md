@@ -306,6 +306,8 @@ flowchart LR
 
 The server blocks private source/data paths, applies response security headers,
 checks HTTP/WebSocket origins, caps JSON and WebSocket payloads, and uses a
-heartbeat. Startup applies ordered SQL migrations transactionally. Graceful
+heartbeat. WebSocket admission also bounds connections, messages, lobby
+actions, active rooms, and public listings before unauthenticated work can grow
+without limit. Startup applies ordered SQL migrations transactionally. Graceful
 shutdown closes sockets and SQLite. See the [decision index](adr/README.md) for
 the trade-offs behind these boundaries.

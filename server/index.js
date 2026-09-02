@@ -10,7 +10,7 @@ const { BattleTanksRooms } = require('./battle-tanks-rooms');
 const { openDatabase } = require('./database');
 const { Accounts } = require('./accounts');
 const { Achievements } = require('./achievements');
-const { clientIp: getClientIp, isPrivatePath, originAllowed, parseCookies } = require('./http-security');
+const { clientIp: getClientIp, isPrivatePath, originAllowed, parseCookies, RateLimiter, WebSocketGuard } = require('./http-security');
 const { generateIcons } = require('../scripts/generate-icons');
 
 const root = path.resolve(__dirname, '..');
@@ -30,6 +30,19 @@ const rooms = new RoomManager({
 });
 const ticRooms = new TicTacToeRooms({ reconnectMs: Number(process.env.RECONNECT_GRACE_MS) || 15000, roomTimeoutMs: Number(process.env.ROOM_TIMEOUT_MS) || 1800000, recordResult: trustedResult });
 const tankRooms = new BattleTanksRooms({ reconnectMs: Number(process.env.RECONNECT_GRACE_MS) || 15000, roomTimeoutMs: Number(process.env.ROOM_TIMEOUT_MS) || 1800000, recordResult: trustedResult });
+const positiveInteger = (value, fallback) => Number.isSafeInteger(Number(value)) && Number(value) > 0 ? Number(value) : fallback;
+const websocketGuard = new WebSocketGuard({
+    maxConnections: positiveInteger(process.env.WS_MAX_CONNECTIONS, 250),
+    maxConnectionsPerIp: positiveInteger(process.env.WS_MAX_CONNECTIONS_PER_IP, 20),
+    messagesPerWindow: positiveInteger(process.env.WS_MESSAGES_PER_10S, 300),
+    createsPerWindow: positiveInteger(process.env.WS_ROOM_CREATES_PER_MINUTE, 10),
+    joinsPerWindow: positiveInteger(process.env.WS_JOINS_PER_MINUTE, 60),
+    maxRooms: positiveInteger(process.env.ROOM_MAX_TOTAL, 200),
+    maxRoomsPerGame: positiveInteger(process.env.ROOM_MAX_PER_GAME, 100),
+    maxRoomsPerIp: positiveInteger(process.env.ROOM_MAX_PER_IP, 5)
+});
+const roomManagers = [rooms, ticRooms, tankRooms];
+const publicRoomLimit = positiveInteger(process.env.PUBLIC_ROOM_LIMIT, 50);
 const mime = {
     '.html': 'text/html; charset=utf-8',
     '.js': 'text/javascript; charset=utf-8',
@@ -48,21 +61,6 @@ function json(response, status, body, headers = {}) {
 function cookies(request) { return parseCookies(request.headers.cookie); }
 function sessionUser(request) { return accounts.userForToken(cookies(request).arcade_session); }
 function sessionCookie(token, expiresAt) { return `arcade_session=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Strict; Expires=${new Date(expiresAt).toUTCString()}${process.env.COOKIE_SECURE === 'true' ? '; Secure' : ''}`; }
-class RateLimiter {
-    constructor(limit, windowMs) { this.limit = limit; this.windowMs = windowMs; this.entries = new Map(); }
-    consume(key) {
-        const now = Date.now();
-        if (this.entries.size > 10000) {
-            for (const [entryKey, value] of this.entries) if (value.resetAt <= now) this.entries.delete(entryKey);
-            while (this.entries.size > 10000) this.entries.delete(this.entries.keys().next().value);
-        }
-        let entry = this.entries.get(key);
-        if (!entry || entry.resetAt <= now) entry = { count: 0, resetAt: now + this.windowMs };
-        entry.count += 1; this.entries.set(key, entry);
-        return entry.count <= this.limit ? 0 : Math.ceil((entry.resetAt - now) / 1000);
-    }
-    reset(key) { this.entries.delete(key); }
-}
 const loginLimiter = new RateLimiter(10, 15 * 60 * 1000);
 const loginIpLimiter = new RateLimiter(50, 15 * 60 * 1000);
 const registrationLimiter = new RateLimiter(5, 60 * 60 * 1000);
@@ -94,11 +92,11 @@ const server = http.createServer(async (request, response) => {
     if (pathname === '/api/version' && request.method === 'GET') return json(response, 200, { version: buildVersion });
     if (pathname === '/api/rooms' && request.method === 'GET') {
         response.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
-        response.end(JSON.stringify({ rooms: rooms.publicRooms() }));
+        response.end(JSON.stringify({ rooms: rooms.publicRooms(publicRoomLimit) }));
         return;
     }
-    if (pathname === '/api/tictactoe/rooms' && request.method === 'GET') return json(response, 200, { rooms: ticRooms.publicRooms() });
-    if (pathname === '/api/battle-tanks/rooms' && request.method === 'GET') return json(response, 200, { rooms: tankRooms.publicRooms() });
+    if (pathname === '/api/tictactoe/rooms' && request.method === 'GET') return json(response, 200, { rooms: ticRooms.publicRooms(publicRoomLimit) });
+    if (pathname === '/api/battle-tanks/rooms' && request.method === 'GET') return json(response, 200, { rooms: tankRooms.publicRooms(publicRoomLimit) });
     const achievementList = pathname.match(/^\/api\/achievements\/(pong|sudoku|minesweeper|tictactoe|battletanks|tetris)$/);
     if (achievementList && request.method === 'GET') return json(response, 200, { game: achievementList[1], achievements: achievements.list(sessionUser(request)?.id, achievementList[1]) });
     if (pathname.startsWith('/api/')) {
@@ -159,17 +157,50 @@ const server = http.createServer(async (request, response) => {
 });
 
 const websocketServer = new WebSocketServer({ noServer: true, maxPayload: 4096 });
+function rejectUpgrade(socket, status, message) {
+    const body = `${message}\n`;
+    socket.write(`HTTP/1.1 ${status} ${status === 429 ? 'Too Many Requests' : 'Service Unavailable'}\r\nConnection: close\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Length: ${Buffer.byteLength(body)}\r\n\r\n${body}`);
+    socket.destroy();
+}
 server.on('upgrade', (request, socket, head) => {
     let pathname;
     try { pathname = new URL(request.url, 'http://localhost').pathname; } catch { pathname = ''; }
     if (!['/ws', '/ws/tictactoe', '/ws/battle-tanks'].includes(pathname) || !sameOrigin(request, true)) {
         socket.write('HTTP/1.1 403 Forbidden\r\n\r\n'); socket.destroy(); return;
     }
-    websocketServer.handleUpgrade(request, socket, head, client => websocketServer.emit('connection', client, request));
+    const ip = clientIp(request), admission = websocketGuard.reserve(ip);
+    if (!admission.ok) { rejectUpgrade(socket, admission.status, admission.message); return; }
+    websocketGuard.attach(socket, ip);
+    try {
+        websocketServer.handleUpgrade(request, socket, head, client => {
+            websocketGuard.identify(client, ip);
+            websocketServer.emit('connection', client, request);
+        });
+    } catch (error) {
+        socket.destroy();
+    }
 });
 
 function send(socket, message) { if (socket.readyState === 1) socket.send(JSON.stringify(message)); }
 function credentials(room, player) { return { type: 'session', roomCode: room.code, playerId: player.id, playerToken: player.token, side: player.side, gamertags: room.players.map(candidate => candidate?.gamertag || null) }; }
+function createRoom(socket, manager, callback) {
+    const allowed = websocketGuard.checkCreate(socket, roomManagers, manager);
+    if (!allowed.ok) throw new Error(allowed.message);
+    const membership = callback();
+    websocketGuard.ownRoom(socket, membership.room);
+    return membership;
+}
+function joinRoom(socket, callback) {
+    const allowed = websocketGuard.checkJoin(socket);
+    if (!allowed.ok) throw new Error(allowed.message);
+    return callback();
+}
+function acceptMessage(socket) {
+    if (websocketGuard.allowMessage(socket)) return true;
+    send(socket, { type: 'error', message: 'Message rate limit exceeded.' });
+    socket.close(1008, 'Message rate limit exceeded.');
+    return false;
+}
 
 websocketServer.on('connection', (socket, request) => {
     // Every websocket shares the same heartbeat. Tic-tac-toe used to return
@@ -182,12 +213,13 @@ websocketServer.on('connection', (socket, request) => {
     let membership = null;
     const user = sessionUser(request), gamertag = user?.gamertag || '';
     socket.on('message', raw => {
+        if (!acceptMessage(socket)) return;
         let message;
         try { message = JSON.parse(raw.toString()); } catch { send(socket, { type: 'error', message: 'Invalid message.' }); return; }
         try {
             if (membership && membership.player.socket !== socket) throw new Error('This connection has been replaced by a newer session.');
-            if (!membership && message.type === 'create-room') membership = rooms.create(socket, { visibility: message.visibility, passcode: message.passcode, user });
-            else if (!membership && message.type === 'join-room') membership = rooms.join(message.roomCode, socket, message.passcode, gamertag, user);
+            if (!membership && message.type === 'create-room') membership = createRoom(socket, rooms, () => rooms.create(socket, { visibility: message.visibility, passcode: message.passcode, user }));
+            else if (!membership && message.type === 'join-room') membership = joinRoom(socket, () => rooms.join(message.roomCode, socket, message.passcode, gamertag, user));
             else if (!membership && message.type === 'resume') membership = rooms.resume(message.roomCode, message.playerToken, socket);
             else if (!membership) throw new Error('Create or join a room first.');
             else if (message.type === 'ready' || message.type === 'rematch') {
@@ -223,10 +255,11 @@ function handleTicSocket(socket, request) {
     let membership = null; const user = sessionUser(request), gamertag = user?.gamertag || '';
     const publish = () => membership && ticRooms.broadcast(membership.room, { type: 'state', state: ticRooms.state(membership.room) });
     socket.on('message', raw => {
+        if (!acceptMessage(socket)) return;
         try {
             const message = JSON.parse(raw.toString());
-            if (!membership && message.type === 'create-room') membership = ticRooms.create(socket, { ...message, user });
-            else if (!membership && message.type === 'join-room') membership = ticRooms.join(message.roomCode, socket, message.passcode, gamertag, user);
+            if (!membership && message.type === 'create-room') membership = createRoom(socket, ticRooms, () => ticRooms.create(socket, { ...message, user }));
+            else if (!membership && message.type === 'join-room') membership = joinRoom(socket, () => ticRooms.join(message.roomCode, socket, message.passcode, gamertag, user));
             else if (!membership && message.type === 'resume') membership = ticRooms.resume(message.roomCode, message.playerToken, socket);
             else if (!membership) throw new Error('Create or join a room first.');
             else if (message.type === 'ready') ticRooms.ready(membership.room, membership.player);
@@ -246,12 +279,13 @@ function handleTankSocket(socket, request) {
     let membership = null; const user = sessionUser(request);
     const publish = () => membership && tankRooms.broadcastState(membership.room);
     socket.on('message', raw => {
+        if (!acceptMessage(socket)) return;
         try {
             const message = JSON.parse(raw.toString());
             if (!message || typeof message !== 'object' || Array.isArray(message)) throw new Error('Invalid message.');
             if (membership && membership.player.socket !== socket) throw new Error('This connection has been replaced by a newer session.');
-            if (!membership && message.type === 'create-room') membership = tankRooms.create(socket, { ...message, user });
-            else if (!membership && message.type === 'join-room') membership = tankRooms.join(message.roomCode, socket, message.passcode, user);
+            if (!membership && message.type === 'create-room') membership = createRoom(socket, tankRooms, () => tankRooms.create(socket, { ...message, user }));
+            else if (!membership && message.type === 'join-room') membership = joinRoom(socket, () => tankRooms.join(message.roomCode, socket, message.passcode, user));
             else if (!membership && message.type === 'resume') membership = tankRooms.resume(message.roomCode, message.playerToken, socket);
             else if (!membership) throw new Error('Create or join a room first.');
             else if (message.type === 'ready') tankRooms.ready(membership.room, membership.player);

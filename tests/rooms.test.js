@@ -39,6 +39,12 @@ test('lists only open public rooms without exposing private rooms', () => {
     assert.deepEqual(rooms.publicRooms(), []);
 });
 
+test('bounds public room listings', () => {
+    const rooms = new RoomManager();
+    for (let index = 0; index < 4; index += 1) rooms.create(socket(), { visibility: 'public' });
+    assert.equal(rooms.publicRooms(2).length, 2);
+});
+
 test('requires a valid passcode when creating private rooms', () => {
     const rooms = new RoomManager();
     assert.throws(() => rooms.create(socket()), /4.*32 characters/);

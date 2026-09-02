@@ -49,10 +49,11 @@ class RoomManager {
         return { room, player };
     }
 
-    publicRooms() {
+    publicRooms(limit = 50) {
         return Array.from(this.rooms.values())
             .filter(room => room.visibility === 'public' && !room.players[1])
             .sort((left, right) => right.createdAt - left.createdAt)
+            .slice(0, limit)
             .map(room => ({ code: room.code, players: room.players.filter(player => player?.connected).length, createdAt: room.createdAt }));
     }
 
