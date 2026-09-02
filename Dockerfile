@@ -11,7 +11,12 @@ LABEL org.opencontainers.image.version=${BUILD_VERSION}
 WORKDIR /app
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
-RUN npm run generate:icons && mkdir -p /app/data && chown -R node:node /app
+RUN apk add --no-cache --upgrade libcrypto3=3.5.8-r0 libssl3=3.5.8-r0 \
+    && node scripts/generate-icons.js \
+    && mkdir -p /app/data \
+    && rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack /opt/yarn-v* \
+        /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack /usr/local/bin/yarn /usr/local/bin/yarnpkg \
+    && chown -R node:node /app
 USER node
 VOLUME ["/app/data"]
 EXPOSE 8080
