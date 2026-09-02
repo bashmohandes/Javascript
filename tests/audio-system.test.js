@@ -81,6 +81,17 @@ test('audio graph stays lazy until a gameplay cue activates it', async () => {
     assert.ok(FakeAudioContext.instances[0].oscillators.length >= 1);
 });
 
+test('the active music scene schedules melody, moving bass, harmony, and a beat layer', async () => {
+    FakeAudioContext.instances.length = 0;
+    const { env } = environment();
+    const audio = createArcadeAudio(env);
+    audio.setScene('active', { intensity: .5 });
+    await audio.activate();
+    const context = FakeAudioContext.instances[0];
+    assert.ok(context.oscillators.length >= 6, 'the first downbeat should layer lead, bass, chord, and kick voices');
+    assert.ok(new Set(context.oscillators.map(source => source.frequency.value)).size >= 5, 'the arrangement should contain distinct harmonic voices');
+});
+
 test('domain events drive audio without exposing audio to game controllers', async () => {
     FakeAudioContext.instances.length = 0;
     const { env } = environment();
@@ -142,11 +153,15 @@ test('audio preferences clamp, persist, mute, and reset independently', async ()
     await audio.activate();
     audio.setMusicVolume(4); audio.setEffectsVolume(-2); audio.setMuted(true);
     assert.deepEqual(audio.preferences(), { muted: true, music: 1, effects: 0, available: true, activated: true });
+    assert.equal(FakeAudioContext.instances[0].gains[1].gain.value, 1.7, 'the music control should reach the boosted bus ceiling');
+    assert.equal(FakeAudioContext.instances[0].gains[2].gain.value, 0);
     assert.equal(storage.get('arcade-audio-muted'), 'true');
     assert.equal(storage.get('arcade-music-volume'), '1');
     assert.equal(storage.get('arcade-effects-volume'), '0');
     audio.reset();
-    assert.deepEqual(audio.preferences(), { muted: false, music: .35, effects: .7, available: true, activated: true });
+    assert.deepEqual(audio.preferences(), { muted: false, music: .6, effects: .8, available: true, activated: true });
+    assert.equal(FakeAudioContext.instances[0].gains[1].gain.value, 1.02);
+    assert.equal(FakeAudioContext.instances[0].gains[2].gain.value, 1.08);
 });
 
 test('pausing is transition-based and hidden documents suspend an activated context', async () => {
@@ -186,6 +201,10 @@ test('all modern games load shared audio behind the event adapter', () => {
 
 test('shared controls, provenance, ADR, and design boundaries are documented', () => {
     assert.match(read('arcade.js'), /arcade-audio-button/);
+    assert.match(read('arcade.js'), /Sound mixer/);
+    assert.match(read('arcade.js'), /data-audio-preset/);
+    assert.match(read('arcade.js'), /data-audio-output="music"/);
+    assert.match(read('arcade.js'), /data-audio-preview/);
     assert.match(read('arcade.js'), /data-audio-volume="music"/);
     assert.match(read('arcade.js'), /data-audio-volume="effects"/);
     assert.match(read('arcade.css'), /arcade-audio-levels/);

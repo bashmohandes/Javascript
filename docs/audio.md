@@ -7,9 +7,10 @@ be muted or mixed from the shared arcade controls.
 
 ## Musical approach
 
-Normal gameplay uses original procedural note patterns written for this arcade.
-Each game keeps one compositional identity while the shared experience theme
-changes its timbre:
+Normal gameplay uses original procedural arrangements written for this arcade.
+Each game combines a longer lead phrase with moving bass, chord changes, subtle
+swing, and synthesized percussion while the shared experience theme changes its
+timbre:
 
 - **Playful** uses rounded plucks, bells, and warm triangle voices.
 - **Cabinet** uses compact pulse and sawtooth voices.
@@ -35,9 +36,14 @@ score, and be reviewed independently from any modern recording or arrangement.
 
 ## Player behavior
 
-- Music and effects default to 35% and 70%, respectively.
+- The topbar **Sound** button opens a mixer with Quiet, Balanced, and Bold
+  starting points, separate percentage sliders, master mute, and an effects
+  preview.
+- Music and effects default to 60% and 80%, respectively, with extra calibrated
+  headroom available at the top of each slider.
 - Master mute and both levels persist across modern games and browser tabs.
-- Music pauses in hidden tabs and while a dialog is open.
+- Music pauses in hidden tabs and while non-audio dialogs are open; the sound
+  mixer remains audible so changes can be judged immediately.
 - A browser without Web Audio remains silent and exposes disabled controls.
 - The system reduced-motion preference does not mute audio; sound has its own
   explicit controls.
