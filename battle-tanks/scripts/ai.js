@@ -15,6 +15,9 @@
     };
     const availableWeapons = (state, side) => Object.values(core.WEAPON_REGISTRY).filter(weapon => weapon.ammo.unlimited || state.weaponAmmo?.[side]?.[weapon.id] > 0);
     const decisionRandom = (state, salt) => core.seededRandom(((state.arena?.seed || 0) ^ Math.imul((state.shots || 0) + 1, salt)) >>> 0);
+    const COARSE_ANGLES = [12, 20, 28, 36, 44, 52, 60, 68, 76, 80];
+    const COARSE_POWERS = [20, 30, 40, 50, 60, 70, 80, 90, 100];
+    const REFINEMENT_LIMIT = 12;
 
     function planMove(state, side = 1) {
         if (!state || state.phase !== 'aiming' || state.activePlayer !== side) return null;
@@ -37,21 +40,38 @@
         return { angle, power, weaponId, targetDamage, selfDamage, distance, score: targetDamage * 120 - selfDamage * 150 - Math.min(distance, 2000) };
     }
 
+    function candidatePool(candidates, intendsHit) {
+        const safe = candidates.filter(candidate => candidate.selfDamage === 0);
+        const partialHits = safe.filter(candidate => candidate.targetDamage >= 15 && candidate.targetDamage <= 38).sort((a,b) => Math.abs(a.targetDamage - 28) - Math.abs(b.targetDamage - 28) || a.distance - b.distance);
+        const allHits = safe.filter(candidate => candidate.targetDamage > 0).sort((a,b) => Math.abs(a.targetDamage - 28) - Math.abs(b.targetDamage - 28) || a.distance - b.distance);
+        const nearMisses = safe.filter(candidate => candidate.targetDamage === 0 && candidate.distance >= 70 && candidate.distance <= 280).sort((a,b) => Math.abs(a.distance - 155) - Math.abs(b.distance - 155));
+        const allMisses = safe.filter(candidate => candidate.targetDamage === 0).sort((a,b) => a.distance - b.distance);
+        const pool = intendsHit ? (partialHits.length ? partialHits : allHits) : (nearMisses.length ? nearMisses : allMisses);
+        return pool.length ? pool : safe.length ? safe : candidates;
+    }
+
     function planShot(state, side = 1) {
         if (!state || state.phase !== 'aiming' || state.activePlayer !== side) return null;
-        const candidates = [];
+        // First sample a deliberately small grid, then refine only the most
+        // promising neighborhoods. This keeps the deterministic, mechanics-
+        // accurate planner while bounding synchronous work on the UI thread.
+        const random = decisionRandom(state, 0x9e3779b1), intendsHit = random() < .55, candidates = [], sampled = new Set();
+        const sample = (weaponId, angle, power) => {
+            const boundedAngle = Math.max(10, Math.min(80, Math.round(angle))), boundedPower = Math.max(20, Math.min(100, Math.round(power))), key = `${weaponId}:${boundedAngle}:${boundedPower}`;
+            if (sampled.has(key)) return;
+            sampled.add(key);
+            const candidate = simulateShot(state, side, weaponId, boundedAngle, boundedPower);
+            if (candidate) candidates.push(candidate);
+        };
         for (const weapon of availableWeapons(state, side)) {
-            for (let angle = 12; angle <= 80; angle += 4) for (let power = 20; power <= 100; power += 5) {
-                const candidate = simulateShot(state, side, weapon.id, angle, power);
-                if (candidate) candidates.push(candidate);
-            }
+            for (const angle of COARSE_ANGLES) for (const power of COARSE_POWERS) sample(weapon.id, angle, power);
         }
         if (!candidates.length) return { angle: 45, power: 60, weaponId: 'shell', targetDamage: 0, selfDamage: 0, distance: Infinity, score: -Infinity, intent: 'miss' };
+        const seeds = candidatePool(candidates, intendsHit).slice(0, REFINEMENT_LIMIT);
+        for (const seed of seeds) for (const angleOffset of [-4, 0, 4]) for (const powerOffset of [-5, 0, 5]) sample(seed.weaponId, seed.angle + angleOffset, seed.power + powerOffset);
         // The normal CPU is intentionally fallible. A match-seeded choice keeps
         // replays deterministic while alternating credible grazes and near misses.
-        const random = decisionRandom(state, 0x9e3779b1), intendsHit = random() < .55;
-        const safe = candidates.filter(candidate => candidate.selfDamage === 0), partialHits = safe.filter(candidate => candidate.targetDamage >= 15 && candidate.targetDamage <= 38).sort((a,b) => Math.abs(a.targetDamage - 28) - Math.abs(b.targetDamage - 28) || a.distance - b.distance), allHits = safe.filter(candidate => candidate.targetDamage > 0).sort((a,b) => Math.abs(a.targetDamage - 28) - Math.abs(b.targetDamage - 28) || a.distance - b.distance), nearMisses = safe.filter(candidate => candidate.targetDamage === 0 && candidate.distance >= 70 && candidate.distance <= 280).sort((a,b) => Math.abs(a.distance - 155) - Math.abs(b.distance - 155)), allMisses = safe.filter(candidate => candidate.targetDamage === 0).sort((a,b) => a.distance - b.distance);
-        const pool = intendsHit ? (partialHits.length ? partialHits : allHits) : (nearMisses.length ? nearMisses : allMisses), fallback = safe.length ? safe : candidates, choices = (pool.length ? pool : fallback).slice(0,18), selected = choices[Math.floor(random() * choices.length)];
+        const choices = candidatePool(candidates, intendsHit).slice(0,18), selected = choices[Math.floor(random() * choices.length)];
         return { ...selected, intent: intendsHit && selected.targetDamage > 0 ? 'hit' : 'miss' };
     }
 

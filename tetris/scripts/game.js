@@ -173,10 +173,12 @@
         }
         gravityMs() { return this.isMagic() ? 240 : Math.max(50, 1000 * Math.pow(.85, this.level - 1)); }
         update(milliseconds) {
-            if (this.gameOver || this.paused || this.shakeReady || !Number.isFinite(milliseconds) || milliseconds <= 0) return;
+            if (this.gameOver || this.paused || this.shakeReady || !Number.isFinite(milliseconds) || milliseconds <= 0) return false;
+            let changed = false;
             this.gravityElapsed += milliseconds;
-            while (this.gravityElapsed >= this.gravityMs() && !this.gameOver) { this.gravityElapsed -= this.gravityMs(); if (!this.move(0, 1)) break; }
-            if (this.grounded()) { this.lockElapsed += milliseconds; if (this.lockElapsed >= 500) this.lock(); } else this.lockElapsed = 0;
+            while (this.gravityElapsed >= this.gravityMs() && !this.gameOver) { this.gravityElapsed -= this.gravityMs(); if (!this.move(0, 1)) break; changed = true; }
+            if (this.grounded()) { this.lockElapsed += milliseconds; if (this.lockElapsed >= 500) { this.lock(); changed = true; } } else this.lockElapsed = 0;
+            return changed;
         }
         visibleBoard() { return this.board.slice(HIDDEN_ROWS).map(row => row.slice()); }
         activeCells() { return cellsFor(this.piece).map(([x, y]) => [x, y - HIDDEN_ROWS]); }

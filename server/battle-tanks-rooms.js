@@ -13,7 +13,7 @@ class BattleTanksRooms {
         this.rooms = new Map();
     }
     makeCode() { let code; do { code = Array.from({ length: 5 }, () => ALPHABET[Math.floor(this.random() * ALPHABET.length)]).join(''); } while (this.rooms.has(code)); return code; }
-    makePlayer(socket, side, user) { return { token: token(), socket, side, userId: user?.id || null, gamertag: user?.gamertag || '', connected: true, ready: false, disconnectedAt: null, commands: [] }; }
+    makePlayer(socket, side, user) { return { token: token(), socket, side, userId: user?.id || null, gamertag: user?.gamertag || '', connected: true, ready: false, disconnectedAt: null, commands: [], arenaVersion: null }; }
     create(socket, { visibility = 'private', passcode = '', user = null } = {}) {
         const isPublic = visibility === 'public', secret = cleanPasscode(passcode);
         if (!isPublic && (secret.length < 4 || secret.length > 32)) throw new Error('Private room passcodes must be 4–32 characters.');
@@ -32,7 +32,7 @@ class BattleTanksRooms {
     resume(code, playerToken, socket) {
         const room = this.rooms.get(String(code || '').toUpperCase()), player = room?.players.find(item => item?.token === playerToken);
         if (!player) throw new Error('This game session is no longer available.');
-        player.socket?.close(4001, 'Session resumed elsewhere'); Object.assign(player, { socket, connected: true, disconnectedAt: null });
+        player.socket?.close(4001, 'Session resumed elsewhere'); Object.assign(player, { socket, connected: true, disconnectedAt: null, arenaVersion: null });
         room.paused = !room.players.every(item => item?.connected); room.touchedAt = Date.now(); return { room, player };
     }
     publicRooms(limit = 50) { return [...this.rooms.values()].filter(room => room.visibility === 'public' && !room.players[1]).sort((a, b) => b.createdAt - a.createdAt).slice(0, limit).map(room => ({ code: room.code, players: room.players.filter(item => item?.connected).length, host: room.players[0]?.gamertag || 'Guest', createdAt: room.createdAt })); }
@@ -40,7 +40,7 @@ class BattleTanksRooms {
         // The server alone chooses the arena seed. Client command payloads are
         // never consulted for terrain or barrier geometry.
         const arenaSeed = Math.floor(this.random() * 0x100000000) >>> 0;
-        game.resetMatch(room.game, arenaSeed); room.matchId += 1; room.turnId = 1; room.recorded = false; room.paused = false;
+        game.resetMatch(room.game, arenaSeed); room.matchId += 1; room.turnId = 1; room.recorded = false; room.paused = false; room.players.forEach(player => { if (player) player.arenaVersion = null; });
         room.stats = [0, 1].map(() => ({ shots: 0, hits: 0, damageTaken: 0, powerUpsAcquired: 0, powerUpsUsed: 0, powerUpTypesUsed: [], shieldDamageAbsorbed: 0, healthRestored: 0, invisibilityActivations: 0, laserRicochetHits: 0, laserSelfDamage: 0, homingHits: 0, heavyProjectileMaxDamage: 0, poweredHits: 0 })); room.startedAt = Date.now();
     }
     ready(room, player) {
@@ -105,12 +105,11 @@ class BattleTanksRooms {
         this.syncPowerStatistics(room); room.touchedAt = Date.now();
         const acquisitions = (room.game.acquisitionEvents || []).filter(event => event.eventId > previousAcquisitionId);
         acquisitions.forEach(event => this.broadcast(room, { type: 'power-up-acquired', matchId: room.matchId, event }));
-        if (acquisitions.length) this.broadcastState(room);
         return changed;
     }
     color(room, player, color) { if (!/^#[0-9a-f]{6}$/i.test(color)) throw new Error('Invalid color.'); room.colors[player.side] = color; room.touchedAt = Date.now(); }
-    stateFor(room, viewerSide) {
-        const state = { ...game.snapshot(room.game), colors: [...room.colors], matchId: room.matchId, turnId: room.turnId, paused: room.paused, startedAt: room.startedAt || null };
+    stateFor(room, viewerSide, { includeArena = true } = {}) {
+        const state = { ...game.snapshot(room.game, { includeArena }), colors: [...room.colors], matchId: room.matchId, turnId: room.turnId, paused: room.paused, startedAt: room.startedAt || null };
         if (room.paused) state.announcement = 'Match paused while a player reconnects.';
         const opponent = 1 - viewerSide;
         const concealed = state.phase !== 'game-over' && (room.game.activeEffects?.[opponent] || []).some(effect => effect.effect === 'invisible' && effect.remainingTurns > 0);
@@ -163,7 +162,7 @@ class BattleTanksRooms {
     }
     disconnect(room, player, socket = player.socket) { if (player.socket !== socket) return false; Object.assign(player, { connected: false, socket: null, disconnectedAt: Date.now() }); room.paused = room.game.phase !== 'setup' && room.game.phase !== 'game-over'; room.touchedAt = Date.now(); return true; }
     broadcast(room, message) { const body = JSON.stringify(message); room.players.forEach(item => { if (item?.socket?.readyState === 1) item.socket.send(body); }); }
-    broadcastState(room) { room.players.forEach((item, side) => { if (item?.socket?.readyState === 1) item.socket.send(JSON.stringify({ type: 'state', state: this.stateFor(room, side) })); }); }
+    broadcastState(room, { forceArena = false } = {}) { const arenaVersion = `${room.matchId}:${room.game.impactSerial || 0}`; room.players.forEach((item, side) => { if (item?.socket?.readyState !== 1) return; const includeArena = forceArena || item.arenaVersion !== arenaVersion; item.socket.send(JSON.stringify({ type: 'state', state: this.stateFor(room, side, { includeArena }) })); item.arenaVersion = arenaVersion; }); }
     broadcastStates(now = Date.now()) { for (const room of this.rooms.values()) if (room.game.phase === 'projectile-flight' && now - room.lastBroadcast >= 40) { room.lastBroadcast = now; this.broadcastState(room); } }
 }
 

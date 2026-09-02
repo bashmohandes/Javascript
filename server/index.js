@@ -1,7 +1,6 @@
 'use strict';
 
 const http = require('node:http');
-const fs = require('node:fs');
 const path = require('node:path');
 const { WebSocketServer } = require('ws');
 const { RoomManager } = require('./rooms');
@@ -11,6 +10,7 @@ const { openDatabase } = require('./database');
 const { Accounts } = require('./accounts');
 const { Achievements } = require('./achievements');
 const { clientIp: getClientIp, contentSecurityPolicy, isPrivatePath, originAllowed, parseCookies, RateLimiter, useSecureCookies, WebSocketGuard } = require('./http-security');
+const { createStaticAssetHandler } = require('./static-assets');
 const { generateIcons } = require('../scripts/generate-icons');
 
 const root = path.resolve(__dirname, '..');
@@ -53,6 +53,7 @@ const mime = {
     '.webmanifest': 'application/manifest+json; charset=utf-8',
     '.json': 'application/json; charset=utf-8'
 };
+const serveStaticAsset = createStaticAssetHandler({ root, mime, contentSecurityPolicy });
 
 function json(response, status, body, headers = {}) {
     response.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...headers });
@@ -146,18 +147,7 @@ const server = http.createServer(async (request, response) => {
         response.writeHead(404).end('Not found');
         return;
     }
-    let filePath = path.resolve(root, `.${pathname}`);
-    if (!filePath.startsWith(root + path.sep) && filePath !== root) { response.writeHead(403).end('Forbidden'); return; }
-    try {
-        if (fs.statSync(filePath).isDirectory()) filePath = path.join(filePath, 'index.html');
-    } catch { /* handled by readFile */ }
-    const assetPath = path.relative(root, filePath).split(path.sep).join('/');
-    response.setHeader('content-security-policy', contentSecurityPolicy(assetPath));
-    fs.readFile(filePath, (error, content) => {
-        if (error) { response.writeHead(error.code === 'ENOENT' ? 404 : 500).end(error.code === 'ENOENT' ? 'Not found' : 'Server error'); return; }
-        response.writeHead(200, { 'content-type': mime[path.extname(filePath)] || 'application/octet-stream' });
-        response.end(content);
-    });
+    return serveStaticAsset(request, response, pathname);
 });
 
 const websocketServer = new WebSocketServer({ noServer: true, maxPayload: 4096 });
@@ -299,7 +289,10 @@ function handleTankSocket(socket, request) {
             else if (message.type === 'leave') { tankRooms.disconnect(membership.room, membership.player, socket); membership = null; return; }
             else throw new Error('Unsupported message type.');
             if (membership && ['create-room', 'join-room', 'resume'].includes(message.type)) send(socket, { type: 'session', roomCode: membership.room.code, playerToken: membership.player.token, side: membership.player.side, visibility: membership.room.visibility, gamertags: membership.room.players.map(item => item?.gamertag || null) });
-            if (membership) { tankRooms.broadcast(membership.room, { type: 'room-status', players: membership.room.players.map(item => Boolean(item?.connected)), ready: membership.room.players.map(item => Boolean(item?.ready)), gamertags: membership.room.players.map(item => item?.gamertag || null) }); publish(); }
+            if (membership) {
+                if (['create-room', 'join-room', 'resume', 'ready', 'rematch'].includes(message.type)) tankRooms.broadcast(membership.room, { type: 'room-status', players: membership.room.players.map(item => Boolean(item?.connected)), ready: membership.room.players.map(item => Boolean(item?.ready)), gamertags: membership.room.players.map(item => item?.gamertag || null) });
+                publish();
+            }
         } catch (error) { send(socket, { type: 'error', message: error.message }); }
     });
     socket.on('close', () => { if (membership && tankRooms.disconnect(membership.room, membership.player, socket)) { tankRooms.broadcast(membership.room, { type: 'peer-left', reconnectMs: tankRooms.reconnectMs }); publish(); } });

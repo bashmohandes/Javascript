@@ -21,8 +21,10 @@ browser shell. It ensures pages using the shell reference the root arcade
 manifest and the Apple standalone metadata. Pong now references that same root
 manifest so every shared install action installs JavaScript Arcade rather than
 a game-specific application. The shell registers a root service worker that
-uses network-first static requests and a versioned cache. API requests are
-explicitly excluded from interception and caching. Generated raster icons are
+uses network-first navigation and stale-while-revalidate static assets in a
+versioned cache. Cache writes run in the background so a fetched response is
+not delayed by storage. API requests are explicitly excluded from interception
+and caching. Generated raster icons are
 not part of the atomic app-shell precache, and the Node server creates any
 missing icons before it begins listening so clean direct-server checkouts remain
 installable.
@@ -37,6 +39,8 @@ platform-specific instructions.
 ## Consequences
 
 - Modern pages share one application identity, scope, start URL, and install UI.
+- Repeat visits can use cached scripts and styles immediately while refreshing
+  them in the background; navigations still prefer the network.
 - Browser capability signals take precedence over user-agent inference.
 - Classic pages remain unchanged because they do not run the shared shell.
 - The visited static arcade surface can fall back to cached responses offline;

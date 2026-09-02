@@ -181,9 +181,9 @@
         const elapsed = Math.max(0, now - lastFrame); lastFrame = now;
         if (!game.paused && !game.gameOver && !game.shakeReady) {
             activeMilliseconds += elapsed;
-            let remaining = elapsed;
-            while (remaining > 0 && !game.gameOver) { const step = Math.min(100, remaining); game.update(step); remaining -= step; }
-            render(); if (game.gameOver) finish();
+            let remaining = elapsed, changed = false;
+            while (remaining > 0 && !game.gameOver) { const step = Math.min(100, remaining); changed = game.update(step) || changed; remaining -= step; }
+            if (changed) render(); if (game.gameOver) finish();
         }
         requestAnimationFrame(frame);
     }

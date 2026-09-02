@@ -31,6 +31,14 @@ test('Battle Tanks renders high-impact projectile and explosion feedback', () =>
     assert.match(styles, /@keyframes arena-impact-shake/); assert.match(styles, /@keyframes impact-flash/); assert.match(styles, /impact-mega-pop/);
 });
 
+test('Battle Tanks renders static terrain once and only animates active effects', () => {
+    const app = read('battle-tanks/scripts/app.js');
+    assert.match(app, /arenaCacheSignature/);
+    assert.match(app, /function needsAnimation\(\)\{return state\.phase==='projectile-flight'\|\|combatEffects\.length>0;\}/);
+    assert.match(app, /function requestRenderFrame\(\)\{if\(animationFrame===null\)animationFrame=requestAnimationFrame\(frame\);\}/);
+    assert.match(app, /function shoot\(\)[^\r\n]+sync\(\);render\(\);\}/, 'firing from an idle frame must start the animation loop');
+});
+
 test('Battle Tanks resets its impact callout guard for local and synchronized rematches', () => {
     const app = read('battle-tanks/scripts/app.js');
     assert.match(app, /\(state\.impactSerial\|\|0\)<lastImpactSerial\)lastImpactSerial=0/, 'a lower synchronized serial should identify a new match');
