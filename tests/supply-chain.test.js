@@ -11,12 +11,18 @@ test('GitHub Actions dependencies use immutable commit SHAs', () => {
     for (const action of actions) assert.match(action, /^[^@\s]+@[0-9a-f]{40}$/, action);
 });
 
-test('container stages use one immutable multi-platform Node image digest', () => {
+test('CI and container stages use the same immutable multi-platform Node release', () => {
     const dockerfile = fs.readFileSync('Dockerfile', 'utf8');
+    const workflow = fs.readFileSync('.github/workflows/container.yml', 'utf8');
     const images = [...dockerfile.matchAll(/^FROM\s+(node:[^\s]+)(?:\s+AS\s+\S+)?$/gmi)].map(match => match[1]);
     assert.equal(images.length, 2);
     for (const image of images) assert.match(image, /^node:26-alpine@sha256:[0-9a-f]{64}$/, image);
     assert.equal(new Set(images).size, 1);
+    const ciNodeMajor = workflow.match(/^\s*node-version:\s*(\d+)\s*$/m);
+    const containerNodeMajor = images[0].match(/^node:(\d+)-alpine@/);
+    assert.ok(ciNodeMajor);
+    assert.ok(containerNodeMajor);
+    assert.equal(ciNodeMajor[1], containerNodeMajor[1]);
     assert.match(dockerfile, /apk add --no-cache --upgrade libcrypto3=\d+\.\d+\.\d+-r\d+ libssl3=\d+\.\d+\.\d+-r\d+/);
     assert.match(dockerfile, /rm -rf \/usr\/local\/lib\/node_modules\/npm \/usr\/local\/lib\/node_modules\/corepack \/opt\/yarn-v\*/);
 });
