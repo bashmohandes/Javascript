@@ -72,6 +72,7 @@ body.arena-fullscreen .arcade-account { display:none; }
 @media (max-width: 480px) { .result-share-content { padding: 17px; } .result-share-actions button { flex: 1; } }
 @media (prefers-reduced-motion: reduce) { .arcade-install-hint { animation:none; } }
 .arcade-build-version { margin: 24px auto calc(18px + env(safe-area-inset-bottom)); padding: 0 16px; color: var(--arcade-dialog-muted); font: 12px/1.4 system-ui, sans-serif; text-align: center; }
+.modern-game :is(button,select,.board,.board-wrap,.tetris-stage),.classic-game :is(button,canvas,#canvas) { touch-action:manipulation; }
 .achievement-dialog { width:min(720px,calc(100% - 28px)); max-height:min(760px,calc(100vh - 40px)); }
 .achievement-dialog > header { position:sticky; z-index:1; top:0; display:flex; align-items:center; justify-content:space-between; padding:22px 24px; background:var(--arcade-dialog-bg); border-bottom:1px solid var(--arcade-nav-line); }
 .achievement-dialog h2,.achievement-dialog header small,.achievement-card p { margin:0; }.achievement-dialog h2{font:800 27px/1.2 system-ui}.achievement-dialog header small,.achievement-card small{color:var(--arcade-dialog-muted);font:700 11px/1.4 system-ui;text-transform:uppercase;letter-spacing:.08em}.achievement-dialog header button{width:36px;height:36px;padding:0;color:var(--arcade-nav-ink);background:var(--arcade-dialog-field);border:0;border-radius:50%;font-size:24px;cursor:pointer}
