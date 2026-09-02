@@ -8,6 +8,12 @@ const init = fs.readFileSync('theme-init.js', 'utf8');
 const runtime = fs.readFileSync('arcade.js', 'utf8');
 const shared = fs.readFileSync('arcade.css', 'utf8');
 const games = fs.readFileSync('styles/modern-game.css', 'utf8');
+const homepage = fs.readFileSync('index.html', 'utf8');
+
+test('homepage presents games in the curated arcade order', () => {
+    const titles = [...homepage.matchAll(/<h2>([^<]+)<\/h2>/g)].map(match => match[1]);
+    assert.deepEqual(titles, ['Tetris', 'Battle Tanks', 'Sudoku', 'Pong', 'Minesweeper', 'Tic-tac-toe']);
+});
 
 test('registry provides three curated themes with independent color preferences', () => {
     for (const theme of ['playful', 'cabinet', 'calm']) assert.match(init, new RegExp(`id: '${theme}'`));
