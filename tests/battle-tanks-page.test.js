@@ -58,6 +58,17 @@ test('full-screen games expose an on-screen exit and Battle Tanks turn controls'
     assert.match(read('styles/game.css'), /:fullscreen \.fullscreen-exit/);
 });
 
+test('Battle Tanks keeps mobile and short-landscape controls visible without covering play', () => {
+    const page = read('battle-tanks/index.html'), app = read('battle-tanks/scripts/app.js'), styles = read('battle-tanks/styles.css');
+    assert.match(page, /class="mobile-controls"[\s\S]*id="mobile-angle"[\s\S]*id="mobile-power"[\s\S]*id="mobile-fire"/);
+    assert.match(page, /class="fullscreen-controls"[\s\S]*id="fullscreen-angle"[\s\S]*id="fullscreen-power"/);
+    assert.match(app, /\['#angle','#fullscreen-angle','#mobile-angle'\]/);
+    assert.match(app, /\['#power','#fullscreen-power','#mobile-power'\]/);
+    assert.match(styles, /\.mobile-controls\{position:sticky[^}]*bottom:max\(6px,env\(safe-area-inset-bottom\)\)/);
+    assert.match(styles, /orientation:landscape[^}]*max-height:500px[\s\S]*height:calc\(100dvh - 72px - env\(safe-area-inset-bottom\)\)/);
+    assert.match(styles, /fullscreen-inventory[^}]*overflow:hidden/);
+});
+
 test('Battle Tanks exposes usable power-ups in full screen', () => {
     const page = read('battle-tanks/index.html'), app = read('battle-tanks/scripts/app.js'), styles = read('battle-tanks/styles.css');
     assert.match(page, /id="fullscreen-inventory"[^>]*aria-label="Power-up inventory in full screen"/);
