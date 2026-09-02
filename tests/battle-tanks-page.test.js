@@ -62,10 +62,14 @@ test('Battle Tanks keeps mobile and short-landscape controls visible without cov
     const page = read('battle-tanks/index.html'), app = read('battle-tanks/scripts/app.js'), styles = read('battle-tanks/styles.css');
     assert.match(page, /class="mobile-controls"[\s\S]*id="mobile-angle"[\s\S]*id="mobile-power"[\s\S]*id="mobile-fire"/);
     assert.match(page, /class="fullscreen-controls"[\s\S]*id="fullscreen-angle"[\s\S]*id="fullscreen-power"/);
+    assert.match(page, /id="mobile-effect-status"[^>]*role="status"[^>]*aria-live="polite"/);
     assert.match(app, /\['#angle','#fullscreen-angle','#mobile-angle'\]/);
     assert.match(app, /\['#power','#fullscreen-power','#mobile-power'\]/);
+    assert.match(app, /mobileEffectStatus\.hidden=!effects\.length/);
     assert.match(styles, /\.mobile-controls\{position:sticky[^}]*bottom:max\(6px,env\(safe-area-inset-bottom\)\)/);
+    assert.match(styles, /max-width:620px\) and \(orientation:portrait\)[^}]*place-items:start center/);
     assert.match(styles, /orientation:landscape[^}]*max-height:500px[\s\S]*height:calc\(100dvh - 72px - env\(safe-area-inset-bottom\)\)/);
+    assert.match(styles, /max-width:650px\)[^}]*height:calc\(100dvh - 120px - env\(safe-area-inset-bottom\)\)[\s\S]*grid-template-areas:"readouts inventory inventory inventory fire"/);
     assert.match(styles, /fullscreen-inventory[^}]*overflow:hidden/);
 });
 
