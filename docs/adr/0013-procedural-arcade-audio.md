@@ -3,7 +3,8 @@
 ## Status
 
 Accepted. ADR 0015 amends the open-dialog lifecycle rule for the dedicated
-sound mixer; all other decisions in this record remain current.
+sound mixer. ADR 0020 permits a documented public-domain melody as Tetris
+background music; all other decisions in this record remain current.
 
 ## Context
 

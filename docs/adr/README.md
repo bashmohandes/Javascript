@@ -23,3 +23,4 @@ All records describe the current system retrospectively and have status
 17. [Bound WebSocket and room resources](0017-websocket-resource-limits.md) — **Accepted**; layered connection, message, lobby, room, and listing limits constrain unauthenticated resource consumption.
 18. [Pin build dependencies to immutable revisions](0018-immutable-build-dependencies.md) — **Accepted**; GitHub Actions and multi-platform container bases resolve to reviewed commit SHAs and registry digests instead of movable tags.
 19. [Continuously scan the built container](0019-continuous-container-vulnerability-scanning.md) — **Accepted**; a pinned scanner rejects fixable high or critical vulnerabilities on changes and rescans daily without publishing.
+20. [Use Korobeiniki for Tetris background music](0020-tetris-korobeiniki-music.md) — **Accepted**; Tetris procedurally synthesizes a documented public-domain folk melody with an original accompaniment and no media asset.

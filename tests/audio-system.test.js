@@ -92,6 +92,20 @@ test('the active music scene schedules melody, moving bass, harmony, and a beat 
     assert.ok(new Set(context.oscillators.map(source => source.frequency.value)).size >= 5, 'the arrangement should contain distinct harmonic voices');
 });
 
+test('the Tetris track preserves the Korobeiniki phrase at starting intensity in Calm mode', async () => {
+    FakeAudioContext.instances.length = 0;
+    const { env, intervals } = environment();
+    env.document.documentElement.dataset.arcadeTheme = 'calm';
+    const audio = createArcadeAudio(env);
+    audio.setScene('active', { intensity: .2 });
+    await audio.activate();
+    const context = FakeAudioContext.instances[0], schedule = intervals.values().next().value;
+    for (let step = 0; step < 34; step += 1) { context.currentTime += .26; schedule(); }
+    const melody = context.oscillators.filter(source => source.type === 'triangle' && source.frequency.value > 100).map(source => source.frequency.value);
+    const expected = [69,64,65,67,65,64,62,62,65,69,67,65,64,65,67,69,65,62,62].map(midi => 440 * Math.pow(2, (midi - 69) / 12));
+    assert.deepEqual(melody.slice(0, expected.length).map(value => Math.round(value * 1000)), expected.map(value => Math.round(value * 1000)));
+});
+
 test('melodies advance an octave for every complete scale traversal', async () => {
     FakeAudioContext.instances.length = 0;
     const { env, intervals } = environment({ pathname: '/Sudoku/' });
@@ -224,7 +238,8 @@ test('shared controls, provenance, ADR, and design boundaries are documented', (
     assert.match(read('docs/adr/0015-audible-sound-mixer.md'), /amends ADR 0013|open-dialog lifecycle/);
     assert.match(read('docs/audio-design.md'), /32-voice ceiling/);
     assert.match(read('docs/game-events.md'), /Producer rules/);
-    assert.match(read('docs/audio.md'), /Public-domain milestone fragments/);
+    assert.match(read('docs/audio.md'), /Public-domain quotations[\s\S]*Korobeiniki/);
+    assert.match(read('docs/adr/0020-tetris-korobeiniki-music.md'), /public-domain 1861 score/);
     assert.match(read('service-worker.js'), /scripts\/audio\.js/);
 });
 

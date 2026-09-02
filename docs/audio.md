@@ -7,8 +7,9 @@ be muted or mixed from the shared arcade controls.
 
 ## Musical approach
 
-Normal gameplay uses original procedural arrangements written for this arcade.
-Each game combines a longer lead phrase with moving bass, chord changes, subtle
+Normal gameplay uses procedural arrangements written for this arcade. Lead
+phrases are original except for Tetris, which uses a documented public-domain
+folk melody. Each game combines its lead with moving bass, chord changes, subtle
 swing, and synthesized percussion while the shared experience theme changes its
 timbre:
 
@@ -19,9 +20,9 @@ timbre:
 Music reacts lightly to progress, pace, or danger. It does not affect mechanics,
 online state, results, or scoring.
 
-## Public-domain milestone fragments
+## Public-domain quotations
 
-The following short note sequences are manually encoded in `scripts/audio.js`.
+The following note sequences are manually encoded in `scripts/audio.js`.
 Only the composition and a public-domain typeset score are used; no audio or MIDI
 from the source is included.
 
@@ -30,6 +31,7 @@ from the source is included.
 | Sudoku completion | Opening C-major arpeggio, eight notes from the first measure of J. S. Bach's BWV 846 Prelude | [Mutopia edition](https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=5), marked Public Domain |
 | General victory | Opening fifteen-note melody from Beethoven's “Ode to Joy” | [Mutopia edition](https://www.mutopiaproject.org/cgibin/piece-info.cgi?id=528), marked Public Domain |
 | Four-line Tetris clear | Five-note opening turn from Mozart's “Rondo Alla Turca” | [Mutopia score](https://www.mutopiaproject.org/ftp/MozartWA/KV331/KV331_3_RondoAllaTurca/KV331_3_RondoAllaTurca-let.pdf), placed in the public domain by the typesetter |
+| Tetris background | Opening eight-bar melody of the traditional Russian folk song “Korobeiniki,” transposed from E minor to A minor; accompaniment is original | [Wikimedia Commons 1861 score](https://commons.wikimedia.org/wiki/File:Korobeiniki.svg), marked Public Domain |
 
 Future quotations must identify the exact passage, use a verified public-domain
 score, and be reviewed independently from any modern recording or arrangement.
