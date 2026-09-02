@@ -2,7 +2,8 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { clientIp, isPrivatePath, originAllowed, parseCookies, requestOrigin } = require('../server/http-security');
+const { EventEmitter } = require('node:events');
+const { clientIp, isPrivatePath, originAllowed, parseCookies, RateLimiter, requestOrigin, WebSocketGuard } = require('../server/http-security');
 
 function request(headers = {}, encrypted = false) {
     return { headers, socket: { encrypted, remoteAddress: '127.0.0.1' } };
@@ -37,4 +38,68 @@ test('private implementation and configuration paths are not public assets', () 
         assert.equal(isPrivatePath(pathname), true, pathname);
     }
     assert.equal(isPrivatePath('/pong/index.html'), false);
+});
+
+test('fixed-window rate limits reset and bound their key map', () => {
+    const limiter = new RateLimiter(2, 100, 2);
+    assert.equal(limiter.consume('first', 0), 0);
+    assert.equal(limiter.consume('first', 1), 0);
+    assert.equal(limiter.consume('first', 2), 1);
+    assert.equal(limiter.consume('first', 100), 0);
+    limiter.consume('second', 100); limiter.consume('third', 100); limiter.consume('fourth', 100);
+    assert.ok(limiter.entries.size <= 2);
+});
+
+test('websocket admission enforces global and per-IP connection limits and releases once', () => {
+    const guard = new WebSocketGuard({ maxConnections: 2, maxConnectionsPerIp: 1 });
+    const first = new EventEmitter();
+    assert.deepEqual(guard.reserve('192.0.2.1'), { ok: true });
+    guard.attach(first, '192.0.2.1');
+    assert.equal(guard.reserve('192.0.2.1').status, 429);
+    assert.deepEqual(guard.reserve('192.0.2.2'), { ok: true });
+    assert.equal(guard.reserve('192.0.2.3').status, 503);
+    first.emit('close'); first.emit('close');
+    assert.equal(guard.totalConnections, 1);
+    assert.deepEqual(guard.reserve('192.0.2.3'), { ok: true });
+});
+
+test('websocket reservation cleanup can stay on the raw upgraded socket', () => {
+    const guard = new WebSocketGuard({ maxConnections: 1 }), rawSocket = new EventEmitter(), client = {};
+    guard.reserve('192.0.2.1'); guard.attach(rawSocket, '192.0.2.1'); guard.identify(client, '192.0.2.1');
+    assert.equal(guard.checkJoin(client, 0).ok, true);
+    rawSocket.emit('close');
+    assert.equal(guard.totalConnections, 0);
+    assert.deepEqual(guard.reserve('192.0.2.2'), { ok: true });
+});
+
+test('websocket message and lobby-action budgets reset on their configured windows', () => {
+    const guard = new WebSocketGuard({ messagesPerWindow: 2, messageWindowMs: 100, createsPerWindow: 1, joinsPerWindow: 1, actionWindowMs: 100 });
+    const socket = new EventEmitter();
+    guard.reserve('192.0.2.1'); guard.attach(socket, '192.0.2.1');
+    assert.equal(guard.allowMessage(socket, 0), true);
+    assert.equal(guard.allowMessage(socket, 1), true);
+    assert.equal(guard.allowMessage(socket, 2), false);
+    assert.equal(guard.allowMessage(socket, 100), true);
+    assert.equal(guard.checkJoin(socket, 0).ok, true);
+    assert.equal(guard.checkJoin(socket, 1).ok, false);
+    assert.equal(guard.checkJoin(socket, 100).ok, true);
+    const manager = { rooms: new Map() };
+    assert.equal(guard.checkCreate(socket, [manager], manager, 0).ok, true);
+    assert.equal(guard.checkCreate(socket, [manager], manager, 1).ok, false);
+    assert.equal(guard.checkCreate(socket, [manager], manager, 100).ok, true);
+});
+
+test('websocket room admission enforces global, per-game, and per-IP active limits', () => {
+    const makeSocket = (guard, ip) => { const socket = new EventEmitter(); guard.reserve(ip); guard.attach(socket, ip); return socket; };
+    const firstManager = { rooms: new Map() }, secondManager = { rooms: new Map() };
+    const guard = new WebSocketGuard({ maxRooms: 3, maxRoomsPerGame: 2, maxRoomsPerIp: 1, createsPerWindow: 20 });
+    const first = makeSocket(guard, '192.0.2.1'), second = makeSocket(guard, '192.0.2.2'), third = makeSocket(guard, '192.0.2.3');
+    const firstRoom = {}; firstManager.rooms.set('A', firstRoom); guard.ownRoom(first, firstRoom);
+    assert.match(guard.checkCreate(first, [firstManager, secondManager], secondManager).message, /maximum number/i);
+    assert.equal(guard.checkCreate(second, [firstManager, secondManager], firstManager).ok, true);
+    const secondRoom = {}; firstManager.rooms.set('B', secondRoom); guard.ownRoom(second, secondRoom);
+    assert.match(guard.checkCreate(third, [firstManager, secondManager], firstManager).message, /this game/i);
+    const thirdRoom = {}; secondManager.rooms.set('C', thirdRoom); guard.ownRoom(third, thirdRoom);
+    const fourth = makeSocket(guard, '192.0.2.4');
+    assert.match(guard.checkCreate(fourth, [firstManager, secondManager], secondManager).message, /arcade/i);
 });

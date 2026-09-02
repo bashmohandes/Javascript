@@ -60,4 +60,106 @@ function isPrivatePath(pathname) {
     return segments.length === 1 && PRIVATE_TOP_LEVEL.has(segments[0]);
 }
 
-module.exports = { clientIp, isPrivatePath, originAllowed, parseCookies, requestOrigin };
+class RateLimiter {
+    constructor(limit, windowMs, maximumEntries = 10000) {
+        this.limit = limit;
+        this.windowMs = windowMs;
+        this.maximumEntries = maximumEntries;
+        this.entries = new Map();
+    }
+
+    consume(key, now = Date.now()) {
+        if (!this.entries.has(key) && this.entries.size >= this.maximumEntries) {
+            for (const [entryKey, value] of this.entries) if (value.resetAt <= now) this.entries.delete(entryKey);
+            while (this.entries.size >= this.maximumEntries) this.entries.delete(this.entries.keys().next().value);
+        }
+        let entry = this.entries.get(key);
+        if (!entry || entry.resetAt <= now) entry = { count: 0, resetAt: now + this.windowMs };
+        entry.count += 1;
+        this.entries.set(key, entry);
+        return entry.count <= this.limit ? 0 : Math.max(1, Math.ceil((entry.resetAt - now) / 1000));
+    }
+
+    reset(key) { this.entries.delete(key); }
+}
+
+class WebSocketGuard {
+    constructor({
+        maxConnections = 250,
+        maxConnectionsPerIp = 20,
+        messagesPerWindow = 300,
+        messageWindowMs = 10000,
+        createsPerWindow = 10,
+        joinsPerWindow = 60,
+        actionWindowMs = 60000,
+        maxRooms = 200,
+        maxRoomsPerGame = 100,
+        maxRoomsPerIp = 5
+    } = {}) {
+        Object.assign(this, { maxConnections, maxConnectionsPerIp, messagesPerWindow, messageWindowMs, maxRooms, maxRoomsPerGame, maxRoomsPerIp });
+        this.totalConnections = 0;
+        this.connectionsByIp = new Map();
+        this.socketIps = new WeakMap();
+        this.messageWindows = new WeakMap();
+        this.roomOwners = new WeakMap();
+        this.createLimiter = new RateLimiter(createsPerWindow, actionWindowMs);
+        this.joinLimiter = new RateLimiter(joinsPerWindow, actionWindowMs);
+    }
+
+    reserve(ip) {
+        const current = this.connectionsByIp.get(ip) || 0;
+        if (this.totalConnections >= this.maxConnections) return { ok: false, status: 503, message: 'WebSocket capacity reached.' };
+        if (current >= this.maxConnectionsPerIp) return { ok: false, status: 429, message: 'Too many WebSocket connections.' };
+        this.totalConnections += 1;
+        this.connectionsByIp.set(ip, current + 1);
+        return { ok: true };
+    }
+
+    releaseIp(ip) {
+        const current = this.connectionsByIp.get(ip) || 0;
+        if (!current) return;
+        this.totalConnections = Math.max(0, this.totalConnections - 1);
+        if (current === 1) this.connectionsByIp.delete(ip);
+        else this.connectionsByIp.set(ip, current - 1);
+    }
+
+    attach(socket, ip) {
+        this.socketIps.set(socket, ip);
+        let released = false;
+        socket.once('close', () => {
+            if (released) return;
+            released = true;
+            this.releaseIp(ip);
+        });
+    }
+
+    identify(socket, ip) { this.socketIps.set(socket, ip); }
+
+    allowMessage(socket, now = Date.now()) {
+        let entry = this.messageWindows.get(socket);
+        if (!entry || entry.resetAt <= now) entry = { count: 0, resetAt: now + this.messageWindowMs };
+        entry.count += 1;
+        this.messageWindows.set(socket, entry);
+        return entry.count <= this.messagesPerWindow;
+    }
+
+    checkJoin(socket, now = Date.now()) {
+        const retryAfter = this.joinLimiter.consume(this.socketIps.get(socket) || 'unknown', now);
+        return retryAfter ? { ok: false, message: 'Too many room join attempts.', retryAfter } : { ok: true };
+    }
+
+    checkCreate(socket, managers, targetManager, now = Date.now()) {
+        const ip = this.socketIps.get(socket) || 'unknown';
+        const retryAfter = this.createLimiter.consume(ip, now);
+        if (retryAfter) return { ok: false, message: 'Too many rooms created. Try again later.', retryAfter };
+        const activeRooms = managers.flatMap(manager => [...manager.rooms.values()]);
+        if (activeRooms.length >= this.maxRooms) return { ok: false, message: 'The arcade has reached its active-room limit.' };
+        if (targetManager.rooms.size >= this.maxRoomsPerGame) return { ok: false, message: 'This game has reached its active-room limit.' };
+        if (activeRooms.filter(room => this.roomOwners.get(room) === ip).length >= this.maxRoomsPerIp) return { ok: false, message: 'You already have the maximum number of active rooms.' };
+        return { ok: true };
+    }
+
+    ownRoom(socket, room) { this.roomOwners.set(room, this.socketIps.get(socket) || 'unknown'); }
+}
+
+module.exports = { clientIp, isPrivatePath, originAllowed, parseCookies, RateLimiter, requestOrigin, WebSocketGuard };
