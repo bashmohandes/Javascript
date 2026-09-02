@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: container-${{ github.ref }}
+  group: container-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
