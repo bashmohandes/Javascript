@@ -1,9 +1,9 @@
-FROM node:24-alpine@sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf AS dependencies
+FROM node:26-alpine@sha256:2d984a15c9b54fd0aeb608b8e0d0d83529eb34d2966db27a1fb4f1edc3d298a3 AS dependencies
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
-FROM node:24-alpine@sha256:e67514e5d0f6c46656005e1b693b2ec9d52e80b641307de684d4a015ba7a4eaf
+FROM node:26-alpine@sha256:2d984a15c9b54fd0aeb608b8e0d0d83529eb34d2966db27a1fb4f1edc3d298a3
 ARG BUILD_VERSION=dev
 ENV NODE_ENV=production PORT=8080
 ENV BUILD_VERSION=${BUILD_VERSION}
