@@ -104,7 +104,7 @@ See [ADR 0014](adr/0014-browser-domain-event-bus.md) and the
 | Sudoku | Modern controller with generated boards, notes, hints and solver; separate p5.js classic (`board`, `cell`, `builder`, `solver`, `sketch`) | None | Modern results, scores and achievements |
 | Minesweeper | Modern controller plus tile/grid engine; separate p5.js classic (`sketch`, `tile`) | None | Modern results, browser best times, scores and achievements |
 | Pong | Modern canvas controller + motion prediction; solo, couch duo, online; separate p5.js classic (`board`, `ball`, `sketch`) | Server engine at 60 Hz; snapshots at 30 Hz | Modern results, scores and achievements |
-| Tic-tac-toe | Modern controller, minimax AI, couch duo and online | Room manager validates turns, cells and wins | Results, scores and achievements |
+| Tic-tac-toe | Shared deterministic mechanics core, modern controller, minimax AI, couch duo and online | Room manager validates lifecycle and intent, then applies shared transitions | Results, scores and achievements |
 | Battle Tanks | Shared deterministic engine + canvas controller; solo CPU, local duo and online | Server validates commands and owns physics, damage, turns and online result recording | Results, scores and achievements |
 | Tetris | Modern DOM controller plus testable seven-bag/SRS mechanics engine; endless solo marathon | None | Results, scores, history and achievements |
 
@@ -135,7 +135,8 @@ flowchart LR
   P5 --> MSC[Minesweeper classic]
   P5 --> POC[Pong classic]
   PO --> WR[Pong room manager + engine]
-  TT --> TR[Tic-tac-toe room manager]
+  TT --> TG[Tic-tac-toe mechanics]
+  TR[Tic-tac-toe room manager] --> TG
   BT --> BR[Battle Tanks room manager + shared engine]
 ```
 
@@ -247,6 +248,12 @@ The public result API rejects browser submissions claiming an online mode; each
 room persists its terminal state at most once per match.
 See [online rendering](online-rendering.md) for snapshot smoothing, client-side
 prediction, safeguards, and alternatives.
+
+Tic-tac-toe uses one immutable mechanics core for board validation, legal
+transitions, terminal evaluation, and deterministic minimax selection. The
+browser retains difficulty/randomness and presentation, while the room manager
+retains lifecycle, turn authorization, online results, and broadcast authority.
+See [ADR 0022](adr/0022-shared-tictactoe-mechanics.md).
 
 ## Battle Tanks boundaries and flow
 
