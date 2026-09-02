@@ -155,3 +155,29 @@ test('every arcade page opts into shared iPhone safe-area handling', () => {
         assert.match(html, /arcade\.css/, `${page} should load the shared safe-area styles`);
     }
 });
+
+test('every game page prevents accidental double-tap zoom without disabling pinch zoom', () => {
+    const gamePages = [
+        'pong/index.html',
+        'pong/classic/index.html',
+        'Sudoku/index.html',
+        'Sudoku/classic/index.html',
+        'Minesweeper/index.html',
+        'Minesweeper/classic/index.html',
+        'tictactoe/index.html',
+        'battle-tanks/index.html',
+        'tetris/index.html'
+    ];
+
+    for (const page of gamePages) {
+        const html = read(page);
+        assert.doesNotMatch(html, /maximum-scale|user-scalable/, `${page} should retain accessible pinch zoom`);
+    }
+
+    for (const page of ['pong/classic/index.html', 'Sudoku/classic/index.html', 'Minesweeper/classic/index.html']) {
+        assert.match(read(page), /<body class="classic-game">/, `${page} should scope classic game touch behavior`);
+    }
+
+    const styles = read('arcade.css');
+    assert.match(styles, /\.modern-game :is\(button,select,\.board,\.board-wrap,\.tetris-stage\),\.classic-game :is\(button,canvas,#canvas\)\s*{[^}]*touch-action:manipulation/);
+});
