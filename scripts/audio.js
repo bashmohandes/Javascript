@@ -20,7 +20,13 @@
         pong: { bpm: 126, root: 43, scale: [0,2,5,7,9], melody: [0,3,2,4,3,1,2,4,5,3,1,4,2,5,4,2,0,2,3,5,4,2,1,3,5,4,2,3,1,4,2,0], rhythm: [2,1,1,0,2,1,0,1,2,1,1,1,2,0,1,1], bass: [0,7,5,9,0,7,5,2], chords: [[0,4,7],[7,11,14],[5,9,12],[9,12,16]], swing: .1 },
         tictactoe: { bpm: 98, root: 50, scale: [0,2,3,7,9], melody: [0,null,2,3,4,3,null,1,0,2,3,null,4,5,2,1,0,2,null,4,3,1,2,4,5,3,1,null,4,2,1,0], rhythm: [2,0,1,1,2,1,0,1,2,1,1,0,2,1,0,1], bass: [0,3,7,2,0,9,7,3], chords: [[0,3,7],[3,7,10],[7,10,14],[2,5,9]], swing: .16 },
         battletanks: { bpm: 114, root: 38, scale: [0,2,3,7,8], melody: [0,2,3,1,4,3,2,1,0,3,4,2,1,4,5,3,0,2,4,3,5,4,2,1,3,5,4,2,1,3,2,0], rhythm: [2,0,1,1,2,1,1,0,2,1,0,1,2,1,1,1], bass: [0,3,8,7,0,10,8,7], chords: [[0,3,7],[3,7,10],[8,12,15],[7,10,14]], swing: .06 },
-        tetris: { bpm: 124, root: 45, scale: [0,2,3,5,7,8,10], melody: [0,2,4,3,5,4,6,2,0,3,5,1,4,6,3,2,7,5,3,4,6,5,2,4,0,2,5,3,6,4,2,1], rhythm: [2,1,1,0,2,1,1,1,2,0,1,1,2,1,0,1], bass: [0,5,3,7,0,8,7,10], chords: [[0,3,7],[5,8,12],[3,7,10],[7,10,14]], swing: .04 }
+        tetris: {
+            bpm: 132, root: 45, scale: [0,2,3,5,7,8,10], phrased: true,
+            melody: [7,null,4,5,6,null,5,4,3,null,3,5,7,null,6,5,4,null,null,5,6,null,7,null,5,null,3,null,3,null,null,null,6,null,null,8,10,null,9,8,7,null,null,5,7,null,6,5,4,null,4,5,6,null,7,null,5,null,3,null,3,null,null,null],
+            rhythm: [2,0,1,1,2,0,1,1,2,0,1,1,2,0,1,1,3,0,0,1,2,0,2,0,2,0,2,0,4,0,0,0,3,0,0,1,2,0,1,1,3,0,0,1,2,0,1,1,2,0,1,1,2,0,2,0,2,0,2,0,4,0,0,0],
+            bass: [0,0,0,0,0,0,0,0,7,7,7,7,0,0,0,0,5,5,5,5,0,0,0,0,7,7,7,7,0,0,0,0],
+            chords: [[0,3,7],[0,3,7],[7,11,14],[0,3,7],[5,8,12],[0,3,7],[7,11,14],[0,3,7]], swing: .04
+        }
     });
     const TIMBRES = Object.freeze({
         playful: { music: 'triangle', lead: 'sine', effects: 'triangle', attack: .008, release: .16, brightness: 2800, density: 1, gain: 1 },
@@ -165,7 +171,8 @@
         const rhythm = track.rhythm[index % track.rhythm.length];
         if (degree !== null && rhythm > 0 && (rhythm > 1 || intensity > .28) && (timbre.density >= 1 || index % 4 === 0)) {
             const midi = scaleMidi(track, degree, 12);
-            tone({ midi, at, duration: beat * (rhythm > 1 ? .82 : .52), gain: .04 + intensity * .022, type: timbre.lead, bus: musicBus, isMusic: true });
+            const duration = track.phrased ? beat * Math.max(.52, rhythm - .18) : beat * (rhythm > 1 ? .82 : .52);
+            tone({ midi, at, duration, gain: .04 + intensity * .022, type: timbre.lead, bus: musicBus, isMusic: true });
         }
         if (index % 2 === 0) {
             const bass = track.root + track.bass[Math.floor(index / 2) % track.bass.length];
