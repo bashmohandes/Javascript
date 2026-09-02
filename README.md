@@ -127,6 +127,12 @@ shown at the bottom of every page. For a local build, set `BUILD_VERSION` before
 running Docker Compose; the same value is used for both the image tag and the
 displayed build version.
 
+The workflow's third-party actions and Node container base are pinned to
+immutable revisions. Update those pins deliberately after reviewing upstream
+release notes; the adjacent version comments identify the human-readable action
+releases. Dependabot checks Actions, Docker, and npm every day and proposes
+reviewable version and security updates without weakening those pins.
+
 Set up Docker Hub once:
 
 1. Create a public or private Docker Hub repository named `javascript-pong`.
