@@ -11,7 +11,7 @@ const WINNING_LINES=Object.freeze([
 ]);
 const MARKS=Object.freeze(['X','O']);
 
-function assertBoard(board){if(!Array.isArray(board)||board.length!==9||board.some(mark=>mark!==null&&!MARKS.includes(mark)))throw new TypeError('Board must contain nine X, O, or null cells.');}
+function assertBoard(board){if(!Array.isArray(board)||board.length!==9||Array.from({length:9},(_,cell)=>board[cell]).some(mark=>mark!==null&&!MARKS.includes(mark)))throw new TypeError('Board must contain nine X, O, or null cells.');}
 function assertSide(side){if(side!==0&&side!==1)throw new TypeError('Side must be 0 or 1.');}
 function outcome(board){const line=WINNING_LINES.find(candidate=>board[candidate[0]]&&candidate.every(cell=>board[cell]===board[candidate[0]]))||null,winner=line?MARKS.indexOf(board[line[0]]):null,draw=!line&&board.every(Boolean);return{over:Boolean(line)||draw,winner,winningLine:line?[...line]:[],draw};}
 function createBoard(){return Array(9).fill(null);}

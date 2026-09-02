@@ -7,7 +7,8 @@ const game=require('../tictactoe/scripts/game');
 test('creates independent empty boards and validates their shape',()=>{
  const first=game.createBoard(),second=game.createBoard();first[0]='X';
  assert.deepEqual(second,Array(9).fill(null));
- for(const invalid of [[],Array(8).fill(null),Array(9).fill('Z')])assert.throws(()=>game.evaluate(invalid),/nine X, O, or null cells/);
+ const partiallySparse=Array(9).fill(null);delete partiallySparse[4];
+ for(const invalid of [[],Array(8).fill(null),Array(9).fill('Z'),Array(9),partiallySparse])assert.throws(()=>game.evaluate(invalid),/nine X, O, or null cells/);
 });
 
 test('detects every winning line for either side',()=>{
