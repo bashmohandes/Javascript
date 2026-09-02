@@ -8,10 +8,12 @@ const path = require('node:path');
 const zlib = require('node:zlib');
 
 const colors = {
-    background: [13, 20, 32],
-    teal: [31, 82, 96],
-    purple: [73, 53, 104],
-    mint: [131, 230, 195]
+    background: [10, 16, 32],
+    grid: [39, 52, 93],
+    purple: [118, 92, 255],
+    pink: [255, 79, 163],
+    yellow: [255, 216, 77],
+    cream: [255, 244, 214]
 };
 const glyphs = {
     J: ['11111', '00100', '00100', '00100', '00100', '10100', '01100'],
@@ -83,9 +85,14 @@ function renderIcon(size) {
         }
     }
 
-    circle(size * 0.17, size * 0.16, size * 0.26, colors.teal);
-    circle(size * 0.88, size * 0.86, size * 0.3, colors.purple);
-    roundedRectangle(size * 0.183, size * 0.183, size * 0.817, size * 0.817, size * 0.18, colors.mint);
+    roundedRectangle(size * 0.08, size * 0.12, size * 0.2, size * 0.16, 0, colors.grid);
+    roundedRectangle(size * 0.12, size * 0.08, size * 0.16, size * 0.2, 0, colors.grid);
+    roundedRectangle(size * 0.72, size * 0.84, size * 0.94, size * 0.9, 0, colors.grid);
+    roundedRectangle(size * 0.8, size * 0.76, size * 0.86, size * 0.98, 0, colors.grid);
+    roundedRectangle(size * 0.22, size * 0.24, size * 0.82, size * 0.84, 0, colors.yellow);
+    roundedRectangle(size * 0.16, size * 0.16, size * 0.76, size * 0.76, 0, colors.cream);
+    roundedRectangle(size * 0.19, size * 0.19, size * 0.73, size * 0.73, 0, colors.purple);
+    roundedRectangle(size * 0.19, size * 0.19, size * 0.73, size * 0.25, 0, colors.pink);
 
     const cell = size * 0.052;
     const gap = size * 0.035;
@@ -96,7 +103,7 @@ function renderIcon(size) {
             if (filled === '1') roundedRectangle(
                 offsetX + x * cell, offsetY + y * cell,
                 offsetX + (x + 1) * cell + 0.5, offsetY + (y + 1) * cell + 0.5,
-                cell * 0.12, colors.background
+                0, colors.background
             );
         }));
         offsetX += 5 * cell + gap;

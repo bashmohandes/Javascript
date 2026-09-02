@@ -52,7 +52,8 @@ flowchart TB
 ## Appearance system
 
 `theme-init.js` applies appearance before first paint and publishes the shared
-theme registry. Experience (`playful`, `cabinet`, or `calm`) is independent
+theme registry. Experience (Pixel, stored as `playful`, plus `cabinet` or
+`calm`) is independent
 from the `system`/`light`/`dark` color preference. `arcade.js` renders the
 appearance dialog, persists changes, synchronizes tabs, and emits the
 `system:theme-changed` domain event for DOM and canvas games. Shared component and layout
@@ -67,8 +68,8 @@ service worker uses network-first navigation and stale-while-revalidate static
 assets while excluding APIs. See
 [ADR 0012](adr/0012-shared-app-install-surface.md).
 
-See [ADR 0008](adr/0008-experience-theming-system.md) for the decision and
-extension constraints.
+See [ADR 0008](adr/0008-experience-theming-system.md) for the theme contract and
+[ADR 0025](adr/0025-pixel-arcade-identity.md) for the modern pixel identity.
 
 ## Audio system
 

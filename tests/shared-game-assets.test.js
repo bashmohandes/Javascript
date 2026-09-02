@@ -30,6 +30,15 @@ test('every modern game consumes the shared playful design language', () => {
     }
 });
 
+test('every modern game has a scoped pixel motif without changing classic pages', () => {
+    const files = ['pong/styles.css', 'tictactoe/styles.css', 'battle-tanks/styles.css', 'Sudoku/styles.css', 'Minesweeper/styles.css', 'tetris/styles.css'];
+    for (const file of files) assert.match(read(file), /data-arcade-theme="playful"/, `${file} should expose its Pixel treatment`);
+    for (const game of ['pong', 'Sudoku', 'Minesweeper']) {
+        const classic = read(`${game}/classic/index.html`);
+        assert.doesNotMatch(classic, /modern-game\.css|class="modern-game/, `${game} classic should retain its historical rendering`);
+    }
+});
+
 test('modern arena decoration excludes native and fallback full-screen states', () => {
     const design = read('styles/modern-game.css');
 
@@ -68,6 +77,13 @@ test('Sudoku visually separates boxes and highlights the active box', () => {
     assert.match(styles, /\.cell\.same-box\s*{/);
     assert.match(script, /sameBox\([^)]*\)\) cell\.classList\.add\('same-box'\)/);
     assert.match(mechanics, /function sameBox/);
+});
+
+test('Minesweeper renders one flag glyph per flagged cell', () => {
+    const styles = read('Minesweeper/styles.css');
+    const script = read('Minesweeper/scripts/app.js');
+    assert.match(script, /textContent\s*=\s*'⚑'/);
+    assert.doesNotMatch(styles, /\.cell\.flagged::after/);
 });
 
 test('shared arcade UI uses one safe-area-aware responsive top bar and displays the build version', () => {

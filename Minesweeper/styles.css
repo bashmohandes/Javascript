@@ -45,3 +45,11 @@ select { width:100%; padding:12px; border:1px solid var(--line); border-radius:7
 @keyframes pop { 50% { transform:scale(1.16); } }
 @media(max-width:700px){.app-shell{width:min(100% - 20px,600px)}.topbar{height:64px}.intro{display:block;padding:30px 0 25px}.stats{min-width:0;margin-top:24px;padding-top:17px;border-top:1px solid var(--line);justify-content:space-between}.game-card{padding:12px}.game-toolbar{align-items:start}.status{max-width:62%;line-height:1.45}.board{--cell-size:min(9.1vw,48px);padding:8px;gap:2px;justify-content:start}.controls{align-items:stretch;flex-direction:column}.primary-button{width:100%}.desktop-tip{display:none}.touch-tip{display:inline}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+/* Pixel tile set. */
+:root:is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) .game-minesweeper{--hidden-cell:#486b62;--hidden-hover:#5c8679;--revealed-cell:#13231f;--flagged-cell:#5b2b48;--forest:#071611;--count-1:#56a8ff;--count-2:#6ef2d0;--count-3:#ff7a3d;--count-4:#b58cff;--count-5:#ff4fa3;--count-6:#61d8e7;--count-7:#fff4d6}
+:root[data-arcade-theme="playful"][data-color-mode="light"] .game-minesweeper{--hidden-cell:#7cc5ae;--hidden-hover:#9fe0ca;--revealed-cell:#fff9e8;--flagged-cell:#ffd1df;--forest:#192541}
+:is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) .game-minesweeper :is(.game-card,.board-wrap,.modal-card){border-radius:0}
+:is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) .game-minesweeper .board{gap:4px;background-image:linear-gradient(90deg,#ffffff08 1px,transparent 1px),linear-gradient(#ffffff08 1px,transparent 1px);background-size:16px 16px}
+:is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) .game-minesweeper .cell{border:2px solid color-mix(in srgb,var(--hidden-cell) 55%,#fff);border-right-color:#071611;border-bottom-color:#071611;border-radius:0;box-shadow:inset 3px 3px 0 #ffffff1c;font-family:var(--pixel-font);font-size:clamp(12px,2.4vw,19px);transition:transform 100ms steps(2,end),background 100ms linear}
+:is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) .game-minesweeper .cell.revealed{border:1px solid color-mix(in srgb,var(--revealed-cell) 68%,#fff);box-shadow:none}

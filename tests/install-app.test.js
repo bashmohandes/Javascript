@@ -25,6 +25,8 @@ test('shared shell owns one installable arcade manifest', () => {
     assert.match(worker, /url\.pathname\.includes\('\/api\/'\)/);
     assert.match(worker, /request\.mode === 'navigate'/);
     assert.match(worker, /event\.waitUntil\(network\.then/);
+    assert.match(worker, /fonts\/Silkscreen-Regular\.ttf/);
+    assert.match(worker, /fonts\/OFL-Silkscreen\.txt/);
     assert.match(worker, /caches\.match\(request\)\.then\(response => response \|\| network\)/);
     assert.doesNotMatch(worker.match(/const APP_SHELL = \[[\s\S]*?\];/)?.[0] || '', /icon-(?:192|512)\.png/);
 });

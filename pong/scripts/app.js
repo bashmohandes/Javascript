@@ -19,6 +19,18 @@ const roomList = document.querySelector('#room-list');
 const shareButton = document.querySelector('#share-result');
 const { predictBall } = window.PongMotion;
 const events = window.ArcadeEvents;
+let arenaColors = {};
+function updatePongTheme() {
+    const styles = getComputedStyle(arena);
+    arenaColors = {
+        field: styles.getPropertyValue('--pong-field').trim() || '#122c2b',
+        line: styles.getPropertyValue('--pong-line').trim() || 'rgba(255,244,214,.34)',
+        ball: styles.getPropertyValue('--pong-ball').trim() || '#fff4d6',
+        decoy: styles.getPropertyValue('--pong-decoy').trim() || '#ff70b7',
+        trail: styles.getPropertyValue('--pong-trail').trim() || '#6ef2d0'
+    };
+    if (canvas.width) draw();
+}
 
 const game = {
     width: 960, height: 600, running: false, paused: false, over: false, mode: 'solo',
@@ -251,19 +263,20 @@ function roundedRect(x, y, width, height, radius) { ctx.beginPath(); ctx.roundRe
 function drawPowerUp(powerUp) {
     const type = powerUpTypes[powerUp.type]; const remaining = powerUp.expires - game.elapsed; const pulse = 1 + Math.sin(game.elapsed * 7) * .06;
     ctx.save(); ctx.translate(powerUp.x, powerUp.y); ctx.scale(pulse, pulse); ctx.globalAlpha = Math.min(1, remaining * 2); ctx.fillStyle = type.color; ctx.beginPath();
-    if (type.collection === 'ball') { ctx.rotate(Math.PI / 4); ctx.roundRect(-powerUp.r, -powerUp.r, powerUp.r * 2, powerUp.r * 2, 6); } else ctx.arc(0, 0, powerUp.r, 0, Math.PI * 2);
-    ctx.fill(); ctx.rotate(type.collection === 'ball' ? -Math.PI / 4 : 0); ctx.fillStyle = '#20352f'; ctx.font = `700 ${powerUp.type === 'split' ? 9 : 16}px "DM Sans"`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(type.icon, 0, 1); ctx.restore();
+    if (type.collection === 'ball') { ctx.rotate(Math.PI / 4); ctx.rect(-powerUp.r, -powerUp.r, powerUp.r * 2, powerUp.r * 2); } else { const size = powerUp.r * 1.55; ctx.rect(-size / 2, -size / 2, size, size); }
+    ctx.fill(); ctx.rotate(type.collection === 'ball' ? -Math.PI / 4 : 0); ctx.fillStyle = '#0a1020'; ctx.font = `700 ${powerUp.type === 'split' ? 9 : 16}px monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(type.icon, 0, 1); ctx.restore();
 }
 function draw() {
-    ctx.clearRect(0, 0, game.width, game.height); ctx.fillStyle = '#20352f'; ctx.fillRect(0, 0, game.width, game.height);
-    ctx.fillStyle = 'rgba(255,253,248,.12)'; for (let y = 18; y < game.height; y += 34) ctx.fillRect(game.width / 2 - 2, y, 4, 18);
-    ctx.strokeStyle = 'rgba(255,253,248,.16)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(game.width / 2, game.height / 2, 82, 0, Math.PI * 2); ctx.stroke();
-    game.powerUps.forEach(drawPowerUp); paddles.forEach(paddle => { ctx.fillStyle = paddle.color; roundedRect(paddle.x, paddle.y, paddle.w, paddle.h, 7); });
+    ctx.clearRect(0, 0, game.width, game.height); ctx.fillStyle = arenaColors.field; ctx.fillRect(0, 0, game.width, game.height);
+    ctx.fillStyle = arenaColors.line; for (let y = 14; y < game.height; y += 32) ctx.fillRect(game.width / 2 - 3, y, 6, 18);
+    ctx.strokeStyle = arenaColors.line; ctx.lineWidth = 4; ctx.strokeRect(game.width / 2 - 76, game.height / 2 - 76, 152, 152);
+    ctx.globalAlpha = .12; ctx.fillStyle = arenaColors.line; for (let y = 0; y < game.height; y += 16) ctx.fillRect(0, y, game.width, 1); ctx.globalAlpha = 1;
+    game.powerUps.forEach(drawPowerUp); paddles.forEach(paddle => { ctx.fillStyle = paddle.color; ctx.fillRect(Math.round(paddle.x), Math.round(paddle.y), paddle.w, paddle.h); ctx.fillStyle = 'rgba(255,255,255,.28)'; ctx.fillRect(Math.round(paddle.x) + 3, Math.round(paddle.y) + 3, 3, Math.max(0, paddle.h - 6)); });
     const renderedBalls = game.mode === 'online' && onlineBallSample ? onlineBallSample.balls.map(ball => {
         const elapsed = Math.min((performance.now() - onlineBallSample.receivedAt) / 1000, .075);
         return predictBall(ball, elapsed, { width: game.width, height: game.height, snapshotElapsed: onlineBallSample.elapsed, effects: onlineBallSample.effects, paddles: onlineBallSample.paddles });
     }) : balls;
-    renderedBalls.forEach(ball => { ctx.fillStyle = ball.decoy ? '#cc8290' : '#fffdf8'; ctx.globalAlpha = ball.decoy ? .78 : 1; ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2); ctx.fill(); }); ctx.globalAlpha = 1;
+    renderedBalls.forEach(ball => { const speed = Math.hypot(ball.vx || 0, ball.vy || 0) || 1; for (let step = 3; step > 0; step -= 1) { ctx.globalAlpha = .08 * step; ctx.fillStyle = arenaColors.trail; ctx.fillRect(Math.round(ball.x - ball.vx / speed * step * 12 - ball.r), Math.round(ball.y - ball.vy / speed * step * 12 - ball.r), ball.r * 2, ball.r * 2); } ctx.fillStyle = ball.decoy ? arenaColors.decoy : arenaColors.ball; ctx.globalAlpha = ball.decoy ? .78 : 1; ctx.fillRect(Math.round(ball.x - ball.r), Math.round(ball.y - ball.r), ball.r * 2, ball.r * 2); }); ctx.globalAlpha = 1;
 }
 function frame(time) { const dt = Math.min((time - game.last) / 1000, .025) || 0; game.last = time; if (game.mode !== 'online' && game.running && !game.paused) update(dt); draw(); requestAnimationFrame(frame); }
 
@@ -328,7 +341,8 @@ arena.querySelector('.fullscreen-exit').addEventListener('click', () => fullscre
 document.addEventListener('fullscreenchange', () => setFullscreenState(document.fullscreenElement === arena));
 addEventListener('keydown', event => { if (event.code === 'Escape') { document.querySelectorAll('.color-menu').forEach(menu => menu.hidden = true); document.querySelectorAll('.color-trigger').forEach(trigger => trigger.setAttribute('aria-expanded', false)); if (arena.classList.contains('is-fullscreen')) setFullscreenState(false); return; } if (['ArrowUp', 'ArrowDown', 'Space'].includes(event.code)) event.preventDefault(); if (event.code === 'Space') { togglePause(); return; } game.keys.add(event.code); if (game.mode === 'online') onlineInput(); }); addEventListener('keyup', event => { game.keys.delete(event.code); if (game.mode === 'online') onlineInput(); });
 document.querySelectorAll('[data-key]').forEach(button => { const key = button.dataset.key; const on = event => { event.preventDefault(); game.keys.add(key); if (game.mode === 'online') onlineInput(); }; const off = event => { event.preventDefault(); game.keys.delete(key); if (game.mode === 'online') onlineInput(); }; button.addEventListener('pointerdown', on); button.addEventListener('pointerup', off); button.addEventListener('pointercancel', off); button.addEventListener('pointerleave', off); });
-addEventListener('resize', resize); resize(); requestAnimationFrame(frame);
+events.on('system:theme-changed', updatePongTheme);
+addEventListener('resize', resize); updatePongTheme(); resize(); requestAnimationFrame(frame);
 const invitedRoom = new URLSearchParams(location.search).get('room');
 const savedOnlineSession = OnlineRooms.readSession(sessionStorage, 'pong-online-session');
 if (invitedRoom) {

@@ -8,12 +8,26 @@ const init = fs.readFileSync('theme-init.js', 'utf8');
 const runtime = fs.readFileSync('arcade.js', 'utf8');
 const shared = fs.readFileSync('arcade.css', 'utf8');
 const games = fs.readFileSync('styles/modern-game.css', 'utf8');
+const homepage = fs.readFileSync('index.html', 'utf8');
+
+test('homepage presents games in the curated arcade order', () => {
+    const titles = [...homepage.matchAll(/<h2>([^<]+)<\/h2>/g)].map(match => match[1]);
+    assert.deepEqual(titles, ['Tetris', 'Battle Tanks', 'Sudoku', 'Pong', 'Minesweeper', 'Tic-tac-toe']);
+});
 
 test('registry provides three curated themes with independent color preferences', () => {
     for (const theme of ['playful', 'cabinet', 'calm']) assert.match(init, new RegExp(`id: '${theme}'`));
     assert.match(init, /colorPreferences: Object\.freeze\(\['system', 'light', 'dark'\]\)/);
     assert.match(init, /arcade-experience-theme/);
     assert.match(init, /arcade-color-preference/);
+});
+
+test('the compatible playful id presents the new Pixel default identity', () => {
+    assert.match(init, /defaultTheme: 'playful'/);
+    assert.match(init, /id: 'playful', name: 'Pixel'/);
+    assert.match(shared, /font-family:"Arcade Pixel"/);
+    assert.match(shared, /fonts\/Silkscreen-Regular\.ttf/);
+    assert.match(games, /data-arcade-theme="playful"/);
 });
 
 test('appearance dialog exposes theme cards and an accessible color radiogroup', () => {
@@ -60,6 +74,14 @@ test('theme styles own the Battle Tanks canvas palette', () => {
     assert.doesNotMatch(battleTanks, /const palettes=/);
 });
 
+test('theme styles own the Pong canvas palette and refresh contract', () => {
+    for (const token of ['field', 'line', 'ball', 'decoy', 'trail']) assert.match(games, new RegExp(`--pong-${token}:`));
+    const pong = fs.readFileSync('pong/scripts/app.js', 'utf8');
+    assert.match(pong, /getComputedStyle\(arena\)/);
+    assert.match(pong, /system:theme-changed[^\n]*updatePongTheme/);
+    assert.doesNotMatch(pong, /dataset\.arcadeTheme/);
+});
+
 test('theme styles own the Tetris palette and sharing refreshes from its scoped interface', () => {
     for (const token of ['board', 'grid', 'border', 'empty', 'ghost', 'ink', 'panel', 'overlay', 'magic', 'i', 'j', 'l', 'o', 's', 't', 'z']) assert.match(games, new RegExp(`--tetris-${token}:`));
     const script = fs.readFileSync('tetris/scripts/app.js', 'utf8');
@@ -71,4 +93,5 @@ test('theme styles own the Tetris palette and sharing refreshes from its scoped 
 test('cabinet light mode keeps dialog text dark without changing topbar ink', () => {
     assert.match(shared, /data-arcade-theme="cabinet"\]\[data-color-mode="light"\] \.arcade-dialog \{ --arcade-nav-ink:#382c42; \}/);
     assert.doesNotMatch(shared, /data-color-mode="light"\] \{[^}]*--arcade-nav-ink:/);
+    assert.match(games, /data-arcade-theme="cabinet"\]\[data-color-mode="light"\] \.modern-game\{[^}]*--paper:#f2dfb6;[^}]*color-scheme:light/);
 });

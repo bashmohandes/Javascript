@@ -311,6 +311,32 @@
         :root[data-arcade-theme="calm"] .card { min-height:0;border-width:1px;border-radius:2px;box-shadow:none;backdrop-filter:none; }
         @media(max-width:900px){:root[data-arcade-theme="cabinet"] .game-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
         @media(max-width:650px){:root[data-arcade-theme] .game-grid{grid-template-columns:1fr}:root[data-arcade-theme="calm"] .shell{width:min(100% - 28px,1040px)}}
+
+        /* Pixel is the default arcade identity. Cabinet shares the same visual
+           grammar with a denser, darker coin-op layout. */
+        :root:is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) { --panel:#111a33;--page-background:#0a1020;--ink:#fff4d6;--muted:#b7c2dc;--line:#27345d;--accent:#765cff;--accent-contrast:#fff4d6;--control-fill:#ffffff09;--hover-line:#6ef2d0;--focus-ring:#6ef2d088;--card-shadow:#000b;--default-glow:#ff4fa326;--blue-glow:#56a8ff2b;--purple-glow:#765cff2b;--sunshine:#ffd84d;--hot-pink:#ff4fa3;--sky-blue:#56a8ff;--lime:#6ef2d0;--orange:#ff7a3d; }
+        :root[data-arcade-theme="playful"][data-color-mode="light"] { --panel:#fff9e8;--page-background:#fff4d6;--ink:#192541;--muted:#58647a;--line:#19254133;--control-fill:#1925410b;--card-shadow:#19254132; }
+        :root:is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) body { background:linear-gradient(90deg,#ffffff06 1px,transparent 1px),linear-gradient(#ffffff06 1px,transparent 1px),radial-gradient(circle at 8% 0,var(--page-glow-start),transparent 34rem),var(--page-background);background-size:32px 32px,32px 32px,auto,auto;font-family:var(--pixel-body); }
+        :root:is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) .shell::before { opacity:.14;background-image:repeating-linear-gradient(0deg,transparent 0 3px,#fff 3px 4px);background-size:auto; }
+        :root:is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) :is(.eyebrow,h1,h2,.badge,.button,.game-icon) { font-family:var(--pixel-font); }
+        :root:is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) h1 { max-width:940px;font-size:clamp(42px,7vw,80px);letter-spacing:-.075em;line-height:1.08;text-shadow:5px 5px 0 #765cff; }
+        :root:is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) h1 .pop { text-shadow:4px 4px 0 var(--ink);-webkit-text-stroke:0; }
+        :root:is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) .eyebrow { border-radius:0;box-shadow:4px 4px 0 var(--ink);clip-path:polygon(4px 0,calc(100% - 4px) 0,calc(100% - 4px) 4px,100% 4px,100% calc(100% - 4px),calc(100% - 4px) calc(100% - 4px),calc(100% - 4px) 100%,4px 100%,4px calc(100% - 4px),0 calc(100% - 4px),0 4px,4px 4px); }
+        :root:is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) .hero-spark { font-family:var(--pixel-font);animation:hero-blink 1.2s steps(2,end) infinite alternate; }
+        :root:is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) .game-grid { gap:22px; }
+        :root:is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) .card { min-height:310px;overflow:visible;background:var(--panel);border:3px solid var(--ink);border-radius:0;box-shadow:7px 7px 0 var(--game-color),11px 11px 0 var(--ink);backdrop-filter:none;transition:transform 140ms steps(2,end),box-shadow 140ms steps(2,end); }
+        :root:is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) .card::before { height:9px;background:repeating-linear-gradient(90deg,var(--game-color) 0 20px,color-mix(in srgb,var(--game-color) 45%,transparent) 20px 28px); }
+        :root:is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) .card::after { right:18px;bottom:18px;width:64px;height:64px;background:linear-gradient(90deg,var(--game-color) 0 25%,transparent 25% 75%,var(--game-color) 75%),linear-gradient(var(--game-color) 0 25%,transparent 25% 75%,var(--game-color) 75%);border-radius:0;filter:none;opacity:.13; }
+        :root:is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) .card:hover,:root:is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) .card:nth-child(even):hover { transform:translate(4px,4px);box-shadow:3px 3px 0 var(--game-color),7px 7px 0 var(--ink); }
+        :root:is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) .game-icon { width:52px;height:52px;border-radius:0;box-shadow:4px 4px 0 var(--ink);font-size:18px;transform:none;image-rendering:pixelated; }
+        :root:is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) .badge { border-radius:0;font-size:9px;box-shadow:3px 3px 0 var(--ink); }
+        :root:is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) h2 { font-size:clamp(27px,3vw,38px);letter-spacing:-.055em; }
+        :root:is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) .capability { border:1px solid color-mix(in srgb,var(--game-color) 48%,var(--ink));border-radius:0; }
+        :root:is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) .button { border-radius:0;font-size:11px;box-shadow:4px 4px 0 var(--ink); }
+        :root:is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) .button:hover { transform:translate(4px,4px);box-shadow:0 0 0 var(--ink); }
+        @keyframes hero-blink { to { opacity:.35;transform:translateY(-8px) rotate(14deg); } }
+        @media(max-width:700px){:root:is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) h1{font-size:clamp(36px,11vw,54px)}:root:is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) .card{padding:26px 22px;box-shadow:5px 5px 0 var(--game-color),8px 8px 0 var(--ink)}}
+        @media(prefers-reduced-motion:reduce){:root:is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) .hero-spark{animation:none}}
     </style>
 </head>
 <body>
@@ -325,6 +351,32 @@
 
         <section class="game-grid" aria-label="Games">
             <article class="card">
+                <div class="card-top"><span class="game-icon" aria-hidden="true">▦</span><span class="badge">New game</span></div>
+                <div class="card-copy">
+                    <h2>Tetris</h2>
+                    <p>Stack falling pieces, clear lines, and keep the board alive as the pace climbs.</p>
+                    <ul class="capabilities" aria-label="Game modes">
+                        <li class="capability"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20c.6-4 2.7-6 6.5-6s5.9 2 6.5 6"/></svg>Single player</li>
+                    </ul>
+                    <div class="actions"><a class="button button-primary" href="tetris/index.html">Play Tetris&nbsp; →</a></div>
+                </div>
+            </article>
+
+            <article class="card">
+                <div class="card-top"><span class="game-icon" aria-hidden="true">▰</span><span class="badge">New game</span></div>
+                <div class="card-copy">
+                    <h2>Battle Tanks</h2>
+                    <p>Trade explosive artillery shots against the CPU, a couch rival, or an online opponent.</p>
+                    <ul class="capabilities" aria-label="Game modes">
+                        <li class="capability"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3"/><path d="M6 20c.5-4 2.5-6 6-6s5.5 2 6 6"/></svg>Single-player CPU</li>
+                        <li class="capability"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2.5 20c.5-4 2.3-6 5.5-6s5 2 5.5 6M14 15c3.9-.8 6.5.9 7 4"/></svg>Local two-player</li>
+                        <li class="capability"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 3.7 5.5 3.7 9s-1.2 6.5-3.7 9c-2.5-2.5-3.7-5.5-3.7-9S9.5 5.5 12 3"/></svg>Online multiplayer</li>
+                    </ul>
+                    <div class="actions"><a class="button button-primary" href="battle-tanks/index.html">Play Battle Tanks&nbsp; →</a></div>
+                </div>
+            </article>
+
+            <article class="card">
                 <div class="card-top">
                     <span class="game-icon" aria-hidden="true">⌗</span>
                     <span class="badge">New edition available</span>
@@ -338,24 +390,6 @@
                     <div class="actions">
                         <a class="button button-primary" href="Sudoku/index.html">Play new Sudoku&nbsp; →</a>
                         <a class="button button-secondary" href="Sudoku/classic/index.html">Play classic Sudoku</a>
-                    </div>
-                </div>
-            </article>
-
-            <article class="card">
-                <div class="card-top">
-                    <span class="game-icon" aria-hidden="true">✦</span>
-                    <span class="badge">New edition available</span>
-                </div>
-                <div class="card-copy">
-                    <h2>Minesweeper</h2>
-                    <p>Clear the field, read the clues, and avoid every hidden mine in the modernized game—or revisit the original experiment.</p>
-                    <ul class="capabilities" aria-label="Game modes">
-                        <li class="capability"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20c.6-4 2.7-6 6.5-6s5.9 2 6.5 6"/></svg>Single player</li>
-                    </ul>
-                    <div class="actions">
-                        <a class="button button-primary" href="Minesweeper/index.html">Play new Minesweeper&nbsp; →</a>
-                        <a class="button button-secondary" href="Minesweeper/classic/index.html">Play classic Minesweeper</a>
                     </div>
                 </div>
             </article>
@@ -379,6 +413,25 @@
                     </div>
                 </div>
             </article>
+
+            <article class="card">
+                <div class="card-top">
+                    <span class="game-icon" aria-hidden="true">✦</span>
+                    <span class="badge">New edition available</span>
+                </div>
+                <div class="card-copy">
+                    <h2>Minesweeper</h2>
+                    <p>Clear the field, read the clues, and avoid every hidden mine in the modernized game—or revisit the original experiment.</p>
+                    <ul class="capabilities" aria-label="Game modes">
+                        <li class="capability"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20c.6-4 2.7-6 6.5-6s5.9 2 6.5 6"/></svg>Single player</li>
+                    </ul>
+                    <div class="actions">
+                        <a class="button button-primary" href="Minesweeper/index.html">Play new Minesweeper&nbsp; →</a>
+                        <a class="button button-secondary" href="Minesweeper/classic/index.html">Play classic Minesweeper</a>
+                    </div>
+                </div>
+            </article>
+
             <article class="card">
                 <div class="card-top"><span class="game-icon" aria-hidden="true">×○</span><span class="badge">New game</span></div>
                 <div class="card-copy">
@@ -390,30 +443,6 @@
                         <li class="capability"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 3.7 5.5 3.7 9s-1.2 6.5-3.7 9c-2.5-2.5-3.7-5.5-3.7-9S9.5 5.5 12 3"/></svg>Online multiplayer</li>
                     </ul>
                     <div class="actions"><a class="button button-primary" href="tictactoe/index.html">Play Tic-tac-toe&nbsp; →</a></div>
-                </div>
-            </article>
-            <article class="card">
-                <div class="card-top"><span class="game-icon" aria-hidden="true">▰</span><span class="badge">New game</span></div>
-                <div class="card-copy">
-                    <h2>Battle Tanks</h2>
-                    <p>Trade explosive artillery shots against the CPU, a couch rival, or an online opponent.</p>
-                    <ul class="capabilities" aria-label="Game modes">
-                        <li class="capability"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3"/><path d="M6 20c.5-4 2.5-6 6-6s5.5 2 6 6"/></svg>Single-player CPU</li>
-                        <li class="capability"><svg aria-hidden="true" focusable="false" viewBox="0 0 24 24"><circle cx="8" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M2.5 20c.5-4 2.3-6 5.5-6s5 2 5.5 6M14 15c3.9-.8 6.5.9 7 4"/></svg>Local two-player</li>
-                        <li class="capability"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 3.7 5.5 3.7 9s-1.2 6.5-3.7 9c-2.5-2.5-3.7-5.5-3.7-9S9.5 5.5 12 3"/></svg>Online multiplayer</li>
-                    </ul>
-                    <div class="actions"><a class="button button-primary" href="battle-tanks/index.html">Play Battle Tanks&nbsp; →</a></div>
-                </div>
-            </article>
-            <article class="card">
-                <div class="card-top"><span class="game-icon" aria-hidden="true">▦</span><span class="badge">New game</span></div>
-                <div class="card-copy">
-                    <h2>Tetris</h2>
-                    <p>Stack falling pieces, clear lines, and keep the board alive as the pace climbs.</p>
-                    <ul class="capabilities" aria-label="Game modes">
-                        <li class="capability"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 20c.6-4 2.7-6 6.5-6s5.9 2 6.5 6"/></svg>Single player</li>
-                    </ul>
-                    <div class="actions"><a class="button button-primary" href="tetris/index.html">Play Tetris&nbsp; →</a></div>
                 </div>
             </article>
         </section>
