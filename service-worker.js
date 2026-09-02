@@ -1,11 +1,13 @@
 'use strict';
 
-const CACHE_NAME = 'javascript-arcade-v3';
+const CACHE_NAME = 'javascript-arcade-v4';
 const APP_SHELL = [
     './',
     './index.html',
     './arcade.css',
     './arcade.js',
+    './fonts/Silkscreen-Regular.ttf',
+    './fonts/OFL-Silkscreen.txt',
     './scripts/game-events.js',
     './scripts/audio.js',
     './theme-init.js',

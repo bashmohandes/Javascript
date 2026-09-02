@@ -34,12 +34,12 @@ function drawTank(tank,i){
     ctx.save();
     if((state.activeEffects?.[i]||[]).some(effect=>effect.effect==='invisible'))ctx.globalAlpha=.35;
     const shield=(state.activeEffects?.[i]||[]).find(effect=>effect.effect==='absorb');if(shield){ctx.strokeStyle='#70ddff';ctx.setLineDash([9,5]);ctx.lineWidth=4;ctx.beginPath();ctx.arc(cx,tank.y+10,44,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle=arenaColors.ink;ctx.font='bold 12px system-ui';ctx.textAlign='center';ctx.fillText(`SHIELD ${shield.remainingTurns}T · ${shield.remainingCapacity}`,cx,tank.y-39);}
-    // Tracks, road wheels, sloped hull, and turret give each vehicle a sturdier silhouette.
-    ctx.fillStyle='#17251f';roundedRect(tank.x-5,base-13,TANK_W+10,16,7);ctx.fill();
-    for(let wheel=0;wheel<4;wheel+=1){ctx.fillStyle='#435048';ctx.beginPath();ctx.arc(tank.x+8+wheel*14,base-5,6,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#13201b';ctx.lineWidth=2;ctx.stroke();}
+    // Stepped tracks and square road wheels keep the vehicle readable as pixel art.
+    ctx.fillStyle='#17251f';ctx.fillRect(Math.round(tank.x-5),Math.round(base-13),TANK_W+10,16);
+    for(let wheel=0;wheel<4;wheel+=1){ctx.fillStyle='#435048';ctx.fillRect(Math.round(tank.x+3+wheel*14),Math.round(base-10),11,11);ctx.strokeStyle='#13201b';ctx.lineWidth=2;ctx.strokeRect(Math.round(tank.x+3+wheel*14),Math.round(base-10),11,11);}
     ctx.fillStyle=tankColors[i];ctx.beginPath();ctx.moveTo(tank.x,base-14);ctx.lineTo(tank.x+8,base-26);ctx.lineTo(tank.x+TANK_W-8,base-26);ctx.lineTo(tank.x+TANK_W,base-14);ctx.closePath();ctx.fill();ctx.strokeStyle=arenaColors.ink;ctx.lineWidth=3;ctx.stroke();
-    ctx.fillStyle=tankColors[i];roundedRect(cx-17,tank.y-3,34,17,7);ctx.fill();ctx.stroke();ctx.fillStyle='rgba(255,255,255,.22)';ctx.fillRect(cx-10,tank.y+1,15,3);
-    const rad=tank.angle*Math.PI/180;ctx.strokeStyle=arenaColors.ink;ctx.lineWidth=8;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(cx, tank.y+4);ctx.lineTo(cx+Math.cos(rad)*43*dir,tank.y-Math.sin(rad)*43);ctx.stroke();
+    ctx.fillStyle=tankColors[i];ctx.fillRect(Math.round(cx-17),Math.round(tank.y-3),34,17);ctx.strokeRect(Math.round(cx-17),Math.round(tank.y-3),34,17);ctx.fillStyle='rgba(255,255,255,.22)';ctx.fillRect(Math.round(cx-10),Math.round(tank.y+1),15,3);
+    const rad=tank.angle*Math.PI/180;ctx.strokeStyle=arenaColors.ink;ctx.lineWidth=8;ctx.lineCap='butt';ctx.beginPath();ctx.moveTo(Math.round(cx),Math.round(tank.y+4));ctx.lineTo(Math.round(cx+Math.cos(rad)*43*dir),Math.round(tank.y-Math.sin(rad)*43));ctx.stroke();
     // Persistent dents, scorch and exposed metal scale with damage taken.
     if(tank.health<100){ctx.fillStyle='rgba(20,20,17,.72)';ctx.beginPath();ctx.arc(cx+(i?-9:9),tank.y+8,7,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#e2a35f';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(cx-4,tank.y+8);ctx.lineTo(cx+5,tank.y+14);ctx.lineTo(cx,tank.y+21);ctx.stroke();}
     if(tank.health<=50){ctx.strokeStyle='#24241f';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(tank.x+8,base-21);ctx.lineTo(tank.x+17,base-14);ctx.lineTo(tank.x+23,base-22);ctx.stroke();ctx.fillStyle='rgba(38,38,32,.26)';ctx.beginPath();ctx.arc(cx,tank.y-17,11,0,Math.PI*2);ctx.arc(cx+8,tank.y-27,8,0,Math.PI*2);ctx.fill();}

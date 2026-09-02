@@ -1,2 +1,7 @@
 /* Shared arcade game shell and controls. Game-specific rules belong here. */
 @import url('../styles/game.css');
+
+:is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) .game-pong .arena-wrap{border-radius:0;background:var(--pong-field);image-rendering:pixelated}
+:is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) .game-pong #game{image-rendering:pixelated}
+:is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) .game-pong :is(.arena-message,.mode-switch,.player-color,.online-panel,.power-guide){border-radius:0}
+:is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) .game-pong .arena-message strong{font-family:var(--pixel-font);text-shadow:4px 4px 0 #000}

@@ -16,6 +16,14 @@ test('registry provides three curated themes with independent color preferences'
     assert.match(init, /arcade-color-preference/);
 });
 
+test('the compatible playful id presents the new Pixel default identity', () => {
+    assert.match(init, /defaultTheme: 'playful'/);
+    assert.match(init, /id: 'playful', name: 'Pixel'/);
+    assert.match(shared, /font-family:"Arcade Pixel"/);
+    assert.match(shared, /fonts\/Silkscreen-Regular\.ttf/);
+    assert.match(games, /data-arcade-theme="playful"/);
+});
+
 test('appearance dialog exposes theme cards and an accessible color radiogroup', () => {
     assert.match(runtime, /className = 'arcade-dialog arcade-appearance-dialog'/);
     assert.match(runtime, /data-theme-option/);
@@ -58,6 +66,14 @@ test('theme styles own the Battle Tanks canvas palette', () => {
     const battleTanks = fs.readFileSync('battle-tanks/scripts/app.js', 'utf8');
     assert.match(battleTanks, /getComputedStyle\(arena\)/);
     assert.doesNotMatch(battleTanks, /const palettes=/);
+});
+
+test('theme styles own the Pong canvas palette and refresh contract', () => {
+    for (const token of ['field', 'line', 'ball', 'decoy', 'trail']) assert.match(games, new RegExp(`--pong-${token}:`));
+    const pong = fs.readFileSync('pong/scripts/app.js', 'utf8');
+    assert.match(pong, /getComputedStyle\(arena\)/);
+    assert.match(pong, /system:theme-changed[^\n]*updatePongTheme/);
+    assert.doesNotMatch(pong, /dataset\.arcadeTheme/);
 });
 
 test('theme styles own the Tetris palette and sharing refreshes from its scoped interface', () => {

@@ -121,3 +121,12 @@ kbd { padding: 1px 4px; border: 1px solid var(--line); border-radius: 3px; backg
     .keyboard-tip { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; } }
+
+/* Pixel number grid. */
+:root:is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) .game-sudoku{--box-line:#ffd84d;--selected:#51385c;--related:#15243a;--sage:#173c37;--control-active:#2f254e}
+:root[data-arcade-theme="playful"][data-color-mode="light"] .game-sudoku{--box-line:#192541;--selected:#ffd1df;--related:#e9e6d6;--sage:#d8f0e6;--control-active:#fff0bf}
+:is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) .game-sudoku .board{border-radius:0;box-shadow:6px 6px 0 var(--game-spark),10px 10px 0 var(--ink);image-rendering:pixelated}
+:is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) .game-sudoku .cell{font-family:var(--pixel-font);font-size:clamp(15px,2.4vw,25px);transition:background 100ms steps(2,end)}
+:is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) .game-sudoku .cell.selected{box-shadow:inset 0 0 0 3px var(--game-pop),inset 0 0 0 6px color-mix(in srgb,var(--game-pop) 28%,transparent)}
+:is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) .game-sudoku :is(.number,.tool,.modal-card){border-radius:0}
+:is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) .game-sudoku .notes-grid{font-family:var(--pixel-body)}
