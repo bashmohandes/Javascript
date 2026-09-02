@@ -1,7 +1,9 @@
 (() => {
     'use strict';
 
-    const EMPTY_CELLS = { easy: 36, medium: 45, hard: 52 };
+    const rules = window.SudokuGame;
+    if (!rules) throw new Error('Sudoku mechanics failed to load.');
+    const { sameBox } = rules;
     const boardElement = document.querySelector('#board');
     const timerElement = document.querySelector('#timer');
     const mistakesElement = document.querySelector('#mistakes');
@@ -35,40 +37,13 @@
     let solvingCell = null;
     let solveSnapshot = null;
 
-    const shuffle = items => {
-        const result = [...items];
-        for (let index = result.length - 1; index > 0; index--) {
-            const swapIndex = Math.floor(Math.random() * (index + 1));
-            [result[index], result[swapIndex]] = [result[swapIndex], result[index]];
-        }
-        return result;
-    };
-
-    function generateSolution() {
-        const pattern = (row, column) => (row * 3 + Math.floor(row / 3) + column) % 9;
-        const groups = shuffle([0, 1, 2]);
-        const rows = groups.flatMap(group => shuffle([0, 1, 2]).map(row => group * 3 + row));
-        const columns = shuffle([0, 1, 2]).flatMap(group => shuffle([0, 1, 2]).map(column => group * 3 + column));
-        const numbers = shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9]);
-        return rows.map(row => columns.map(column => numbers[pattern(row, column)]));
-    }
-
-    function createPuzzle(difficulty) {
-        const completed = generateSolution();
-        const playable = completed.map(row => [...row]);
-        shuffle(Array.from({ length: 81 }, (_, index) => index))
-            .slice(0, EMPTY_CELLS[difficulty])
-            .forEach(index => { playable[Math.floor(index / 9)][index % 9] = 0; });
-        return { completed, playable };
-    }
-
     function startGame() {
         const difficulty = difficultySelect.value;
-        const generated = createPuzzle(difficulty);
+        const generated = rules.createPuzzle(difficulty);
         solution = generated.completed;
         puzzle = generated.playable;
         values = puzzle.map(row => [...row]);
-        notes = Array.from({ length: 9 }, () => Array.from({ length: 9 }, () => new Set()));
+        notes = rules.createNotes();
         selected = null;
         mistakes = 0;
         hints = 3;
@@ -145,9 +120,6 @@
         updateNumberPad();
     }
 
-    const sameBox = (rowA, columnA, rowB, columnB) =>
-        Math.floor(rowA / 3) === Math.floor(rowB / 3) && Math.floor(columnA / 3) === Math.floor(columnB / 3);
-
     function selectCell(row, column) {
         if (gameOver || autoSolving) return;
         selected = { row, column };
@@ -167,7 +139,7 @@
             render();
             return;
         }
-        if (!isPlacementValid(values, row, column, number)) {
+        if (!rules.isPlacementValid(values, row, column, number)) {
             mistakes += 1;
             mistakesElement.textContent = mistakes;
             statusElement.textContent = mistakes >= 3 ? 'Three mistakes — start a fresh puzzle when you’re ready.' : 'That number already appears in the row, column or box.';
@@ -180,17 +152,11 @@
         values[row][column] = number;
         events.emit('sudoku:entry-accepted', { row, column, number });
         notes[row][column].clear();
-        removePeerNotes(row, column, number);
+        rules.removePeerNotes(notes, row, column, number);
         statusElement.textContent = 'Nice. Keep going.';
         render();
         publishProgress();
         if (values.every(boardRow => boardRow.every(Boolean))) endGame(true);
-    }
-
-    function removePeerNotes(row, column, number) {
-        notes.forEach((noteRow, rowIndex) => noteRow.forEach((cellNotes, columnIndex) => {
-            if (rowIndex === row || columnIndex === column || sameBox(row, column, rowIndex, columnIndex)) cellNotes.delete(number);
-        }));
     }
 
     function erase() {
@@ -211,7 +177,7 @@
         const { row, column } = selected;
         values[row][column] = solution[row][column];
         notes[row][column].clear();
-        removePeerNotes(row, column, solution[row][column]);
+        rules.removePeerNotes(notes, row, column, solution[row][column]);
         hints -= 1;
         events.emit('sudoku:hint-used', { row, column, number: solution[row][column], remaining: hints });
         document.querySelector('#hint').innerHTML = `${CONTROL_ICONS.hint}Hint <small>${hints} left</small>`;
@@ -271,24 +237,16 @@
         updateAutoSolveButton(true);
         clearInterval(timerId);
 
-        const solverGrid = puzzle.map(row => [...row]);
-        const emptyCells = [];
-        solverGrid.forEach((row, rowIndex) => row.forEach((value, columnIndex) => {
-            if (!value) emptyCells.push({ row: rowIndex, column: columnIndex });
-        }));
-        const nextCandidates = Array(emptyCells.length).fill(1);
-        let cellIndex = 0;
-        let attempts = 0;
-        let backtracks = 0;
-
-        values = solverGrid.map(row => [...row]);
+        const solver = rules.createSolver(puzzle);
+        values = solver.grid;
         notes.forEach(row => row.forEach(cellNotes => cellNotes.clear()));
 
         statusElement.setAttribute('aria-live', 'off');
         statusElement.textContent = 'Searching for a solution with backtracking…';
         const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
         solveTimerId = setInterval(() => {
-            if (cellIndex === emptyCells.length) {
+            const result = rules.stepSolver(solver);
+            if (result.type === 'complete') {
                 clearInterval(solveTimerId);
                 solvingCell = null;
                 autoSolving = false;
@@ -297,13 +255,13 @@
                 updateAutoSolveButton(false);
                 autoSolveButton.disabled = true;
                 statusElement.setAttribute('aria-live', 'polite');
-                statusElement.textContent = `Solved with ${attempts} tries and ${backtracks} backtrack${backtracks === 1 ? '' : 's'}.`;
+                statusElement.textContent = `Solved with ${solver.attempts} tries and ${solver.backtracks} backtrack${solver.backtracks === 1 ? '' : 's'}.`;
                 events.emit('game:stopped', { reason: 'auto-solved' });
                 render();
                 return;
             }
 
-            if (cellIndex < 0) {
+            if (result.type === 'unsolvable') {
                 clearInterval(solveTimerId);
                 autoSolving = false;
                 gameOver = true;
@@ -316,36 +274,18 @@
                 return;
             }
 
-            const cell = emptyCells[cellIndex];
-            const candidate = nextCandidates[cellIndex];
-            if (candidate > 9) {
-                solverGrid[cell.row][cell.column] = 0;
-                values[cell.row][cell.column] = 0;
-                nextCandidates[cellIndex] = 1;
-                cellIndex -= 1;
-                backtracks += 1;
-                if (cellIndex >= 0) {
-                    const previous = emptyCells[cellIndex];
-                    solverGrid[previous.row][previous.column] = 0;
-                    values[previous.row][previous.column] = 0;
-                    solvingCell = { ...previous, state: 'backtrack' };
-                    statusElement.textContent = `Dead end at row ${cell.row + 1}, column ${cell.column + 1} — backtracking.`;
-                }
+            if (result.type === 'backtrack') {
+                solvingCell = result.previous ? { ...result.previous, state: 'backtrack' } : null;
+                statusElement.textContent = `Dead end at row ${result.cell.row + 1}, column ${result.cell.column + 1} — backtracking.`;
                 render();
                 return;
             }
 
-            attempts += 1;
-            nextCandidates[cellIndex] = candidate + 1;
-            solverGrid[cell.row][cell.column] = candidate;
-            values[cell.row][cell.column] = candidate;
-            if (isSolverCandidateValid(solverGrid, cell.row, cell.column)) {
-                solvingCell = { ...cell, state: 'accepted' };
-                statusElement.textContent = `${candidate} fits at row ${cell.row + 1}, column ${cell.column + 1}.`;
-                cellIndex += 1;
+            solvingCell = { ...result.cell, state: result.type };
+            if (result.type === 'accepted') {
+                statusElement.textContent = `${result.candidate} fits at row ${result.cell.row + 1}, column ${result.cell.column + 1}.`;
             } else {
-                solvingCell = { ...cell, state: 'rejected' };
-                statusElement.textContent = `Trying ${candidate} at row ${cell.row + 1}, column ${cell.column + 1}…`;
+                statusElement.textContent = `Trying ${result.candidate} at row ${result.cell.row + 1}, column ${result.cell.column + 1}…`;
             }
             render();
         }, reduceMotion ? 1 : 45);
@@ -373,25 +313,6 @@
             ? `${CONTROL_ICONS.stop}Stop solve`
             : `${CONTROL_ICONS.play}Auto solve`;
         autoSolveButton.classList.toggle('is-stopping', isSolving);
-    }
-
-    function isSolverCandidateValid(grid, row, column) {
-        return isPlacementValid(grid, row, column, grid[row][column]);
-    }
-
-    function isPlacementValid(grid, row, column, value) {
-        for (let index = 0; index < 9; index++) {
-            if (index !== column && grid[row][index] === value) return false;
-            if (index !== row && grid[index][column] === value) return false;
-        }
-        const boxRow = Math.floor(row / 3) * 3;
-        const boxColumn = Math.floor(column / 3) * 3;
-        for (let rowIndex = boxRow; rowIndex < boxRow + 3; rowIndex++) {
-            for (let columnIndex = boxColumn; columnIndex < boxColumn + 3; columnIndex++) {
-                if ((rowIndex !== row || columnIndex !== column) && grid[rowIndex][columnIndex] === value) return false;
-            }
-        }
-        return true;
     }
 
     function moveSelection(rowChange, columnChange) {
