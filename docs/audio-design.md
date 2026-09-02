@@ -12,7 +12,8 @@ action feedback while preserving the build-free browser architecture. It must:
 - keep theme selection in shared code rather than game controllers.
 
 The classic p5.js pages, server, mechanics engines, result schemas, and room wire
-formats are outside this design.
+formats are outside this design. Game controllers publish domain facts through
+the [browser event contract](game-events.md); they do not import the audio API.
 
 ## Runtime and signal graph
 
@@ -32,9 +33,10 @@ disconnect after completion, and share a 32-voice ceiling. The compressor is a
 safety boundary for overlapping action cues, not a substitute for conservative
 voice gains.
 
-## Public controller contract
+## Event adapter and internal audio contract
 
-Game controllers use semantic methods and never manipulate audio nodes:
+`scripts/audio.js` subscribes to `ArcadeEvents` and translates domain facts into
+the following internal methods. Game controllers never call them directly:
 
 | Method | Responsibility |
 |---|---|
@@ -76,9 +78,10 @@ and settings surfaces remain comfortable.
 
 ## Game integration and online deduplication
 
-Controllers emit cues only after successful actions. Flood fills, held controls,
-and continuous simulations summarize or throttle their feedback rather than
-creating a voice for every mechanics step.
+Controllers emit domain events only after successful actions. Flood fills, held
+controls, and continuous simulations summarize or throttle their feedback rather
+than creating an event for every mechanics step. The audio adapter maps those
+facts to finite cues and normalized music state.
 
 Online audio is derived from transitions between accepted viewer states:
 
@@ -98,8 +101,9 @@ events. No audio identifiers or preferences enter WebSocket messages.
 - Invalid stored levels fall back to defaults; setters clamp values to `[0, 1]`.
 - Unit tests use a fake context to verify lazy construction, routing, bounded
   scheduling, preference behavior, and cleanup.
-- Static integration tests require all modern pages and semantic game hooks while
-  prohibiting audio media files and named-theme branches in game code.
+- Static integration tests require all modern pages and semantic event hooks,
+  prohibit audio references in game controllers, and prohibit audio media files
+  and named-theme branches in game code.
 - Browser verification covers interaction activation, tab visibility, dialogs,
   full-screen modes, touch/keyboard input, all experience themes, and long-session
   clipping or node accumulation.

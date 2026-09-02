@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const { createArcadeAudio } = require('../scripts/audio.js');
+const { createArcadeEvents } = require('../scripts/game-events.js');
 
 const root = path.resolve(__dirname, '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
@@ -80,6 +81,21 @@ test('audio graph stays lazy until a gameplay cue activates it', async () => {
     assert.ok(FakeAudioContext.instances[0].oscillators.length >= 1);
 });
 
+test('domain events drive audio without exposing audio to game controllers', async () => {
+    FakeAudioContext.instances.length = 0;
+    const { env } = environment();
+    env.navigator.userActivation.hasBeenActive = false;
+    env.ArcadeEvents = createArcadeEvents(env);
+    createArcadeAudio(env);
+    env.ArcadeEvents.emit('game:started', { intensity: .3, danger: 0 });
+    assert.equal(FakeAudioContext.instances.length, 0, 'a lifecycle event must not bypass user-gesture activation');
+    env.navigator.userActivation.hasBeenActive = true;
+    env.ArcadeEvents.emit('tetris:piece-locked', { pieces: 1 });
+    await Promise.resolve(); await Promise.resolve();
+    assert.equal(FakeAudioContext.instances.length, 1);
+    assert.ok(FakeAudioContext.instances[0].oscillators.length > 0);
+});
+
 test('audio refuses automatic activation and bounds overlapping voices', async () => {
     FakeAudioContext.instances.length = 0;
     const { env } = environment();
@@ -133,13 +149,12 @@ test('unsupported browsers expose a safe silent preference surface', async () =>
     audio.setMusicVolume(.5); audio.setScene('active'); audio.setPaused(true); audio.destroy();
 });
 
-test('all modern games load shared audio and retain semantic integration hooks', () => {
+test('all modern games load shared audio behind the event adapter', () => {
     const games = ['pong', 'tictactoe', 'battle-tanks', 'Sudoku', 'Minesweeper', 'tetris'];
     for (const game of games) {
         assert.match(read(`${game}/index.html`), /scripts\/audio\.js/, `${game} should load shared audio`);
-        assert.match(read(`${game}/scripts/app.js`), /ArcadeAudio/, `${game} should use the audio contract`);
-        assert.match(read(`${game}/scripts/app.js`), /setScene\(/, `${game} should drive an adaptive music scene`);
-        assert.match(read(`${game}/scripts/app.js`), /\.cue\(/, `${game} should emit action cues`);
+        assert.doesNotMatch(read(`${game}/scripts/app.js`), /ArcadeAudio|setScene\(|\.cue\(/, `${game} should remain independent from audio`);
+        assert.match(read(`${game}/scripts/app.js`), /events\.emit\(/, `${game} should publish domain events`);
     }
     for (const classic of ['pong/classic/index.html', 'Sudoku/classic/index.html', 'Minesweeper/classic/index.html']) assert.doesNotMatch(read(classic), /scripts\/audio\.js/);
 });
@@ -151,15 +166,16 @@ test('shared controls, provenance, ADR, and design boundaries are documented', (
     assert.match(read('arcade.css'), /arcade-audio-levels/);
     assert.match(read('docs/adr/0013-procedural-arcade-audio.md'), /AudioContext|Web Audio/);
     assert.match(read('docs/audio-design.md'), /32-voice ceiling/);
+    assert.match(read('docs/game-events.md'), /Producer rules/);
     assert.match(read('docs/audio.md'), /Public-domain milestone fragments/);
     assert.match(read('service-worker.js'), /scripts\/audio\.js/);
 });
 
-test('online games establish audio watermarks without replaying resume snapshots', () => {
+test('online games establish presentation-event watermarks without replaying resume snapshots', () => {
     const pong = read('pong/scripts/app.js'), tic = read('tictactoe/scripts/app.js'), tanks = read('battle-tanks/scripts/app.js');
-    assert.match(pong, /awaitingResumeState/); assert.match(pong, /!resumedSnapshot[^\n]*cue/);
+    assert.match(pong, /awaitingResumeState/); assert.match(pong, /!resumedSnapshot[^\n]*events\.emit/);
     assert.match(tic, /awaitingResumeState/); assert.match(tic, /if\(!resumedSnapshot\)/);
-    assert.match(tanks, /suppressNextOnlineAudio/); assert.match(tanks, /lastImpactSerial=message\.state\.lastImpact/);
+    assert.match(tanks, /suppressNextOnlineEvents/); assert.match(tanks, /lastImpactSerial=message\.state\.lastImpact/);
 });
 
 test('the arcade ships no audio media files', () => {

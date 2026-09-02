@@ -18,7 +18,7 @@ const readyOnlineButton = document.querySelector('#ready-online');
 const roomList = document.querySelector('#room-list');
 const shareButton = document.querySelector('#share-result');
 const { predictBall } = window.PongMotion;
-const audio = window.ArcadeAudio;
+const events = window.ArcadeEvents;
 
 const game = {
     width: 960, height: 600, running: false, paused: false, over: false, mode: 'solo',
@@ -43,6 +43,7 @@ const CURVE_SHOT_DURATION = 0.8;
 let balls = [];
 let onlineBallSample = null;
 const online = { socket: null, roomCode: '', token: '', side: 0, gamertags: [null, null], connected: false, lastSequence: 0, reconnectTimer: null, intentionalClose: false, awaitingResumeState: false };
+let lastProgressEvent = '', lastPauseEvent = null;
 let recordedOnlineResult = null;
 const formatDuration = seconds => {
     const total = Math.max(0, Math.round(seconds));
@@ -88,10 +89,11 @@ function applyOnlineState(state) {
     balls = state.balls.map(ball => ({ ...ball }));
     onlineBallSample = state.running && !state.paused ? { balls: balls.map(ball => ({ ...ball })), paddles: state.paddles.map(paddle => ({ ...paddle })), receivedAt: performance.now(), elapsed: state.elapsed, effects: state.effects.map(effect => ({ ...effect })) } : null;
     game.powerUps = state.powerUps.map(powerUp => ({ ...powerUp }));
-    audio?.setPaused(state.paused);
-    audio?.setScene(state.over ? 'complete' : 'active', { intensity: .2 + Math.min(.65, (state.score[0] + state.score[1]) / 14), danger: Math.max(...state.score) / 7 });
-    if (!resumedSnapshot && state.score.some((value, side) => value > previousScore[side])) audio?.cue('score');
-    if (state.over) { const won = state.winner === online.side; if (!wasOver && !resumedSnapshot) audio?.cue(won ? 'win' : 'loss'); const resultKey = `${online.roomCode}:${state.score.join('-')}:${state.elapsed}`; if (recordedOnlineResult !== resultKey) { recordedOnlineResult = resultKey; window.Arcade?.record({ game: 'pong', won, details: { mode: 'online', score: `${state.score[online.side]}-${state.score[1 - online.side]}`, seconds: Math.max(1, Math.round(state.elapsed)) } }).catch(() => {}); } status.textContent = won ? 'You won the online match!' : 'Your opponent won the online match.'; showOverlay(won ? 'You win!' : 'Opponent wins', `Finished in ${formatDuration(state.elapsed)} · Choose rematch when ready`); shareButton.hidden = false; readyOnlineButton.disabled = false; readyOnlineButton.textContent = 'Ready for rematch'; }
+    if (state.paused !== lastPauseEvent) { lastPauseEvent = state.paused; events.emit('game:paused', { paused: state.paused }); }
+    const progressEvent = state.score.join('-');
+    if (progressEvent !== lastProgressEvent) { lastProgressEvent = progressEvent; events.emit('game:progressed', { intensity: .2 + Math.min(.65, (state.score[0] + state.score[1]) / 14), danger: Math.max(...state.score) / 7 }); }
+    if (!resumedSnapshot && state.score.some((value, side) => value > previousScore[side])) events.emit('pong:point-scored', { score: [...state.score] });
+    if (state.over) { const won = state.winner === online.side; if (!wasOver && !resumedSnapshot) events.emit('game:completed', { outcome: won ? 'win' : 'loss', score: [...state.score] }); const resultKey = `${online.roomCode}:${state.score.join('-')}:${state.elapsed}`; if (recordedOnlineResult !== resultKey) { recordedOnlineResult = resultKey; window.Arcade?.record({ game: 'pong', won, details: { mode: 'online', score: `${state.score[online.side]}-${state.score[1 - online.side]}`, seconds: Math.max(1, Math.round(state.elapsed)) } }).catch(() => {}); } status.textContent = won ? 'You won the online match!' : 'Your opponent won the online match.'; showOverlay(won ? 'You win!' : 'Opponent wins', `Finished in ${formatDuration(state.elapsed)} · Choose rematch when ready`); shareButton.hidden = false; readyOnlineButton.disabled = false; readyOnlineButton.textContent = 'Ready for rematch'; }
     else if (state.running && !state.paused) overlay.hidden = true;
 }
 function applyReadyStatus(ready = []) {
@@ -118,7 +120,7 @@ function handleOnlineMessage(message) {
             readyOnlineButton.textContent = 'I’m ready';
             status.textContent = 'Waiting for your opponent to join…';
         }
-    } else if (message.type === 'match-started') { shareButton.hidden = true; readyOnlineButton.disabled = true; readyOnlineButton.textContent = 'Match in progress'; status.textContent = 'First to 7. The match is live!'; audio?.setPaused(false); audio?.setScene('active',{intensity:.2,danger:0}); audio?.cue('serve'); }
+    } else if (message.type === 'match-started') { shareButton.hidden = true; readyOnlineButton.disabled = true; readyOnlineButton.textContent = 'Match in progress'; status.textContent = 'First to 7. The match is live!'; events.emit('game:started',{intensity:.2,danger:0,mode:'online'}); events.emit('pong:served', {}); }
     else if (message.type === 'ready-status') applyReadyStatus(message.ready);
     else if (message.type === 'state' && message.sequence > online.lastSequence) { online.lastSequence = message.sequence; applyOnlineState(message.state); }
     else if (message.type === 'peer-left') { setConnection('Reconnecting…', 'connecting'); status.textContent = `Opponent disconnected. Holding the match for ${Math.round(message.reconnectMs / 1000)} seconds.`; showOverlay('Opponent disconnected', 'The match will resume if they reconnect'); }
@@ -151,7 +153,7 @@ function onlineInput() { sendOnline({ type: 'input', up: game.keys.has('KeyW') |
 function makeBall(x = game.width / 2, y = game.height / 2, vx = 0, vy = 0, decoy = false) { return { x, y, r: 10, vx, vy, decoy, curveAcceleration: 0, curveTime: 0 }; }
 function resize() { const ratio = Math.min(window.devicePixelRatio || 1, 2); canvas.width = game.width * ratio; canvas.height = game.height * ratio; ctx.setTransform(ratio, 0, 0, ratio, 0, 0); draw(); }
 function resetBall(direction = game.serve) { balls = [makeBall()]; game.serve = direction; }
-function launch() { const angle = (Math.random() * .8) - .4; balls[0].vx = game.serve * 410 * Math.cos(angle); balls[0].vy = 410 * Math.sin(angle); game.serve *= -1; audio?.cue('serve'); }
+function launch() { const angle = (Math.random() * .8) - .4; balls[0].vx = game.serve * 410 * Math.cos(angle); balls[0].vy = 410 * Math.sin(angle); game.serve *= -1; events.emit('pong:served', { angle }); }
 function setScore(side, value) { (side ? scoreRight : scoreLeft).textContent = value; (side ? arenaScoreRight : arenaScoreLeft).textContent = value; }
 function clearPowerUps() { game.powerUps = []; game.effects = [{}, {}]; paddles.forEach(paddle => paddle.h = paddle.baseH); }
 function schedulePowerUp(first = false) { game.nextPowerUp = game.elapsed + (first ? 5 : 8 + Math.random() * 6); }
@@ -161,16 +163,16 @@ function newGame() {
     game.score = [0, 0]; game.over = false; game.elapsed = 0; game.lastTouch = 0; setScore(0, 0); setScore(1, 0);
     paddles.forEach(paddle => { paddle.y = 240; paddle.h = paddle.baseH; }); clearPowerUps(); schedulePowerUp(true);
     resetBall(Math.random() < .5 ? -1 : 1); game.running = true; game.paused = false; overlay.hidden = true;
-    audio?.setPaused(false); audio?.setScene('active', { intensity: .2, danger: 0 });
+    events.emit('game:started', { intensity: .2, danger: 0, mode: game.mode });
     status.textContent = game.mode === 'solo' ? 'First to 7. Watch for power-ups.' : 'First to 7. Chase power-ups—but guard your goal.';
     setTimeout(() => { if (game.running && !game.paused && balls[0].vx === 0) launch(); }, 500);
 }
 function showOverlay(title, hint) { overlayTitle.textContent = title; overlayHint.textContent = hint; overlay.hidden = false; }
-function togglePause() { if (game.mode === 'online') return; if (game.over || !game.running) { newGame(); return; } game.paused = !game.paused; audio?.setPaused(game.paused); game.paused ? showOverlay('Game paused', 'Click or press Space to continue') : overlay.hidden = true; }
+function togglePause() { if (game.mode === 'online') return; if (game.over || !game.running) { newGame(); return; } game.paused = !game.paused; events.emit('game:paused', { paused: game.paused }); game.paused ? showOverlay('Game paused', 'Click or press Space to continue') : overlay.hidden = true; }
 function point(side) {
     game.score[side]++; setScore(side, game.score[side]); clearPowerUps();
-    audio?.cue('score'); audio?.setScene('active', { intensity: .2 + Math.min(.65, (game.score[0] + game.score[1]) / 14), danger: Math.max(...game.score) / 7 });
-    if (game.score[side] === 7) { game.over = true; game.running = false; const playerSide = 0; const won = side === playerSide; audio?.setScene('complete'); audio?.cue(won ? 'win' : 'loss'); window.Arcade?.record({ game: 'pong', won, details: { mode: game.mode, score: `${game.score[playerSide]}-${game.score[1 - playerSide]}`, seconds: Math.max(1, Math.round(game.elapsed)) } }).catch(() => {}); const name = side === 0 ? (game.mode === 'solo' ? 'You' : 'Left player') : (game.mode === 'solo' ? 'Computer' : 'Right player'); status.textContent = `${name} won ${game.score[side]}–${game.score[1 - side]} in ${formatDuration(game.elapsed)}.`; showOverlay(`${name} wins!`, `Finished in ${formatDuration(game.elapsed)} · Click to play again`); shareButton.hidden = false; return; }
+    events.emit('pong:point-scored', { side, score: [...game.score] }); events.emit('game:progressed', { intensity: .2 + Math.min(.65, (game.score[0] + game.score[1]) / 14), danger: Math.max(...game.score) / 7 });
+    if (game.score[side] === 7) { game.over = true; game.running = false; const playerSide = 0; const won = side === playerSide; events.emit('game:completed', { outcome: won ? 'win' : 'loss', score: [...game.score] }); window.Arcade?.record({ game: 'pong', won, details: { mode: game.mode, score: `${game.score[playerSide]}-${game.score[1 - playerSide]}`, seconds: Math.max(1, Math.round(game.elapsed)) } }).catch(() => {}); const name = side === 0 ? (game.mode === 'solo' ? 'You' : 'Left player') : (game.mode === 'solo' ? 'Computer' : 'Right player'); status.textContent = `${name} won ${game.score[side]}–${game.score[1 - side]} in ${formatDuration(game.elapsed)}.`; showOverlay(`${name} wins!`, `Finished in ${formatDuration(game.elapsed)} · Click to play again`); shareButton.hidden = false; return; }
     resetBall(side === 0 ? 1 : -1); schedulePowerUp(true); setTimeout(() => { if (game.running && !game.paused && balls[0].vx === 0) launch(); }, 650);
 }
 function spawnPowerUp() {
@@ -182,7 +184,7 @@ function spawnPowerUp() {
     let y;
     do { y = 55 + Math.random() * (game.height - 110); } while (Math.abs(y - (paddle.y + paddle.h / 2)) < 145);
     game.powerUps.push({ type, side, x: paddlePickup ? (side ? 898 : 62) : 300 + Math.random() * 360, y: paddlePickup ? y : 80 + Math.random() * 440, r: paddlePickup ? 17 : 20, expires: game.elapsed + (paddlePickup ? 5 : 7) });
-    audio?.cue('power-up');
+    events.emit('pong:power-up-spawned', { type, side });
     schedulePowerUp();
 }
 function collectPowerUp(powerUp, side) {
@@ -194,7 +196,7 @@ function collectPowerUp(powerUp, side) {
     if (powerUp.type === 'burst') balls.forEach(ball => { ball.vx *= 1.22; ball.vy *= 1.22; });
     if (powerUp.type === 'split' && balls.length === 1) balls.push(makeBall(balls[0].x, balls[0].y, balls[0].vx, -balls[0].vy || 260, true));
     status.textContent = `${side ? (game.mode === 'solo' ? 'Computer' : 'Right player') : (game.mode === 'solo' ? 'You' : 'Left player')} collected ${powerUpTypes[powerUp.type].name}.`;
-    audio?.cue('power-up');
+    events.emit('pong:power-up-activated', { type: powerUp.type, side });
     game.powerUps = game.powerUps.filter(item => item !== powerUp);
 }
 function overlapsPaddle(powerUp, paddle) { return powerUp.x + powerUp.r > paddle.x && powerUp.x - powerUp.r < paddle.x + paddle.w && powerUp.y + powerUp.r > paddle.y && powerUp.y - powerUp.r < paddle.y + paddle.h; }
@@ -220,8 +222,8 @@ function update(dt) {
         const move = dt * (slowed ? .72 : 1);
         if ((ball.curveTime || 0) > 0) { const curveStep = Math.min(dt, ball.curveTime); ball.vy += ball.curveAcceleration * curveStep; ball.curveTime = Math.max(0, ball.curveTime - dt); if (ball.curveTime === 0) ball.curveAcceleration = 0; }
         ball.x += ball.vx * move; ball.y += ball.vy * move;
-        if ((ball.y - ball.r < 10 && ball.vy < 0) || (ball.y + ball.r > game.height - 10 && ball.vy > 0)) { ball.vy *= -1; if (!ball.decoy) audio?.cue('wall'); }
-        paddles.forEach((paddle, side) => { const toward = side === 0 ? ball.vx < 0 : ball.vx > 0; if (toward && ball.x + ball.r > paddle.x && ball.x - ball.r < paddle.x + paddle.w && ball.y + ball.r > paddle.y && ball.y - ball.r < paddle.y + paddle.h) { const offset = (ball.y - (paddle.y + paddle.h / 2)) / (paddle.h / 2); ball.x = side === 0 ? paddle.x + paddle.w + ball.r : paddle.x - ball.r; ball.vx = (side === 0 ? 1 : -1) * Math.min(Math.abs(ball.vx) * 1.055, 720); ball.vy = offset * 430; if (!ball.decoy && game.effects[side].curve) { ball.curveAcceleration = (offset >= 0 ? 1 : -1) * CURVE_SHOT_ACCELERATION; ball.curveTime = CURVE_SHOT_DURATION; game.effects[side].curve = false; } if (!ball.decoy) { game.lastTouch = side; audio?.cue('hit',{speed:Math.abs(ball.vx)}); } } });
+        if ((ball.y - ball.r < 10 && ball.vy < 0) || (ball.y + ball.r > game.height - 10 && ball.vy > 0)) { ball.vy *= -1; if (!ball.decoy) events.emit('pong:wall-hit', { speed: Math.abs(ball.vy) }); }
+        paddles.forEach((paddle, side) => { const toward = side === 0 ? ball.vx < 0 : ball.vx > 0; if (toward && ball.x + ball.r > paddle.x && ball.x - ball.r < paddle.x + paddle.w && ball.y + ball.r > paddle.y && ball.y - ball.r < paddle.y + paddle.h) { const offset = (ball.y - (paddle.y + paddle.h / 2)) / (paddle.h / 2); ball.x = side === 0 ? paddle.x + paddle.w + ball.r : paddle.x - ball.r; ball.vx = (side === 0 ? 1 : -1) * Math.min(Math.abs(ball.vx) * 1.055, 720); ball.vy = offset * 430; if (!ball.decoy && game.effects[side].curve) { ball.curveAcceleration = (offset >= 0 ? 1 : -1) * CURVE_SHOT_ACCELERATION; ball.curveTime = CURVE_SHOT_DURATION; game.effects[side].curve = false; } if (!ball.decoy) { game.lastTouch = side; events.emit('pong:paddle-hit',{side,speed:Math.abs(ball.vx)}); } } });
         if (ball.x < -30 || ball.x > game.width + 30) { if (ball.decoy) balls = balls.filter(item => item !== ball); else { point(ball.x < -30 ? 1 : 0); return; } }
     }
 }
@@ -240,7 +242,6 @@ canvas.addEventListener('pointerdown', event => {
     if (game.mode === 'online' && side !== online.side) return;
     if (side === 1 && game.mode !== 'duo' && game.mode !== 'online') return;
     if (game.pointerControls.has(side)) return;
-    audio?.activate();
     event.preventDefault();
     game.pointerControls.set(side, event.pointerId);
     canvas.setPointerCapture(event.pointerId);
@@ -308,7 +309,7 @@ document.querySelector('#create-room').addEventListener('click', () => { const v
 document.querySelector('#join-room').addEventListener('click', () => { const result=OnlineRooms.validateJoin(document.querySelector('#room-code').value);if(!result.ok){status.textContent=result.message;return;}connectOnline({type:'join-room',roomCode:result.code,passcode:document.querySelector('#join-passcode').value.trim()}); });
 document.querySelector('#refresh-rooms').addEventListener('click', refreshRooms);
 document.querySelector('#room-code').addEventListener('input', event => { event.target.value=OnlineRooms.normalizeCode(event.target.value); });
-readyOnlineButton.addEventListener('click', () => { audio?.activate(); readyOnlineButton.disabled = true; sendOnline({ type: game.over ? 'rematch' : 'ready' }); });
+readyOnlineButton.addEventListener('click', () => { readyOnlineButton.disabled = true; sendOnline({ type: game.over ? 'rematch' : 'ready' }); });
 document.querySelector('#leave-room').addEventListener('click', () => leaveOnline());
 document.querySelector('#copy-invite').addEventListener('click', async () => { try{await OnlineRooms.copyInvite(online.roomCode);status.textContent='Invite link copied.';}catch{status.textContent='Could not copy the invite link. Copy it from the address bar instead.';} });
 document.querySelectorAll('.player-color').forEach((picker, index) => {
@@ -337,7 +338,7 @@ fullscreenButton.addEventListener('click', async () => {
 });
 arena.querySelector('.fullscreen-exit').addEventListener('click', () => fullscreenButton.click());
 document.addEventListener('fullscreenchange', () => setFullscreenState(document.fullscreenElement === arena));
-addEventListener('keydown', event => { if (event.code === 'Escape') { document.querySelectorAll('.color-menu').forEach(menu => menu.hidden = true); document.querySelectorAll('.color-trigger').forEach(trigger => trigger.setAttribute('aria-expanded', false)); if (arena.classList.contains('is-fullscreen')) setFullscreenState(false); return; } if (['ArrowUp', 'ArrowDown', 'Space'].includes(event.code)) event.preventDefault(); if (event.code === 'Space') { audio?.activate(); togglePause(); return; } game.keys.add(event.code); if (game.running) audio?.activate(); if (game.mode === 'online') onlineInput(); }); addEventListener('keyup', event => { game.keys.delete(event.code); if (game.mode === 'online') onlineInput(); });
+addEventListener('keydown', event => { if (event.code === 'Escape') { document.querySelectorAll('.color-menu').forEach(menu => menu.hidden = true); document.querySelectorAll('.color-trigger').forEach(trigger => trigger.setAttribute('aria-expanded', false)); if (arena.classList.contains('is-fullscreen')) setFullscreenState(false); return; } if (['ArrowUp', 'ArrowDown', 'Space'].includes(event.code)) event.preventDefault(); if (event.code === 'Space') { togglePause(); return; } game.keys.add(event.code); if (game.mode === 'online') onlineInput(); }); addEventListener('keyup', event => { game.keys.delete(event.code); if (game.mode === 'online') onlineInput(); });
 document.querySelectorAll('[data-key]').forEach(button => { const key = button.dataset.key; const on = event => { event.preventDefault(); game.keys.add(key); if (game.mode === 'online') onlineInput(); }; const off = event => { event.preventDefault(); game.keys.delete(key); if (game.mode === 'online') onlineInput(); }; button.addEventListener('pointerdown', on); button.addEventListener('pointerup', off); button.addEventListener('pointercancel', off); button.addEventListener('pointerleave', off); });
 addEventListener('resize', resize); resize(); requestAnimationFrame(frame);
 const invitedRoom = new URLSearchParams(location.search).get('room');

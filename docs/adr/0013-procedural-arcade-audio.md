@@ -19,9 +19,10 @@ a repeated sound.
 It synthesizes every voice, noise source, envelope, and music sequence at runtime;
 the repository ships no audio recording, sample, or MIDI asset. Separate music
 and effects buses feed a bounded master graph. The shared shell owns persistent
-mute and volume controls, while game controllers send semantic presentation cues
-and scene intensity only. Audio never participates in mechanics, transport,
-scoring, or authoritative room state.
+mute and volume controls. Game controllers publish semantic domain facts through
+`scripts/game-events.js`; audio independently maps those facts to cues, scene
+intensity, and pause state. Audio never participates in mechanics, transport,
+scoring, or authoritative room state. See ADR 0014 for the event boundary.
 
 Background scores are original procedural patterns. A small number of manually
 transcribed public-domain note fragments may be used for milestones when their
@@ -42,3 +43,5 @@ or serial identifiers so reconnect and snapshot replay stay silent.
 - Unsupported browsers keep fully functional silent gameplay.
 - Classic p5.js experiments remain unchanged and silent.
 - New music quotations require provenance review and documentation.
+- Game controllers remain independent from audio and can support additional
+  presentation consumers without new direct integrations.

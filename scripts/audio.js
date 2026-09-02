@@ -5,6 +5,7 @@
     if (root?.document) root.ArcadeAudio = factory(root);
 })(typeof window === 'undefined' ? null : window, function createArcadeAudio(root) {
     const doc = root.document;
+    const events = root.ArcadeEvents;
     const AudioContextClass = root.AudioContext || root.webkitAudioContext;
     const GAME_NAMES = Object.freeze({ pong: 'pong', Sudoku: 'sudoku', Minesweeper: 'minesweeper', tictactoe: 'tictactoe', 'battle-tanks': 'battletanks', tetris: 'tetris' });
     const pathGame = root.location?.pathname?.match(/\/(pong|Sudoku|Minesweeper|tictactoe|battle-tanks|tetris)\//)?.[1];
@@ -64,7 +65,7 @@
     };
     const emit = () => {
         const detail = api.preferences();
-        try { doc.dispatchEvent(new root.CustomEvent('arcade:audio', { detail })); } catch { /* Older browsers can still use the controls directly. */ }
+        events?.emit('audio:preferences-changed', detail, { source: 'audio' });
     };
     const save = () => {
         try {
@@ -247,12 +248,27 @@
         setMusicVolume(value) { setPreference('music', value); },
         setEffectsVolume(value) { setPreference('effects', value); },
         reset() { preferences = { ...DEFAULTS }; save(); applyMix(); updateScheduler(); emit(); },
-        destroy() { stopScheduler(); [...voices].forEach(stopVoice); context?.close?.(); context = null; activated = false; }
+        destroy() { subscriptions.splice(0).forEach(off => off()); stopScheduler(); [...voices].forEach(stopVoice); context?.close?.(); context = null; activated = false; }
     };
 
-    doc.addEventListener('arcade:theme', event => { theme = event.detail?.theme || doc.documentElement.dataset.arcadeTheme || 'playful'; });
-    doc.addEventListener('arcade:achievement', () => api.cue('achievement'));
-    doc.addEventListener('arcade:top-score', () => api.cue('top-score'));
+    const subscriptions = [];
+    const subscribe = (type, listener) => { if (events) subscriptions.push(events.on(type, listener)); };
+    const cues = {
+        'sudoku:cell-selected': 'select', 'sudoku:note-entered': 'note', 'sudoku:entry-rejected': 'error', 'sudoku:entry-accepted': 'valid', 'sudoku:cell-erased': 'erase', 'sudoku:hint-used': 'hint',
+        'minesweeper:cells-revealed': event => event.detail.count > 1 ? 'cascade' : 'reveal', 'minesweeper:flag-changed': event => event.detail.flagged ? 'flag' : 'unflag', 'minesweeper:mine-triggered': 'impact',
+        'tictactoe:mark-placed': 'mark',
+        'pong:served': 'serve', 'pong:wall-hit': 'wall', 'pong:paddle-hit': 'hit', 'pong:point-scored': 'score', 'pong:power-up-spawned': 'power-up', 'pong:power-up-activated': 'power-up',
+        'battletanks:power-up-acquired': 'power-up', 'battletanks:impact-resolved': 'impact', 'battletanks:shot-fired': 'fire', 'battletanks:tank-moved': 'move', 'battletanks:control-adjusted': 'select',
+        'tetris:power-up-presented': 'power-up', 'tetris:power-up-activated': 'power-up', 'tetris:blocks-destroyed': 'impact', 'tetris:stack-compacted': 'drop', 'tetris:lines-cleared': 'clear', 'tetris:piece-locked': 'lock', 'tetris:local-record-broken': 'top-score',
+        'achievement:unlocked': 'achievement', 'score:top': 'top-score'
+    };
+    Object.entries(cues).forEach(([type, cue]) => subscribe(type, event => api.cue(typeof cue === 'function' ? cue(event) : cue, event.detail)));
+    subscribe('tetris:piece-manipulated', event => api.cue(event.detail.action.startsWith('rotate') ? 'rotate' : event.detail.action === 'hard-drop' ? 'drop' : event.detail.action === 'hold' ? 'power-up' : 'move', event.detail));
+    subscribe('system:theme-changed', event => { theme = event.detail.theme || doc.documentElement.dataset.arcadeTheme || 'playful'; });
+    subscribe('game:started', event => { api.setPaused(false); api.setScene('active', event.detail); api.activate(); });
+    subscribe('game:progressed', event => api.setScene('active', event.detail));
+    subscribe('game:paused', event => api.setPaused(event.detail.paused));
+    subscribe('game:completed', event => { api.setScene('complete'); api.cue(game === 'sudoku' && event.detail.outcome === 'win' ? 'complete' : event.detail.outcome || 'loss', event.detail); });
     doc.addEventListener('visibilitychange', () => { hidden = doc.hidden; updateScheduler(); if (hidden && context?.state === 'running') context.suspend().catch(() => {}); else if (!hidden && activated && !preferences.muted) activate(); });
     root.addEventListener('storage', event => {
         if (!Object.values(STORAGE).includes(event.key)) return;

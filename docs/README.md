@@ -4,6 +4,16 @@ Start with the [architecture map](architecture.md). Decisions are recorded in
 [`adr/`](adr/README.md). Online animation details are covered in
 [rendering smoothing and prediction](online-rendering.md).
 
+## Shared browser features
+
+The [browser event contract](game-events.md) documents how games publish
+presentation-safe semantic facts for audio and future optional consumers. Its
+trust and lifecycle boundaries are recorded in
+[ADR 0014](adr/0014-browser-domain-event-bus.md). Procedural sound design and
+public-domain provenance are covered by the [audio design](audio-design.md),
+[player audio guide](audio.md), and
+[ADR 0013](adr/0013-procedural-arcade-audio.md).
+
 
 ## Battle Tanks
 

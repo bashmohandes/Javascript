@@ -12,7 +12,7 @@
     const autoSolveButton = document.querySelector('#auto-solve');
     const modal = document.querySelector('#finish-modal');
     const shareButton = document.querySelector('#share-result');
-    const audio = window.ArcadeAudio;
+    const events = window.ArcadeEvents;
     const CONTROL_ICONS = {
         hint: '<svg class="tool-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M8.2 14.7a7 7 0 1 1 7.6 0c-.5.4-.8 1-.8 1.6V17H9v-.7c0-.6-.3-1.2-.8-1.6Z"/></svg>',
         play: '<svg class="tool-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path class="tool-icon-fill" d="m8 5 11 7-11 7Z"/></svg>',
@@ -93,8 +93,7 @@
         timerId = setInterval(() => { elapsed += 1; renderTimer(); }, 1000);
         renderTimer();
         render();
-        audio?.setPaused(false);
-        audio?.setScene('active', { intensity: 0, danger: 0 });
+        events.emit('game:started', { intensity: 0, danger: 0, difficulty });
     }
 
     function renderTimer() {
@@ -152,7 +151,7 @@
     function selectCell(row, column) {
         if (gameOver || autoSolving) return;
         selected = { row, column };
-        audio?.cue('select');
+        events.emit('sudoku:cell-selected', { row, column, given: Boolean(puzzle[row][column]) });
         statusElement.textContent = puzzle[row][column] ? 'This number is part of the puzzle.' : 'Choose a number, or switch on notes.';
         render();
     }
@@ -163,7 +162,7 @@
         if (puzzle[row][column]) return;
         if (notesMode && !values[row][column]) {
             notes[row][column].has(number) ? notes[row][column].delete(number) : notes[row][column].add(number);
-            audio?.cue('note');
+            events.emit('sudoku:note-entered', { row, column, number, present: notes[row][column].has(number) });
             statusElement.textContent = `Note ${number} ${notes[row][column].has(number) ? 'added' : 'removed'}.`;
             render();
             return;
@@ -174,17 +173,17 @@
             statusElement.textContent = mistakes >= 3 ? 'Three mistakes — start a fresh puzzle when you’re ready.' : 'That number already appears in the row, column or box.';
             const cell = boardElement.querySelector(`[data-row="${row}"][data-column="${column}"]`);
             cell.classList.add('error');
-            audio?.cue('error');
+            events.emit('sudoku:entry-rejected', { row, column, number, mistakes });
             if (mistakes >= 3) endGame(false);
             return;
         }
         values[row][column] = number;
-        audio?.cue('valid');
+        events.emit('sudoku:entry-accepted', { row, column, number });
         notes[row][column].clear();
         removePeerNotes(row, column, number);
         statusElement.textContent = 'Nice. Keep going.';
         render();
-        updateAudioScene();
+        publishProgress();
         if (values.every(boardRow => boardRow.every(Boolean))) endGame(true);
     }
 
@@ -198,7 +197,7 @@
         if (!selected || puzzle[selected.row][selected.column] || gameOver || autoSolving) return;
         values[selected.row][selected.column] = 0;
         notes[selected.row][selected.column].clear();
-        audio?.cue('erase');
+        events.emit('sudoku:cell-erased', { row: selected.row, column: selected.column });
         statusElement.textContent = 'Square cleared.';
         render();
     }
@@ -214,11 +213,11 @@
         notes[row][column].clear();
         removePeerNotes(row, column, solution[row][column]);
         hints -= 1;
-        audio?.cue('hint');
+        events.emit('sudoku:hint-used', { row, column, number: solution[row][column], remaining: hints });
         document.querySelector('#hint').innerHTML = `${CONTROL_ICONS.hint}Hint <small>${hints} left</small>`;
         statusElement.textContent = 'A little nudge in the right direction.';
         render();
-        updateAudioScene();
+        publishProgress();
     }
 
     function updateNumberPad() {
@@ -228,18 +227,17 @@
         });
     }
 
-    function updateAudioScene() {
+    function publishProgress() {
         const open = puzzle.flat().filter(value => !value).length || 1;
         const filled = values.flat().filter(Boolean).length - puzzle.flat().filter(Boolean).length;
         const progress = Math.max(0, Math.min(1, filled / open));
-        audio?.setScene('active', { intensity: .12 + progress * .55, danger: mistakes / 3 });
+        events.emit('game:progressed', { progress, intensity: .12 + progress * .55, danger: mistakes / 3 });
     }
 
     function endGame(won) {
         gameOver = true;
         clearInterval(timerId);
-        audio?.setScene('complete');
-        audio?.cue(won ? 'complete' : 'loss');
+        events.emit('game:completed', { outcome: won ? 'win' : 'loss', seconds: elapsed, mistakes, hintsUsed: 3 - hints });
         const difficulty = difficultySelect.value;
         window.Arcade?.record({ game: 'sudoku', won, details: { difficulty, seconds: elapsed, mistakes, hintsUsed: 3 - hints } }).catch(() => {});
         if (!won) return;

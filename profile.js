@@ -52,7 +52,7 @@
         const result = await Arcade.api(`/api/leaderboards/${game}`);
         document.querySelector('#leaders').innerHTML = result.entries.length ? result.entries.map((row, index) => `<tr><td>${index + 1}</td><td>${escape(row.gamertag)}</td><td>${row.score}</td><td>${duration(row)}</td><td>${escape(details(row))}</td></tr>`).join('') : '<tr><td colspan="5" class="empty">No scores yet. Be the first.</td></tr>';
     }
-    document.addEventListener('arcade:user', event => loadProfile(event.detail).catch(() => {}));
+    window.ArcadeEvents.on('account:user-changed', event => loadProfile(event.detail.user).catch(() => {}));
     document.querySelector('#game-tabs').addEventListener('click', event => { if (!event.target.dataset.game) return; document.querySelectorAll('#game-tabs button').forEach(button => button.setAttribute('aria-pressed', button === event.target)); loadLeaders(event.target.dataset.game); });
     document.querySelector('#history-pagination').addEventListener('click', event => {
         const action = event.target.dataset.pageAction;

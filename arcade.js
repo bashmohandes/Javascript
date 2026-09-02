@@ -1,5 +1,8 @@
 (() => {
     'use strict';
+    const events = window.ArcadeEvents;
+    if (!events) throw new Error('Arcade event system failed to load.');
+    const publish = (type, detail) => events.emit(type, detail, { source: 'shell' });
     const config = window.ArcadeThemeConfig;
     const THEMES = config.themes;
     const COLOR_PREFERENCES = config.colorPreferences;
@@ -26,7 +29,7 @@
             const selected = button.dataset.colorOption === colorPreference;
             button.setAttribute('aria-checked', String(selected)); button.tabIndex = selected ? 0 : -1;
         });
-        document.dispatchEvent(new CustomEvent('arcade:theme', { detail: { theme: theme.id, preference: colorPreference, colorPreference, resolved, resolvedColorMode: resolved, density: theme.density } }));
+        publish('system:theme-changed', { theme: theme.id, preference: colorPreference, colorPreference, resolved, resolvedColorMode: resolved, density: theme.density });
     };
     const setTheme = value => {
         themePreference = THEMES.some(theme => theme.id === value) ? value : config.defaultTheme;
@@ -166,7 +169,7 @@
     appearanceDialog.querySelector('.arcade-color-modes').addEventListener('keydown', event => { if (!['ArrowLeft','ArrowRight'].includes(event.key)) return; event.preventDefault(); const offset=event.key==='ArrowRight'?1:-1; const next=COLOR_PREFERENCES[(COLOR_PREFERENCES.indexOf(colorPreference)+offset+COLOR_PREFERENCES.length)%COLOR_PREFERENCES.length]; setColorPreference(next); appearanceDialog.querySelector(`[data-color-option="${next}"]`).focus(); announceAppearance(); });
     appearanceButton.addEventListener('click', () => { applyTheme(); updateAudioControls(); appearanceDialog.showModal(); });
     audioButton.addEventListener('click', () => { const muted = audio.preferences().muted; audio.setMuted(!muted); if (muted) audio.activate(); });
-    document.addEventListener('arcade:audio', updateAudioControls);
+    events.on('audio:preferences-changed', updateAudioControls);
     const dialog = document.createElement('dialog'); dialog.className = 'arcade-dialog';
     dialog.innerHTML = `<form class="arcade-auth" method="dialog"><h2>Arcade account</h2><p>Use one gamertag to save play history and scores across every game.</p><label>Gamertag<input name="gamertag" minlength="3" maxlength="24" pattern="[A-Za-z0-9_-]+" autocomplete="username" required></label><label>Passcode<input name="passcode" type="password" minlength="4" maxlength="128" autocomplete="current-password" required></label><p class="arcade-auth-message" role="status"></p><div class="arcade-auth-actions"><button value="login">Sign in</button><button value="register" class="secondary">Create account</button><button value="cancel" class="secondary" formnovalidate>Cancel</button></div></form>`;
     const buildVersion = document.createElement('footer');
@@ -207,7 +210,7 @@
             toast.innerHTML = `<button type="button" aria-label="Dismiss top score notification">×</button><span class="top-score-confetti" aria-hidden="true">🏆</span><div><small>Top score smashed</small><strong>${message}</strong><p><s>${topScore.previousScore}</s><b aria-label="New score ${topScore.newScore}">${topScore.newScore}</b></p>${fasterFinish}<a href="${leaderboardUrl}">See the top score you broke →</a></div>`;
         }
         document.body.append(toast);
-        document.dispatchEvent(new CustomEvent(`arcade:${notification.type === 'achievement' ? 'achievement' : 'top-score'}`, { detail: notification.detail }));
+        publish(notification.type === 'achievement' ? 'achievement:unlocked' : 'score:top', notification.detail);
         let timer;
         const finish = () => { clearTimeout(timer); toast.remove(); showNextNotification(); };
         toast.querySelector('button')?.addEventListener('click', finish);
@@ -246,7 +249,7 @@
             const signIn = document.createElement('button'); signIn.type = 'button'; signIn.textContent = 'Sign in'; signIn.addEventListener('click', () => dialog.showModal()); account.append(signIn);
         }
         applyTheme();
-        document.dispatchEvent(new CustomEvent('arcade:user', { detail: currentUser }));
+        publish('account:user-changed', { user: currentUser });
     };
     dialog.addEventListener('close', async () => {
         if (!['login', 'register'].includes(dialog.returnValue)) return;

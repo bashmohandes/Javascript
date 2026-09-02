@@ -6,6 +6,7 @@ const APP_SHELL = [
     './index.html',
     './arcade.css',
     './arcade.js',
+    './scripts/game-events.js',
     './scripts/audio.js',
     './theme-init.js',
     './manifest.webmanifest'
