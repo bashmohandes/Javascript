@@ -87,4 +87,5 @@ test('theme styles own the Tetris palette and sharing refreshes from its scoped 
 test('cabinet light mode keeps dialog text dark without changing topbar ink', () => {
     assert.match(shared, /data-arcade-theme="cabinet"\]\[data-color-mode="light"\] \.arcade-dialog \{ --arcade-nav-ink:#382c42; \}/);
     assert.doesNotMatch(shared, /data-color-mode="light"\] \{[^}]*--arcade-nav-ink:/);
+    assert.match(games, /data-arcade-theme="cabinet"\]\[data-color-mode="light"\] \.modern-game\{[^}]*--paper:#f2dfb6;[^}]*color-scheme:light/);
 });

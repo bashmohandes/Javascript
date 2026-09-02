@@ -79,6 +79,13 @@ test('Sudoku visually separates boxes and highlights the active box', () => {
     assert.match(mechanics, /function sameBox/);
 });
 
+test('Minesweeper renders one flag glyph per flagged cell', () => {
+    const styles = read('Minesweeper/styles.css');
+    const script = read('Minesweeper/scripts/app.js');
+    assert.match(script, /textContent\s*=\s*'⚑'/);
+    assert.doesNotMatch(styles, /\.cell\.flagged::after/);
+});
+
 test('shared arcade UI uses one safe-area-aware responsive top bar and displays the build version', () => {
     const styles = read('arcade.css');
     const script = read('arcade.js');
