@@ -15,5 +15,8 @@ flowchart LR
 
 **Consequences:** Cookies and invitation URLs stay simple and the attack surface
 is constrained; split-origin clients require configuration and proxy trust must
-match the actual network boundary.
+match the actual network boundary. Modern pages execute scripts only from the
+arcade origin. Preserved classic p5.js pages receive a route-scoped cdnjs
+exception, while inline scripts, plugin objects, frames, and foreign form targets
+remain blocked.
 

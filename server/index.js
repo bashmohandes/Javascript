@@ -10,7 +10,7 @@ const { BattleTanksRooms } = require('./battle-tanks-rooms');
 const { openDatabase } = require('./database');
 const { Accounts } = require('./accounts');
 const { Achievements } = require('./achievements');
-const { clientIp: getClientIp, isPrivatePath, originAllowed, parseCookies, RateLimiter, WebSocketGuard } = require('./http-security');
+const { clientIp: getClientIp, contentSecurityPolicy, isPrivatePath, originAllowed, parseCookies, RateLimiter, WebSocketGuard } = require('./http-security');
 const { generateIcons } = require('../scripts/generate-icons');
 
 const root = path.resolve(__dirname, '..');
@@ -84,6 +84,7 @@ const server = http.createServer(async (request, response) => {
     let pathname;
     try { pathname = decodeURIComponent(new URL(request.url, 'http://localhost').pathname); }
     catch { response.writeHead(400, { 'content-type': 'text/plain; charset=utf-8' }).end('Bad request'); return; }
+    response.setHeader('content-security-policy', contentSecurityPolicy(pathname));
     if (pathname === '/healthz') {
         response.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
         response.end(JSON.stringify({ status: 'ok', rooms: rooms.rooms.size }));

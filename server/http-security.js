@@ -53,6 +53,27 @@ function originAllowed(request, allowedOrigins, trustProxy = false, requireOrigi
     return origin === requestOrigin(request, trustProxy) || allowedOrigins.includes(origin);
 }
 
+function contentSecurityPolicy(pathname = '') {
+    const classicGame = /^\/(?:Sudoku|Minesweeper|pong)\/classic(?:\/|$)/.test(pathname);
+    const scriptSources = classicGame ? "'self' https://cdnjs.cloudflare.com" : "'self'";
+    return [
+        "default-src 'self'",
+        `script-src ${scriptSources}`,
+        "script-src-attr 'none'",
+        "style-src 'self' 'unsafe-inline'",
+        "img-src 'self' data: blob:",
+        "connect-src 'self' ws: wss:",
+        "font-src 'self'",
+        "object-src 'none'",
+        "base-uri 'none'",
+        "frame-ancestors 'none'",
+        "frame-src 'none'",
+        "form-action 'self'",
+        "manifest-src 'self'",
+        "worker-src 'self'"
+    ].join('; ');
+}
+
 function isPrivatePath(pathname) {
     const segments = pathname.split('/').filter(Boolean);
     if (segments.some(segment => segment.startsWith('.'))) return true;
@@ -162,4 +183,4 @@ class WebSocketGuard {
     ownRoom(socket, room) { this.roomOwners.set(room, this.socketIps.get(socket) || 'unknown'); }
 }
 
-module.exports = { clientIp, isPrivatePath, originAllowed, parseCookies, RateLimiter, requestOrigin, WebSocketGuard };
+module.exports = { clientIp, contentSecurityPolicy, isPrivatePath, originAllowed, parseCookies, RateLimiter, requestOrigin, WebSocketGuard };
