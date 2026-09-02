@@ -50,6 +50,7 @@
 
     const currentTimbre = () => TIMBRES[theme] || TIMBRES.playful;
     const frequency = midi => 440 * Math.pow(2, (midi - 69) / 12);
+    const scaleMidi = (track, degree, baseOctave) => track.root + baseOctave + track.scale[degree % track.scale.length] + Math.floor(degree / track.scale.length) * 12;
     const safeParam = (param, value, time = context?.currentTime || 0) => {
         if (!param) return;
         if (typeof param.cancelScheduledValues === 'function') param.cancelScheduledValues(time);
@@ -163,7 +164,7 @@
         const degree = track.melody[index % track.melody.length];
         const rhythm = track.rhythm[index % track.rhythm.length];
         if (degree !== null && rhythm > 0 && (rhythm > 1 || intensity > .28) && (timbre.density >= 1 || index % 4 === 0)) {
-            const midi = track.root + 12 + track.scale[degree % track.scale.length] + (degree >= track.scale.length ? 12 : 0);
+            const midi = scaleMidi(track, degree, 12);
             tone({ midi, at, duration: beat * (rhythm > 1 ? .82 : .52), gain: .04 + intensity * .022, type: timbre.lead, bus: musicBus, isMusic: true });
         }
         if (index % 2 === 0) {
@@ -177,7 +178,7 @@
         if (timbre.density >= 1 && index % 2 === 1) noise({ at, duration: .035, gain: .012 + intensity * .006, frequency: 2600, type: 'highpass', bus: musicBus, isMusic: true });
         if (index % 4 === 0) tone({ hz: 72, at, duration: .07, gain: .025 + intensity * .012, type: 'sine', bus: musicBus, isMusic: true, filter: false });
         if ((intensity > .52 || danger > .35) && index % 4 === 2) {
-            const counterDegree = (degree ?? 0) + 2, counter = track.root + 24 + track.scale[counterDegree % track.scale.length] + (counterDegree >= track.scale.length ? 12 : 0);
+            const counterDegree = (degree ?? 0) + 2, counter = scaleMidi(track, counterDegree, 24);
             tone({ midi: counter, at, duration: beat * .42, gain: .018 + danger * .012, type: 'sine', bus: musicBus, isMusic: true, filter: false });
         }
     };
