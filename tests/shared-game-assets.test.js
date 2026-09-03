@@ -106,6 +106,20 @@ test('shared arcade navigation stays out of full-screen games', () => {
     }
 });
 
+test('modern games keep tablet play surfaces visible without clipping page scrolling', () => {
+    const design = read('styles/modern-game.css');
+    const minesweeper = read('Minesweeper/styles.css');
+    const minesweeperApp = read('Minesweeper/scripts/app.js');
+
+    assert.match(design, /\.modern-game \.app-shell\{height:auto;overflow:visible\}/);
+    assert.match(design, /min-width:701px[^}]*max-height:900px[\s\S]*?\.modern-game \.intro\{display:none\}/);
+    assert.match(design, /\.modern-game>\.arcade-topbar\{[^}]*safe-area-inset-top/);
+    assert.match(design, /max-width:850px[\s\S]*?grid-template-columns:minmax\(0,7fr\) minmax\(220px,3fr\)/);
+    assert.match(minesweeperApp, /setProperty\('--rows', level\.rows\)/);
+    assert.match(minesweeper, /--cell-size:min\([^}]*100dvh - 370px[^}]*var\(--rows\)/);
+    assert.match(read('Sudoku/styles.css'), /\.game-sudoku \.game-layout > div:first-child \{ width: min\(100%, 612px, calc\(100dvh - 170px\)\)/);
+});
+
 test('top-score and achievement notifications share one sequential queue', () => {
     const script = read('arcade.js');
     assert.match(script, /notificationQueue\.push\(\.\.\.notifications\)/);

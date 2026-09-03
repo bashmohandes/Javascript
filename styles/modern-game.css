@@ -66,3 +66,19 @@
 @keyframes pixel-float{to{transform:translateY(-8px) rotate(14deg)}}
 @media(max-width:700px){:is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) .modern-game h1{font-size:clamp(30px,10vw,46px)}:is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) .modern-game :is(.scoreboard,.stats,.game-card,.modal-card){box-shadow:4px 4px 0 var(--game-spark),7px 7px 0 var(--ink)}}
 @media(prefers-reduced-motion:reduce){:is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) .modern-game .intro>div:first-child::after{animation:none}}
+
+/* Modern game pages must never inherit a clipped shell. Short and tablet
+   viewports prioritize the playable surface over the decorative introduction. */
+.modern-game .app-shell{height:auto;overflow:visible}
+@media (min-width:701px) and (max-width:850px), (min-width:701px) and (max-height:900px){
+    .modern-game>.arcade-topbar{padding-top:calc(6px + env(safe-area-inset-top));padding-bottom:6px}
+    .modern-game>.arcade-topbar .arcade-topbar-inner{min-height:40px}
+    .modern-game .topbar{height:48px}
+    .modern-game .intro{display:none}
+    .modern-game .game-layout{height:auto}
+}
+@media (min-width:701px) and (max-width:850px){
+    :root[data-arcade-theme] .modern-game .game-layout{grid-template-columns:minmax(0,7fr) minmax(220px,3fr);gap:14px;align-items:start}
+    :root[data-arcade-theme] .game-battle-tanks .game-layout{grid-template-columns:minmax(0,1fr) minmax(300px,360px);gap:12px}
+}
+@media (min-width:851px) and (max-height:900px){:root[data-arcade-theme] .game-battle-tanks .game-layout{grid-template-columns:minmax(0,1fr) minmax(300px,360px);gap:16px}}
