@@ -48,9 +48,11 @@ transitions and authoritative online state, never from UI actions.
 10. Battle Tanks state snapshots and result-detail payloads are versioned.
     Unsupported versions are rejected so incompatible clients fail safely.
 11. Solo mode is a browser adapter over the shared mechanics core. Its
-    deterministic CPU repositions within legal movement bounds, plans against
-    current destructible geometry, and intentionally chooses bounded damaging
-    shots and credible near misses rather than maximizing every turn.
+    deterministic CPU prioritizes reachable pickups while inventory space is
+    available, activates useful collected items, repositions within legal
+    movement bounds, plans against current destructible geometry, and
+    intentionally chooses bounded damaging shots and credible near misses
+    rather than maximizing every turn.
 12. Solo result aggregation includes only human Player 1 activity. A CPU win
     derives a zero player score, preventing CPU statistics from entering human
     leaderboards.

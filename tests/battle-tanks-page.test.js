@@ -21,7 +21,7 @@ test('Battle Tanks exposes solo, local duo, and online modes with a CPU turn ada
     const page = read('battle-tanks/index.html'), app = read('battle-tanks/scripts/app.js');
     for (const mode of ['solo','local','online']) assert.match(page, new RegExp(`data-mode="${mode}"`));
     assert.match(page, /scripts\/game\.js[\s\S]*scripts\/ai\.js[\s\S]*scripts\/app\.js/);
-    assert.match(app, /cpu\.planMove\(state,1\)/); assert.match(app, /moveTank\(state,plan\.direction,stepAmount\)/); assert.match(app, /cpu\.planShot\(state,1\)/); assert.match(app, /mode==='solo'&&state\.activePlayer===1/);
+    assert.match(app, /cpu\.planMove\(state,1\)/); assert.match(app, /moveTank\(state,plan\.direction,stepAmount\)/); assert.match(app, /cpu\.planPowerUps\(state,1\)/); assert.match(app, /activatePowerUp\(state,1,id\)/); assert.match(app, /cpu\.planShot\(state,1\)/); assert.match(app, /mode==='solo'&&state\.activePlayer===1/);
     assert.match(app, /mode:solo\?'solo':'local'/); assert.match(app, /shots:solo\?soloStatistics\.shots:state\.shots/); assert.match(app, /hits:solo\?soloStatistics\.hits:state\.hits/);
 });
 

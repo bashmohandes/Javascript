@@ -68,12 +68,14 @@ reconstruct or reveal its concealed launch path.
 
 ## Controls
 
-Single player puts you in the Player 1 tank against the CPU. The CPU evaluates
-legal weapon, angle, and power combinations against the current destructible
-arena, repositions before every shot, and deliberately mixes partial-damage
-shots with credible near misses. Its choices are deterministic for the match
-and use the same movement and combat mechanics as local players. It is designed
-to remain fallible rather than maximize damage on every turn.
+Single player puts you in the Player 1 tank against the CPU. The CPU prioritizes
+reachable pickups while it has inventory space, activates useful health,
+defence, and boost items, and equips collected ammunition. It evaluates legal
+weapon, angle, and power combinations against the current destructible arena,
+repositions before every shot, and deliberately mixes partial-damage shots with
+credible near misses. Its choices are deterministic for the match and use the
+same movement and combat mechanics as local players. It is designed to remain
+fallible rather than maximize damage on every turn.
 Local 2-player keeps both tanks under shared keyboard, pointer, or touch control.
 
 Use <kbd>A</kbd>/<kbd>D</kbd> or <kbd>←</kbd>/<kbd>→</kbd> to move,

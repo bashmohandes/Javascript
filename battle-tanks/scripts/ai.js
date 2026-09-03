@@ -19,15 +19,42 @@
     const COARSE_POWERS = [20, 30, 40, 50, 60, 70, 80, 90, 100];
     const REFINEMENT_LIMIT = 12;
 
+    function pickupMove(state, side, tank, bounds) {
+        if ((state.inventories?.[side]?.length || 0) >= core.INVENTORY_LIMIT) return null;
+        const reachable = (state.pickups || []).filter(pickup => Number.isFinite(pickup?.x) && pickup.x + core.PICKUP_SIZE / 2 > bounds.min && pickup.x - core.PICKUP_SIZE / 2 < bounds.max + core.TANK_W).map(pickup => {
+            const collectionX = Math.max(bounds.min, Math.min(bounds.max, pickup.x - core.TANK_W / 2));
+            return { pickup, collectionX, distance: Math.abs(collectionX - tank.x) };
+        }).sort((a,b) => a.distance - b.distance || a.pickup.serial - b.pickup.serial);
+        if (!reachable.length || reachable[0].distance < .5) return null;
+        const target = reachable[0], directionSign = Math.sign(target.collectionX - tank.x), amount = Math.min(104, target.distance), targetX = tank.x + directionSign * amount;
+        return { direction: directionSign < 0 ? (side ? 'forward' : 'backward') : (side ? 'backward' : 'forward'), amount, startX: tank.x, targetX, reason: 'pickup', pickupSerial: target.pickup.serial, pickupId: target.pickup.id };
+    }
+
     function planMove(state, side = 1) {
         if (!state || state.phase !== 'aiming' || state.activePlayer !== side) return null;
         const tank = state.tanks?.[side], bounds = core.tankBounds(state, side);
         if (!tank || !Number.isFinite(tank.x)) return null;
+        const collection = pickupMove(state, side, tank, bounds);
+        if (collection) return collection;
         const random = decisionRandom(state, 0x85ebca6b), preferred = random() < .5 ? 'forward' : 'backward', directions = [preferred, preferred === 'forward' ? 'backward' : 'forward'];
         const deltaFor = direction => direction === 'forward' ? (side ? -1 : 1) : (side ? 1 : -1);
         const capacityFor = direction => deltaFor(direction) < 0 ? tank.x - bounds.min : bounds.max - tank.x;
         const direction = directions.find(item => capacityFor(item) >= 48) || directions.sort((a,b) => capacityFor(b) - capacityFor(a))[0], desired = 48 + Math.floor(random() * 57), amount = Math.max(0, Math.min(desired, capacityFor(direction))), targetX = Math.max(bounds.min, Math.min(bounds.max, tank.x + deltaFor(direction) * amount));
-        return { direction, amount: Math.abs(targetX - tank.x), startX: tank.x, targetX };
+        return { direction, amount: Math.abs(targetX - tank.x), startX: tank.x, targetX, reason: 'reposition' };
+    }
+
+    function planPowerUps(state, side = 1) {
+        if (!state || state.phase !== 'aiming' || state.activePlayer !== side) return [];
+        const tank = state.tanks?.[side], effects = new Set((state.activeEffects?.[side] || []).map(effect => effect.effect)), planned = [];
+        let projectedHealth = Number(tank?.health) || 0;
+        for (const id of state.inventories?.[side] || []) {
+            const item = core.POWER_UP_CATALOG[id];
+            if (!item || item.onlineOnly) continue;
+            if (item.kind === 'weapon') planned.push(id);
+            else if (item.effect === 'heal') { if (projectedHealth < core.STARTING_HEALTH) { planned.push(id); projectedHealth = Math.min(core.STARTING_HEALTH, projectedHealth + item.amount); } }
+            else if (!effects.has(item.effect)) { planned.push(id); effects.add(item.effect); }
+        }
+        return planned;
     }
 
     function simulateShot(state, side, weaponId, angle, power) {
@@ -75,5 +102,5 @@
         return { ...selected, intent: intendsHit && selected.targetDamage > 0 ? 'hit' : 'miss' };
     }
 
-    return { planMove, planShot, simulateShot };
+    return { planMove, planPowerUps, planShot, simulateShot };
 }));
