@@ -2,6 +2,7 @@
     'use strict';
     const game = new window.TetrisGame();
     const events = window.ArcadeEvents;
+    const saves = window.Arcade?.saves;
     const boardElement = document.querySelector('#board'), scoreElement = document.querySelector('#score'), linesElement = document.querySelector('#lines'), levelElement = document.querySelector('#level'), bestElement = document.querySelector('#best');
     const statusElement = document.querySelector('#status'), finishElement = document.querySelector('#finish'), pauseButton = document.querySelector('#pause'), shareButton = document.querySelector('#share-result');
     const stageElement = document.querySelector('.tetris-stage'), clearEffectElement = document.querySelector('#line-clear-effect'), clearStreaksElement = document.querySelector('#clear-streaks'), clearBurstElement = document.querySelector('#clear-burst'), clearMultiplierElement = document.querySelector('#clear-multiplier'), recordCalloutElement = document.querySelector('#record-callout');
@@ -88,12 +89,16 @@
         events.emit('tetris:local-record-broken', { score: game.score, previous: standingBest });
         clearTimeout(recordTimer); recordTimer = setTimeout(() => { stageElement.classList.remove('is-new-record'); recordCalloutElement.classList.remove('is-active'); }, 2200);
     }
+    function progressDetail(board = game.visibleBoard()) {
+        const highest = board.findIndex(row => row.some(Boolean)), danger = highest < 0 ? 0 : Math.max(0, Math.min(1, (8 - highest) / 8));
+        return { level: game.level, intensity: Math.min(.9, .2 + game.level * .07), danger };
+    }
     function render() {
         const board = game.visibleBoard(), active = new Map(game.activeCells().filter(([,y]) => y >= 0).map(([x,y]) => [`${x},${y}`, game.piece.type])), ghost = new Set(game.ghostCells().filter(([,y]) => y >= 0).map(([x,y]) => `${x},${y}`));
         if (game.pieces > presentedPieces) { presentedPieces = game.pieces; events.emit('tetris:piece-locked', { pieces: game.pieces }); }
-        const highest = board.findIndex(row => row.some(Boolean)), danger = highest < 0 ? 0 : Math.max(0, Math.min(1, (8 - highest) / 8));
+        const { danger, ...progressFacts } = progressDetail(board);
         const progress = `${game.level}:${danger.toFixed(2)}`;
-        if (!game.gameOver && progress !== presentedProgress) { presentedProgress = progress; events.emit('game:progressed', { level: game.level, intensity: Math.min(.9, .2 + game.level * .07), danger }); }
+        if (!game.gameOver && progress !== presentedProgress) { presentedProgress = progress; events.emit('game:progressed', { ...progressFacts, danger }); }
         cells.forEach((cell, index) => {
             const x = index % 10, y = Math.floor(index / 10), type = active.get(`${x},${y}`) || board[y][x];
             cell.className = `tetris-cell${!type && ghost.has(`${x},${y}`) ? ' ghost' : ''}`;
@@ -107,6 +112,7 @@
     }
     function finish() {
         if (submitted) return; submitted = true;
+        saves?.completeRun();
         const elapsed = seconds(), previous = Number(localStorage.getItem('tetris-best-score')) || 0;
         if (game.score > previous) localStorage.setItem('tetris-best-score', game.score);
         bestElement.textContent = Math.max(previous, game.score).toLocaleString();
@@ -116,6 +122,7 @@
         window.Arcade?.record({ game: 'tetris', won: false, details: game.details(elapsed) }).catch(() => {});
     }
     function startGame() {
+        saves?.startRun();
         game.reset(); activeMilliseconds = 0; submitted = false; miniatureSignature = ''; presentedClearId = 0; presentedDestructionId = 0; presentedCompactionId = 0; presentedPowerUpId = 0; presentedPieces = game.pieces; presentedProgress = ''; previousMotion = null; standingBest = Number(localStorage.getItem('tetris-best-score')) || 0; liveBest = standingBest; recordBroken = false; clearTimeout(clearEffectTimer); clearTimeout(destructionTimer); clearTimeout(compactionTimer); clearTimeout(recordTimer); stageElement.classList.remove('is-clearing','is-new-record','is-magic','is-magic-impact','is-shake-ready','is-compacting'); clearEffectElement.classList.remove('is-active'); destructionElement.classList.remove('is-active'); compactionElement.classList.remove('is-active'); recordCalloutElement.classList.remove('is-active'); document.body.classList.remove('is-magic-power','is-shake-ready'); document.querySelector('.best-stat').classList.remove('is-record'); powerUpBannerElement.hidden = true;
         finishElement.hidden = true; pauseButton.textContent = 'Pause'; statusElement.textContent = 'Use the controls to place the falling piece.'; lastFrame = performance.now(); render(); boardElement.focus?.();
         events.emit('game:started', { intensity: .2, danger: 0, mode: 'marathon' });
@@ -177,13 +184,30 @@
     pauseButton.addEventListener('click', () => togglePause()); shareButton.addEventListener('click', shareResult); useShakeButton.addEventListener('click', enableMotionOrCompact); window.addEventListener('devicemotion', handleDeviceMotion);
     document.addEventListener('visibilitychange', () => { if (document.hidden && !game.gameOver && !game.paused) togglePause(true); });
     window.ArcadeEvents.on('system:theme-changed', updateTetrisTheme);
+    saves?.registerAdapter({
+        stateVersion: 1,
+        canSave: () => !game.gameOver,
+        hasProgress: () => game.pieces > 0 || game.score > 0,
+        pause: () => { const wasPaused = game.paused; if (!game.gameOver) { game.paused = true; pauseButton.textContent = 'Resume'; render(); } return wasPaused; },
+        resume: wasPaused => { if (!wasPaused && !game.gameOver) { game.paused = false; pauseButton.textContent = 'Pause'; lastFrame = performance.now(); render(); } },
+        capture: async () => ({ mode: 'marathon', elapsedSeconds: seconds(), scoreLabel: `${game.score.toLocaleString()} points`, state: { mechanics: game.saveState(), activeMilliseconds } }),
+        restore: async state => {
+            if (!state || !Number.isFinite(state.activeMilliseconds) || state.activeMilliseconds < 0 || state.activeMilliseconds > 8640000000) throw new Error('This Tetris save is invalid or incompatible.');
+            game.loadState(state.mechanics); activeMilliseconds = state.activeMilliseconds; submitted = false; miniatureSignature = ''; presentedClearId = game.clearEventId; presentedDestructionId = game.destructionEventId; presentedCompactionId = game.compactionEventId; presentedPowerUpId = game.powerUpEventId; presentedPieces = game.pieces; presentedProgress = ''; previousMotion = null; standingBest = Number(localStorage.getItem('tetris-best-score')) || 0; liveBest = Math.max(standingBest, game.score); recordBroken = game.score > standingBest; clearTimeout(clearEffectTimer); clearTimeout(destructionTimer); clearTimeout(compactionTimer); clearTimeout(recordTimer); stageElement.classList.remove('is-clearing','is-new-record','is-magic','is-magic-impact','is-shake-ready','is-compacting'); clearEffectElement.classList.remove('is-active'); destructionElement.classList.remove('is-active'); compactionElement.classList.remove('is-active'); recordCalloutElement.classList.remove('is-active'); document.body.classList.remove('is-magic-power','is-shake-ready'); finishElement.hidden = true; pauseButton.textContent = 'Resume'; statusElement.textContent = 'Saved run loaded. Press Resume when you are ready.'; lastFrame = performance.now(); render();
+        },
+        thumbnail: captured => {
+            const mechanics = captured.state.mechanics, board = mechanics.board.slice(window.TetrisRules.HIDDEN_ROWS).map(row => [...row]);
+            window.TetrisRules.cellsFor(mechanics.piece).forEach(([x,y]) => { const visibleY = y - window.TetrisRules.HIDDEN_ROWS; if (visibleY >= 0 && visibleY < board.length && x >= 0 && x < 10) board[visibleY][x] = mechanics.piece.type; });
+            return window.ResultShare.tetris({ board, colors: themeColors, score: mechanics.score, lines: mechanics.lines, level: mechanics.level, time: formatTime(captured.elapsedSeconds) });
+        }
+    });
     function frame(now) {
         const elapsed = Math.max(0, now - lastFrame); lastFrame = now;
         if (!game.paused && !game.gameOver && !game.shakeReady) {
             activeMilliseconds += elapsed;
             let remaining = elapsed, changed = false;
             while (remaining > 0 && !game.gameOver) { const step = Math.min(100, remaining); changed = game.update(step) || changed; remaining -= step; }
-            if (changed) render(); if (game.gameOver) finish();
+            if (changed) { events.emit('game:progressed', progressDetail()); render(); } if (game.gameOver) finish();
         }
         requestAnimationFrame(frame);
     }

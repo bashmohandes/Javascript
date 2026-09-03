@@ -15,6 +15,7 @@
     const modal = document.querySelector('#finish-modal');
     const shareButton = document.querySelector('#share-result');
     const events = window.ArcadeEvents;
+    const saves = window.Arcade?.saves;
     const CONTROL_ICONS = {
         hint: '<svg class="tool-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M9 18h6M10 22h4"/><path d="M8.2 14.7a7 7 0 1 1 7.6 0c-.5.4-.8 1-.8 1.6V17H9v-.7c0-.6-.3-1.2-.8-1.6Z"/></svg>',
         play: '<svg class="tool-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path class="tool-icon-fill" d="m8 5 11 7-11 7Z"/></svg>',
@@ -38,6 +39,7 @@
     let solveSnapshot = null;
 
     function startGame() {
+        saves?.startRun();
         const difficulty = difficultySelect.value;
         const generated = rules.createPuzzle(difficulty);
         solution = generated.completed;
@@ -65,7 +67,7 @@
         clearInterval(solveTimerId);
         autoSolveButton.disabled = false;
         updateAutoSolveButton(false);
-        timerId = setInterval(() => { elapsed += 1; renderTimer(); }, 1000);
+        timerId = setInterval(advanceTimer, 1000);
         renderTimer();
         render();
         events.emit('game:started', { intensity: 0, danger: 0, difficulty });
@@ -200,9 +202,12 @@
         events.emit('game:progressed', { progress, intensity: .12 + progress * .55, danger: mistakes / 3 });
     }
 
+    function advanceTimer() { elapsed += 1; renderTimer(); publishProgress(); }
+
     function endGame(won) {
         gameOver = true;
         clearInterval(timerId);
+        saves?.completeRun();
         events.emit('game:completed', { outcome: won ? 'win' : 'loss', seconds: elapsed, mistakes, hintsUsed: 3 - hints });
         const difficulty = difficultySelect.value;
         window.Arcade?.record({ game: 'sudoku', won, details: { difficulty, seconds: elapsed, mistakes, hintsUsed: 3 - hints } }).catch(() => {});
@@ -303,7 +308,7 @@
         updateAutoSolveButton(false);
         statusElement.setAttribute('aria-live', 'polite');
         statusElement.textContent = 'Auto solve stopped. Your board has been restored.';
-        timerId = setInterval(() => { elapsed += 1; renderTimer(); }, 1000);
+        timerId = setInterval(advanceTimer, 1000);
         render();
     }
 
@@ -355,6 +360,31 @@
         else if (event.key === 'ArrowDown') moveSelection(1, 0);
         else if (event.key === 'ArrowLeft') moveSelection(0, -1);
         else if (event.key === 'ArrowRight') moveSelection(0, 1);
+    });
+
+    const validGrid = grid => Array.isArray(grid) && grid.length === 9 && grid.every(row => Array.isArray(row) && row.length === 9 && row.every(value => Number.isInteger(value) && value >= 0 && value <= 9));
+    saves?.registerAdapter({
+        stateVersion: 1,
+        canSave: () => !gameOver && !autoSolving,
+        hasProgress: () => elapsed > 0 || values.some((row, r) => row.some((value, c) => value !== puzzle[r]?.[c])) || notes.some(row => row.some(cell => cell.size)),
+        pause: () => { const running = !gameOver && !autoSolving && Boolean(timerId); clearInterval(timerId); timerId = null; return running; },
+        resume: running => { if (running && !gameOver && !timerId) timerId = setInterval(advanceTimer, 1000); },
+        capture: async () => ({
+            mode: difficultySelect.value, elapsedSeconds: elapsed, scoreLabel: `${values.flat().filter(Boolean).length}/81 filled`,
+            state: { solution, puzzle, values, notes: notes.map(row => row.map(cell => [...cell])), selected, mistakes, hints, notesMode, elapsed, difficulty: difficultySelect.value }
+        }),
+        restore: async state => {
+            if (!validGrid(state?.solution) || !validGrid(state?.puzzle) || !validGrid(state?.values) || !['easy','medium','hard'].includes(state?.difficulty) || !Number.isInteger(state.elapsed) || state.elapsed < 0 || !Number.isInteger(state.mistakes) || state.mistakes < 0 || state.mistakes > 2 || !Number.isInteger(state.hints) || state.hints < 0 || state.hints > 3 || !Array.isArray(state.notes) || state.notes.length !== 9) throw new Error('This Sudoku save is invalid or incompatible.');
+            const restoredNotes = state.notes.map(row => { if (!Array.isArray(row) || row.length !== 9) throw new Error('This Sudoku save is invalid or incompatible.'); return row.map(cell => { if (!Array.isArray(cell) || cell.some(value => !Number.isInteger(value) || value < 1 || value > 9)) throw new Error('This Sudoku save is invalid or incompatible.'); return new Set(cell); }); });
+            clearInterval(timerId); clearInterval(solveTimerId); solution = state.solution.map(row => [...row]); puzzle = state.puzzle.map(row => [...row]); values = state.values.map(row => [...row]); notes = restoredNotes; selected = state.selected && Number.isInteger(state.selected.row) && Number.isInteger(state.selected.column) ? { row: state.selected.row, column: state.selected.column } : null;
+            mistakes = state.mistakes; hints = state.hints; notesMode = Boolean(state.notesMode); elapsed = state.elapsed; gameOver = false; autoSolving = false; solvingCell = null; solveSnapshot = null; difficultySelect.value = state.difficulty; difficultyLabel.textContent = state.difficulty[0].toUpperCase() + state.difficulty.slice(1); mistakesElement.textContent = mistakes; notesButton.setAttribute('aria-pressed', String(notesMode)); notesButton.querySelector('small').textContent = notesMode ? 'On' : 'Off'; document.querySelector('#hint').innerHTML = `${CONTROL_ICONS.hint}Hint <small>${hints} left</small>`; modal.hidden = true; autoSolveButton.disabled = false; updateAutoSolveButton(false); statusElement.textContent = 'Saved puzzle loaded.'; renderTimer(); render(); timerId = setInterval(advanceTimer, 1000);
+        },
+        thumbnail: captured => saves.helpers.makeCanvas(context => {
+            context.fillStyle = '#f7f3eb'; context.fillRect(0,0,480,270); context.fillStyle = '#20352f'; context.font = '700 20px system-ui'; context.fillText('SUDOKU', 22, 34);
+            const size = 216, cell = 24, left = 242, top = 27; context.fillStyle = '#fffdf8'; context.fillRect(left,top,size,size); context.strokeStyle = '#20352f';
+            for (let index=0; index<=9; index+=1) { context.lineWidth = index%3===0?3:1; context.beginPath(); context.moveTo(left+index*cell,top); context.lineTo(left+index*cell,top+size); context.stroke(); context.beginPath(); context.moveTo(left,top+index*cell); context.lineTo(left+size,top+index*cell); context.stroke(); }
+            context.textAlign='center'; context.textBaseline='middle'; context.font='700 15px system-ui'; captured.state.values.forEach((row,r)=>row.forEach((value,c)=>{if(value)context.fillText(value,left+(c+.5)*cell,top+(r+.5)*cell);})); context.textAlign='left'; context.font='600 15px system-ui'; context.fillText(`${difficultyLabel.textContent} · ${timerElement.textContent}`,22,68); context.fillText(`${captured.scoreLabel} · ${mistakes} mistakes`,22,94);
+        })
     });
 
     startGame();

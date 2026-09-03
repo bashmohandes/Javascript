@@ -183,6 +183,24 @@
         visibleBoard() { return this.board.slice(HIDDEN_ROWS).map(row => row.slice()); }
         activeCells() { return cellsFor(this.piece).map(([x, y]) => [x, y - HIDDEN_ROWS]); }
         ghostCells() { return this.isMagic() ? [] : cellsFor({ ...this.piece, y: this.ghostY() }).map(([x, y]) => [x, y - HIDDEN_ROWS]); }
+        saveState() {
+            const fields = ['score','lines','level','pieces','singles','doubles','triples','tetrises','softDropCells','hardDropCells','gravityElapsed','lockElapsed','lockResets','magicPowerUps','magicBlocksDestroyed','shakePowerUps','shakeReady','clearEventId','destructionEventId','compactionEventId','powerUpEventId'];
+            return { board: this.board.map(row => [...row]), queue: [...this.queue], holdType: this.holdType, holdUsed: this.holdUsed, piece: { ...this.piece }, lastPowerUpPiece: Number.isFinite(this.lastPowerUpPiece) ? this.lastPowerUpPiece : null, ...Object.fromEntries(fields.map(field => [field, this[field]])) };
+        }
+        loadState(state) {
+            const integerFields = { score:[0,100000000], lines:[0,10000], level:[1,1001], pieces:[0,100000], singles:[0,10000], doubles:[0,10000], triples:[0,10000], tetrises:[0,10000], softDropCells:[0,2000000], hardDropCells:[0,2000040], lockResets:[0,15], magicPowerUps:[0,100000], magicBlocksDestroyed:[0,400000], shakePowerUps:[0,100000], clearEventId:[0,1000000], destructionEventId:[0,1000000], compactionEventId:[0,1000000], powerUpEventId:[0,1000000] };
+            const validBoard = Array.isArray(state?.board) && state.board.length === HEIGHT && state.board.every(row => Array.isArray(row) && row.length === WIDTH && row.every(cell => cell === null || TYPES.includes(cell)));
+            const validQueue = Array.isArray(state?.queue) && state.queue.length >= 5 && state.queue.length <= 14 && state.queue.every(type => TYPES.includes(type));
+            const piece = state?.piece, validPiece = piece && [...TYPES,'M'].includes(piece.type) && Number.isInteger(piece.rotation) && piece.rotation >= 0 && piece.rotation < 4 && Number.isInteger(piece.x) && piece.x >= -2 && piece.x <= WIDTH + 1 && Number.isInteger(piece.y) && piece.y >= -2 && piece.y < HEIGHT;
+            if (!validBoard || !validQueue || !validPiece || state.holdType !== null && !TYPES.includes(state.holdType) || typeof state.holdUsed !== 'boolean' || typeof state.shakeReady !== 'boolean') throw new Error('Invalid Tetris save state.');
+            for (const [field,[minimum,maximum]] of Object.entries(integerFields)) if (!Number.isSafeInteger(state[field]) || state[field] < minimum || state[field] > maximum) throw new Error('Invalid Tetris save state.');
+            const overlaps = cellsFor(piece).some(([x,y]) => x < 0 || x >= WIDTH || y >= HEIGHT || (piece.type !== 'M' && y >= 0 && state.board[y][x]));
+            if (overlaps || ![state.gravityElapsed,state.lockElapsed].every(value => Number.isFinite(value) && value >= 0 && value <= 60000) || state.lastPowerUpPiece !== null && !Number.isInteger(state.lastPowerUpPiece) || state.lines !== state.singles + state.doubles*2 + state.triples*3 + state.tetrises*4 || state.level !== Math.floor(state.lines/10)+1 || state.score !== state.singles*100 + state.doubles*300 + state.triples*500 + state.tetrises*800 + state.softDropCells + state.hardDropCells*2 + state.magicBlocksDestroyed*MAGIC_BLOCK_POINTS) throw new Error('Invalid Tetris save state.');
+            this.board = state.board.map(row => [...row]); this.queue = [...state.queue]; this.holdType = state.holdType; this.holdUsed = state.holdUsed; this.piece = { ...piece }; this.lastPowerUpPiece = state.lastPowerUpPiece === null ? -Infinity : Number(state.lastPowerUpPiece);
+            Object.keys(integerFields).forEach(field => { this[field] = state[field]; }); this.gravityElapsed = state.gravityElapsed; this.lockElapsed = state.lockElapsed; this.shakeReady = state.shakeReady;
+            this.gameOver = false; this.paused = true; this.lastClear = null; this.lastDestruction = null; this.lastCompaction = null; this.lastPowerUp = null;
+            return this;
+        }
         details(seconds) { return { mode: 'marathon', seconds, lines: this.lines, level: this.level, pieces: this.pieces, singles: this.singles, doubles: this.doubles, triples: this.triples, tetrises: this.tetrises, softDropCells: this.softDropCells, hardDropCells: this.hardDropCells, magicPowerUps: this.magicPowerUps, magicBlocksDestroyed: this.magicBlocksDestroyed, shakePowerUps: this.shakePowerUps }; }
     }
 

@@ -5,11 +5,46 @@ const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
 const fs = require('node:fs');
 const path = require('node:path');
-const { clientIp, contentSecurityPolicy, isPrivatePath, originAllowed, parseCookies, RateLimiter, requestOrigin, useSecureCookies, WebSocketGuard } = require('../server/http-security');
+const { clientIp, contentSecurityPolicy, HttpError, isPrivatePath, originAllowed, parseCookies, RateLimiter, readJson, RequestBodyGuard, requestOrigin, useSecureCookies, WebSocketGuard } = require('../server/http-security');
 
 function request(headers = {}, encrypted = false) {
     return { headers, socket: { encrypted, remoteAddress: '127.0.0.1' } };
 }
+
+test('JSON request limits count chunks incrementally and reject oversized declarations before reading', async () => {
+    const streamed = (chunks, headers = {}) => ({ headers, async *[Symbol.asyncIterator]() { yield* chunks; } });
+    assert.deepEqual(await readJson(streamed(['{"value":', '"✓"}']), 64), { value: '✓' });
+    assert.deepEqual(await readJson(streamed([...Buffer.from('{"value":1}')].map(byte => Buffer.from([byte]))), 64), { value: 1 });
+    await assert.rejects(readJson(streamed(['12345', '67890']), 8), /too large/i);
+    let read = false;
+    await assert.rejects(readJson({ headers: { 'content-length': '9' }, async *[Symbol.asyncIterator]() { read = true; yield '{}'; } }, 8), /too large/i);
+    assert.equal(read, false);
+});
+
+test('request body guard bounds aggregate reservations and releases completed bodies', async () => {
+    const guard = new RequestBodyGuard({ maxTotalBytes: 12, maxBytesPerIp: 8, timeoutMs: 100 });
+    const release = guard.reserve('first', 8);
+    assert.throws(() => guard.reserve('first', 1), error => error instanceof HttpError && error.status === 429 && error.closeConnection);
+    assert.throws(() => guard.reserve('second', 5), error => error instanceof HttpError && error.status === 429 && error.closeConnection);
+    release();
+    assert.deepEqual(await readJson({ headers: { 'content-length': '7' }, async *[Symbol.asyncIterator]() { yield '{"x":1}'; } }, 10, { guard, ip: 'first' }), { x: 1 });
+    assert.equal(guard.totalBytes, 0); assert.equal(guard.bytesByIp.size, 0);
+});
+
+test('request body guard times out unfinished bodies and releases their reservation', async () => {
+    const guard = new RequestBodyGuard({ maxTotalBytes: 64, maxBytesPerIp: 64, timeoutMs: 5 }); let finish;
+    const pending = { headers: {}, async *[Symbol.asyncIterator]() { await new Promise(resolve => { finish = resolve; }); } };
+    await assert.rejects(readJson(pending, 64, { guard, ip: 'first' }), error => error instanceof HttpError && error.status === 408 && error.closeConnection);
+    assert.equal(guard.totalBytes, 64);
+    finish(); await new Promise(resolve => setImmediate(resolve));
+    assert.equal(guard.totalBytes, 0); assert.equal(guard.bytesByIp.size, 0);
+});
+
+test('HTTP body errors are flushed before their request connection closes', () => {
+    const server = fs.readFileSync(path.join(__dirname, '..', 'server', 'index.js'), 'utf8');
+    assert.match(server, /error\.closeConnection \? \{ connection: 'close' \} : \{\}/);
+    assert.match(server, /error\.closeConnection \? \(\) => request\.destroy\(\) : null/);
+});
 
 test('cookie parsing tolerates malformed values and preserves equals signs', () => {
     assert.deepEqual(parseCookies('session=a%3Db; broken=%E0%A4%A; theme=dark'), { session: 'a=b', theme: 'dark' });

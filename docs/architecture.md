@@ -27,9 +27,11 @@ flowchart TB
     Shared[room UI, colors, sharing]
     Games[game-specific controllers and engines]
     Store[localStorage: preferences/best times\nsessionStorage: room resume tokens]
+    Saves[game-saves.js: private cloud slots]
     Pages --> Arcade
     Pages --> Events
     Games --> Events --> Shared
+    Events --> Saves
     Arcade --> Games
     Games --> Store
   end
@@ -46,6 +48,7 @@ flowchart TB
     Achievements --> DB
   end
   Arcade <-->|JSON REST| HTTP
+  Saves <-->|authenticated state + screenshots| HTTP
   Games <-->|JSON WebSocket| Rooms
 ```
 
@@ -152,7 +155,7 @@ flowchart LR
   BT --> BR[Battle Tanks room manager + shared engine]
 ```
 
-## Accounts, scores and achievements
+## Accounts, scores, achievements and saves
 
 ```mermaid
 sequenceDiagram
@@ -185,6 +188,7 @@ erDiagram
   USERS ||--o{ SESSIONS : has
   USERS ||--o{ GAME_RESULTS : records
   USERS ||--o{ ACHIEVEMENT_PROGRESS : earns
+  USERS ||--o{ GAME_SAVES : owns
   USERS { integer id PK
     text gamertag UK
     text passcode_hash
@@ -205,7 +209,30 @@ erDiagram
     integer progress
     text unlocked_at
   }
+  GAME_SAVES { integer id PK
+    integer user_id FK
+    text game
+    integer slot
+    integer state_version
+    text state_json
+    blob screenshot
+    text generation UK
+    integer revision
+  }
 ```
+
+Signed-in players can keep five private slots per modern game. The shared save
+manager observes semantic game-progress events for its disposable dirty flag
+and handles authentication, management UI, first-empty allocation, revision
+conflicts, and leave reminders; each local-game controller validates and
+restores its own versioned state. Screenshots and state are returned only
+to their owner. Client-authored save metadata is display-only and never enters
+leaderboards, achievements, or trusted result flows. Online matches continue
+to use their authoritative room resume tokens instead of cloud saves. Request
+bytes are counted incrementally, and transactional per-account plus configurable
+global payload budgets reject writes before cloud saves can exhaust storage. See
+[ADR 0027](adr/0027-versioned-cloud-game-saves.md) and
+[ADR 0028](adr/0028-cloud-save-resource-budgets.md).
 
 ## Online gaming
 

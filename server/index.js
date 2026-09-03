@@ -8,8 +8,9 @@ const { TicTacToeRooms } = require('./tictactoe-rooms');
 const { BattleTanksRooms } = require('./battle-tanks-rooms');
 const { openDatabase } = require('./database');
 const { Accounts } = require('./accounts');
+const { GameSaves, SaveError } = require('./saves');
 const { Achievements } = require('./achievements');
-const { clientIp: getClientIp, contentSecurityPolicy, isPrivatePath, originAllowed, parseCookies, RateLimiter, useSecureCookies, WebSocketGuard } = require('./http-security');
+const { clientIp: getClientIp, contentSecurityPolicy, HttpError, isPrivatePath, originAllowed, parseCookies, RateLimiter, readJson, RequestBodyGuard, useSecureCookies, WebSocketGuard } = require('./http-security');
 const { createStaticAssetHandler } = require('./static-assets');
 const { parseMessage, roomStatusMessage, send, sessionMessage } = require('./websocket-messages');
 const { generateIcons } = require('../scripts/generate-icons');
@@ -33,6 +34,15 @@ const rooms = new RoomManager({
 const ticRooms = new TicTacToeRooms({ reconnectMs: Number(process.env.RECONNECT_GRACE_MS) || 15000, roomTimeoutMs: Number(process.env.ROOM_TIMEOUT_MS) || 1800000, recordResult: trustedResult });
 const tankRooms = new BattleTanksRooms({ reconnectMs: Number(process.env.RECONNECT_GRACE_MS) || 15000, roomTimeoutMs: Number(process.env.ROOM_TIMEOUT_MS) || 1800000, recordResult: trustedResult });
 const positiveInteger = (value, fallback) => Number.isSafeInteger(Number(value)) && Number(value) > 0 ? Number(value) : fallback;
+const gameSaves = new GameSaves(database, {
+    maxTotalBytes: positiveInteger(process.env.SAVE_MAX_TOTAL_BYTES, 512 * 1024 * 1024),
+    maxUserBytes: positiveInteger(process.env.SAVE_MAX_BYTES_PER_USER, 16 * 1024 * 1024)
+});
+const requestBodyGuard = new RequestBodyGuard({
+    maxTotalBytes: positiveInteger(process.env.HTTP_BODY_MAX_IN_FLIGHT_BYTES, 16 * 1024 * 1024),
+    maxBytesPerIp: positiveInteger(process.env.HTTP_BODY_MAX_IN_FLIGHT_BYTES_PER_IP, 4 * 1024 * 1024),
+    timeoutMs: positiveInteger(process.env.HTTP_BODY_TIMEOUT_MS, 30000)
+});
 const websocketGuard = new WebSocketGuard({
     maxConnections: positiveInteger(process.env.WS_MAX_CONNECTIONS, 250),
     maxConnectionsPerIp: positiveInteger(process.env.WS_MAX_CONNECTIONS_PER_IP, 20),
@@ -57,9 +67,10 @@ const mime = {
 };
 const serveStaticAsset = createStaticAssetHandler({ root, mime, contentSecurityPolicy });
 
-function json(response, status, body, headers = {}) {
+function json(response, status, body, headers = {}, finished = null) {
     response.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...headers });
-    response.end(JSON.stringify(body));
+    const payload = JSON.stringify(body);
+    if (finished) response.end(payload, finished); else response.end(payload);
 }
 function cookies(request) { return parseCookies(request.headers.cookie); }
 function sessionUser(request) { return accounts.userForToken(cookies(request).arcade_session); }
@@ -69,13 +80,10 @@ const loginLimiter = new RateLimiter(10, 15 * 60 * 1000);
 const loginIpLimiter = new RateLimiter(50, 15 * 60 * 1000);
 const registrationLimiter = new RateLimiter(5, 60 * 60 * 1000);
 const resultLimiter = new RateLimiter(60, 60 * 60 * 1000);
+const saveLimiter = new RateLimiter(120, 60 * 60 * 1000);
 function clientIp(request) { return getClientIp(request, trustProxy); }
+function readRequestJson(request, maximum) { return readJson(request, maximum, { guard: requestBodyGuard, ip: clientIp(request) }); }
 function throttle(response, retryAfter) { return json(response, 429, { error: 'Too many attempts. Try again later.' }, { 'retry-after': retryAfter }); }
-async function readJson(request) {
-    let body = '';
-    for await (const chunk of request) { body += chunk; if (body.length > 10000) throw new Error('Request is too large.'); }
-    try { return body ? JSON.parse(body) : {}; } catch { throw new Error('Invalid JSON.'); }
-}
 function sameOrigin(request, requireOrigin = false) {
     return originAllowed(request, allowedOrigins, trustProxy, requireOrigin);
 }
@@ -109,11 +117,11 @@ const server = http.createServer(async (request, response) => {
             if (!sameOrigin(request)) return json(response, 403, { error: 'Origin not allowed.' });
             if (pathname === '/api/auth/register' && request.method === 'POST') {
                 const retryAfter = registrationLimiter.consume(clientIp(request)); if (retryAfter) return throttle(response, retryAfter);
-                const body = await readJson(request), user = await accounts.create(body.gamertag, body.passcode), session = accounts.createSession(user.id);
+                const body = await readRequestJson(request), user = await accounts.create(body.gamertag, body.passcode), session = accounts.createSession(user.id);
                 return json(response, 201, { user }, { 'set-cookie': sessionCookie(session.token, session.expiresAt) });
             }
             if (pathname === '/api/auth/login' && request.method === 'POST') {
-                const body = await readJson(request), ip = clientIp(request), loginKey = `${ip}:${String(body.gamertag || '').trim().toLowerCase()}`;
+                const body = await readRequestJson(request), ip = clientIp(request), loginKey = `${ip}:${String(body.gamertag || '').trim().toLowerCase()}`;
                 const retryAfter = Math.max(loginLimiter.consume(loginKey), loginIpLimiter.consume(ip)); if (retryAfter) return throttle(response, retryAfter);
                 const user = await accounts.authenticate(body.gamertag, body.passcode), session = accounts.createSession(user.id); loginLimiter.reset(loginKey);
                 return json(response, 200, { user }, { 'set-cookie': sessionCookie(session.token, session.expiresAt) });
@@ -127,20 +135,43 @@ const server = http.createServer(async (request, response) => {
             if (leaderboard && request.method === 'GET') return json(response, 200, { game: leaderboard[1], entries: accounts.leaderboard(leaderboard[1]) });
             const user = sessionUser(request);
             if (!user) return json(response, 401, { error: 'Sign in to continue.' });
+            const saveCollection = pathname.match(/^\/api\/saves\/(pong|sudoku|minesweeper|tictactoe|battletanks|tetris)$/);
+            const saveItem = pathname.match(/^\/api\/saves\/(pong|sudoku|minesweeper|tictactoe|battletanks|tetris)\/([1-5])$/);
+            const saveScreenshot = pathname.match(/^\/api\/saves\/(pong|sudoku|minesweeper|tictactoe|battletanks|tetris)\/([1-5])\/screenshot$/);
+            if (saveScreenshot && request.method === 'GET') {
+                const image = gameSaves.screenshot(user.id, saveScreenshot[1], saveScreenshot[2]);
+                response.writeHead(200, { 'content-type': image.mimeType, 'content-length': image.data.length, 'cache-control': 'private, no-store', 'x-content-type-options': 'nosniff' });
+                response.end(image.data); return;
+            }
+            if (saveCollection && request.method === 'GET') return json(response, 200, { game: saveCollection[1], saves: gameSaves.list(user.id, saveCollection[1]) });
+            if (saveCollection && request.method === 'POST') {
+                const retryAfter = saveLimiter.consume(user.id); if (retryAfter) return throttle(response, retryAfter);
+                return json(response, 201, { save: gameSaves.create(user.id, saveCollection[1], await readRequestJson(request, 768 * 1024)) });
+            }
+            if (saveItem && request.method === 'GET') return json(response, 200, { save: gameSaves.load(user.id, saveItem[1], saveItem[2]) });
+            if (saveItem && ['PUT', 'PATCH', 'DELETE'].includes(request.method)) {
+                const retryAfter = saveLimiter.consume(user.id); if (retryAfter) return throttle(response, retryAfter);
+                const body = await readRequestJson(request, request.method === 'PUT' ? 768 * 1024 : 10000);
+                if (request.method === 'PUT') return json(response, 200, { save: gameSaves.update(user.id, saveItem[1], saveItem[2], body) });
+                if (request.method === 'PATCH') return json(response, 200, { save: gameSaves.rename(user.id, saveItem[1], saveItem[2], body) });
+                return json(response, 200, gameSaves.delete(user.id, saveItem[1], saveItem[2], body.expectedRevision, body.expectedGeneration));
+            }
             if (pathname === '/api/profile' && request.method === 'GET') {
                 const parameters = new URL(request.url, 'http://localhost').searchParams;
                 return json(response, 200, accounts.profile(user.id, parameters.get('page'), parameters.get('pageSize')));
             }
             if (pathname === '/api/profile' && request.method === 'PATCH') {
-                const updated = await accounts.update(user.id, await readJson(request)), session = accounts.createSession(user.id);
+                const updated = await accounts.update(user.id, await readRequestJson(request)), session = accounts.createSession(user.id);
                 return json(response, 200, { user: updated }, { 'set-cookie': sessionCookie(session.token, session.expiresAt) });
             }
             if (pathname === '/api/results' && request.method === 'POST') {
                 const retryAfter = resultLimiter.consume(user.id); if (retryAfter) return throttle(response, retryAfter);
-                return json(response, 201, accounts.record(user.id, await readJson(request)));
+                return json(response, 201, accounts.record(user.id, await readRequestJson(request)));
             }
             return json(response, 404, { error: 'API endpoint not found.' });
         } catch (error) {
+            if (error instanceof SaveError) return json(response, error.status, { error: error.message, code: error.code, ...(error.current ? { current: error.current } : {}) });
+            if (error instanceof HttpError) return json(response, error.status, { error: error.message }, error.closeConnection ? { connection: 'close' } : {}, error.closeConnection ? () => request.destroy() : null);
             const clientError = /Gamertag|Passcode|passcode|incorrect|taken|Unknown game|Invalid|details|JSON|large/.test(error.message);
             return json(response, clientError ? 400 : 500, { error: clientError ? error.message : 'Server error.' });
         }
