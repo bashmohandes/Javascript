@@ -1,7 +1,15 @@
 'use strict';
 
+const TETRIS_DANGER_THRESHOLD = 2 / 3;
+const TETRIS_DANGER_BPM_BOOST = 32;
+function musicBpm(game, track, detail = {}) {
+    const intensity = Math.max(0, Math.min(1, Number(detail.intensity ?? .35)));
+    const danger = Math.max(0, Math.min(1, Number(detail.danger ?? 0)));
+    return track.bpm + intensity * 10 + (game === 'tetris' && danger > TETRIS_DANGER_THRESHOLD ? TETRIS_DANGER_BPM_BOOST : 0);
+}
+
 (function attachArcadeAudio(root, factory) {
-    if (typeof module === 'object' && module.exports) module.exports = { createArcadeAudio: factory };
+    if (typeof module === 'object' && module.exports) module.exports = { createArcadeAudio: factory, musicBpm };
     if (root?.document) root.ArcadeAudio = factory(root);
 })(typeof window === 'undefined' ? null : window, function createArcadeAudio(root) {
     const doc = root.document;
@@ -192,7 +200,7 @@
     };
     const scheduleMusic = () => {
         if (!musicAllowed()) return;
-        const track = TRACKS[game], intensity = clamp(sceneDetail.intensity ?? .35), beat = 60 / (track.bpm + intensity * 10) / 2;
+        const track = TRACKS[game], beat = 60 / musicBpm(game, track, sceneDetail) / 2;
         if (nextStepTime < context.currentTime - .2) nextStepTime = context.currentTime + .04;
         while (nextStepTime < context.currentTime + .16) { scheduleStep(stepIndex, nextStepTime + (stepIndex % 2 ? beat * track.swing : 0), beat); stepIndex += 1; nextStepTime += beat; }
     };

@@ -4,7 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { createArcadeAudio } = require('../scripts/audio.js');
+const { createArcadeAudio, musicBpm } = require('../scripts/audio.js');
 const { createArcadeEvents } = require('../scripts/game-events.js');
 
 const root = path.resolve(__dirname, '..');
@@ -104,6 +104,14 @@ test('the Tetris track preserves the Korobeiniki phrase at starting intensity in
     const melody = context.oscillators.filter(source => source.type === 'triangle' && source.frequency.value > 100).map(source => source.frequency.value);
     const expected = [69,64,65,67,65,64,62,62,65,69,67,65,64,65,67,69,65,62,62].map(midi => 440 * Math.pow(2, (midi - 69) / 12));
     assert.deepEqual(melody.slice(0, expected.length).map(value => Math.round(value * 1000)), expected.map(value => Math.round(value * 1000)));
+});
+
+test('Tetris tempo accelerates above two-thirds tower height and returns below it', () => {
+    const track = { bpm: 132 }, detail = { intensity: .4 };
+    assert.equal(musicBpm('tetris', track, { ...detail, danger: .65 }), 136);
+    assert.equal(musicBpm('tetris', track, { ...detail, danger: .7 }), 168);
+    assert.equal(musicBpm('tetris', track, { ...detail, danger: .4 }), 136);
+    assert.equal(musicBpm('pong', track, { ...detail, danger: .9 }), 136, 'the threshold boost is Tetris-only');
 });
 
 test('melodies advance an octave for every complete scale traversal', async () => {

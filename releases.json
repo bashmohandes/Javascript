@@ -6,7 +6,8 @@
       "title": "JavaScript Playground 1.2.0",
       "summary": "Achievements now celebrate key Tetris and Battle Tanks milestones at the moment players earn them.",
       "highlights": [
-        "See achievement unlocks during active play when reaching Tetris level 10, clearing four lines at once, or completing eligible Battle Tanks power-up and tactical challenges."
+        "See achievement unlocks during active play when reaching Tetris level 10, clearing four lines at once, or completing eligible Battle Tanks power-up and tactical challenges.",
+        "Hear the Tetris music accelerate when the tower rises above two-thirds of the playfield, then settle back to its normal tempo when the danger clears."
       ],
       "fixes": [
         "Prevents live achievement notifications from appearing again when the final game result is recorded.",

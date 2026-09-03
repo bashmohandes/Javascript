@@ -91,7 +91,7 @@
         clearTimeout(recordTimer); recordTimer = setTimeout(() => { stageElement.classList.remove('is-new-record'); recordCalloutElement.classList.remove('is-active'); }, 2200);
     }
     function progressDetail(board = game.visibleBoard()) {
-        const highest = board.findIndex(row => row.some(Boolean)), danger = highest < 0 ? 0 : Math.max(0, Math.min(1, (8 - highest) / 8));
+        const danger = window.TetrisRules.stackHeightRatio(board);
         return { level: game.level, intensity: Math.min(.9, .2 + game.level * .07), danger };
     }
     function checkpointLiveAchievements() {
