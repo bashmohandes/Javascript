@@ -63,7 +63,7 @@ test('online pages cache-bust shared contract changes',()=>{
   assert.match(page,new RegExp(`scripts/online-rooms\\.js\\?v=${rooms.CONTRACT_VERSION}`),`${file} must request the current shared contract`);
  }
  const worker=fs.readFileSync('service-worker.js','utf8');
- assert.match(worker,/CACHE_NAME = 'js-playground-v10'/);
+ assert.match(worker,/CACHE_NAME = 'js-playground-v11'/);
 });
 test('Battle Tanks ignores obsolete sockets and owns one reconnect timer',()=>{
  const app=fs.readFileSync('battle-tanks/scripts/app.js','utf8');

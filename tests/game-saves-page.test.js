@@ -34,11 +34,14 @@ test('the save manager provides five slots, sign-in continuation, screenshots, c
     assert.match(styles, /\.arcade-save-slot/); assert.match(styles, /@media\(max-width:650px\)/);
 });
 
-test('paused save dialogs freeze elapsed time and automatic Tetris progress becomes dirty', () => {
-    const ticTacToe = read('tictactoe/scripts/app.js'), battleTanks = read('battle-tanks/scripts/app.js'), tetris = read('tetris/scripts/app.js');
+test('paused save dialogs preserve timed state and automatic progress becomes dirty', () => {
+    const ticTacToe = read('tictactoe/scripts/app.js'), battleTanks = read('battle-tanks/scripts/app.js'), tetris = read('tetris/scripts/app.js'), pong = read('pong/scripts/app.js');
     assert.match(ticTacToe, /savePausedAt\?\?Date\.now\(\)/); assert.match(ticTacToe, /savePausedAt=null/);
+    assert.match(ticTacToe, /setInterval\(\(\)=>\{if\(game\.mode!=='online'.*events\.emit\('game:progressed'/);
     assert.match(battleTanks, /savePausedAt\?\?Date\.now\(\)/); assert.match(battleTanks, /savePausedAt=null/);
     assert.match(tetris, /if\s*\(changed\)\s*\{\s*events\.emit\('game:progressed'/);
+    assert.match(pong, /function pauseServe\(\)/); assert.match(pong, /function resumeServe\(\)/);
+    assert.match(pong, /serveDelay: pendingServeMs/); assert.match(pong, /state\.serveDelay\?\?500/);
 });
 
 test('save writes serialize and semantic events own dirty progress tracking', () => {
@@ -48,6 +51,7 @@ test('save writes serialize and semantic events own dirty progress tracking', ()
     assert.ok(saveCurrent.indexOf('saving = true') < saveCurrent.indexOf('await authenticated()'));
     assert.match(saveCurrent, /finally \{ saving = false; renderSlots\(\); \}/);
     assert.match(manager, /saveButton\.disabled = saving \|\|/);
+    assert.match(manager, /dialogPause; dialogPause = null; exitAfterSave = null; resumeFrom/);
     assert.match(manager, /window\.ArcadeEvents\?\.on\('\*', observeProgress\)/);
     assert.match(manager, /event\.type === 'game:started' \|\| event\.type === 'game:progressed'/);
     assert.match(manager, /event\.type\.startsWith\(`\$\{namespace\}:`\)/);
