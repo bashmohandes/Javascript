@@ -139,9 +139,10 @@
         }
         async function deleteSave(save) {
             if (!window.confirm(`Delete ${save.title || `slot ${save.slot}`}? This cannot be undone.`)) return;
+            const activeAtDelete = activeSave?.slot === save.slot ? { slot: activeSave.slot, generation: activeSave.generation } : null;
             try {
                 await api(`/api/saves/${game}/${save.slot}`, { method: 'DELETE', body: JSON.stringify({ expectedRevision: save.revision, expectedGeneration: save.generation }) });
-                if (activeSave?.slot === save.slot && activeSave.generation === save.generation) activeSave = null; await refresh(); status('Save deleted.');
+                if (activeAtDelete && activeSave?.slot === activeAtDelete.slot && activeSave.generation === activeAtDelete.generation) activeSave = null; await refresh(); status('Save deleted.');
             } catch (error) {
                 if (error.code === 'SAVE_CONFLICT') {
                     if (activeSave?.slot === save.slot) activeSave = error.current;
