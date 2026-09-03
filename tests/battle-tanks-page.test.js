@@ -158,6 +158,19 @@ test('Battle Tanks collects pickups along local pointer-drag movement', () => {
     assert.match(app, /pointermove[\s\S]*?tank\.y=tankYAt\(state,tank\);collectPickup\(state,state\.activePlayer\);sync\(\)/);
 });
 
+test('Battle Tanks renders larger, item-specific power-up crates', () => {
+    const app = read('battle-tanks/scripts/app.js'), core = require('../battle-tanks/scripts/game'), visuals = app.match(/const pickupVisuals=\{([\s\S]*?)\};/)?.[1] || '';
+    assert.ok(core.PICKUP_SIZE >= 48);
+    for (const id of Object.keys(core.POWER_UP_CATALOG)) assert.ok(visuals.includes(id), `${id} should have a crate treatment`);
+    assert.match(app, /shadowBlur=26/); assert.match(app, /arc\(pickup\.x,top\+size\/2,14/);
+});
+
+test('Battle Tanks local power-up use never advances the turn', () => {
+    const app = read('battle-tanks/scripts/app.js');
+    assert.match(app, /function usePowerUp\(id\)[\s\S]*activatePowerUp\(state,state\.activePlayer,id\);sync\(\);render\(\);/);
+    assert.doesNotMatch(app, /result\?\.consumesTurn/);
+});
+
 test('Battle Tanks disables online-only power-ups in local matches and guards activation', () => {
     const app = read('battle-tanks/scripts/app.js'), core = require('../battle-tanks/scripts/game');
     assert.equal(core.POWER_UP_CATALOG.invisibility.onlineOnly, true);

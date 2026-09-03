@@ -43,7 +43,7 @@ test('server validates inventory choices, rejects stale activations, and synchro
     state.inventories[0].push('shield'); core.spawnPickup(state, 'health-pack');
     assert.throws(() => rooms.command(host.room, host.player, { ...command(host.room, 'activate', { itemId: 'shield' }), turnId: 0 }), /stale/i);
     rooms.command(host.room, host.player, command(host.room, 'activate', { itemId: 'shield' }));
-    const shield = state.activeEffects[0][0]; assert.deepEqual([shield.remainingTurns, shield.remainingCapacity], [1, 40]); assert.equal(host.room.turnId, 2); assert.equal(state.activePlayer, 1);
+    const shield = state.activeEffects[0][0]; assert.deepEqual([shield.remainingTurns, shield.remainingCapacity], [2, 40]); assert.equal(host.room.turnId, 1); assert.equal(state.activePlayer, 0);
     rooms.broadcastState(host.room);
     assert.deepEqual(host.player.socket.messages.at(-1).state.pickups, guest.player.socket.messages.at(-1).state.pickups);
     assert.deepEqual(host.player.socket.messages.at(-1).state.activeEffects, guest.player.socket.messages.at(-1).state.activeEffects);
@@ -60,10 +60,10 @@ test('server RNG exclusively selects bounded shield values and expires effects',
     host.room.game.inventories[0].push('shield');
     rooms.command(host.room, host.player, command(host.room, 'activate', { itemId: 'shield', remainingTurns: 99, remainingCapacity: 999 }));
     const shield = host.room.game.activeEffects[0][0], config = core.POWER_UP_CATALOG.shield;
-    // Activation completes player 1's turn, so one server-selected turn has elapsed.
-    assert.equal(shield.remainingTurns, config.durationRange.max - 1);
+    // Activation preserves player 1's turn and the complete server-selected duration.
+    assert.equal(shield.remainingTurns, config.durationRange.max);
     assert.equal(shield.remainingCapacity, config.capacityRange.max);
-    core.endTurnEffects(host.room.game, 0); core.endTurnEffects(host.room.game, 0); core.endTurnEffects(host.room.game, 0);
+    core.endTurnEffects(host.room.game, 0); core.endTurnEffects(host.room.game, 0); core.endTurnEffects(host.room.game, 0); core.endTurnEffects(host.room.game, 0);
     assert.deepEqual(host.room.game.activeEffects[0], []);
 });
 

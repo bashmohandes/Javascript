@@ -64,6 +64,8 @@ transitions and authoritative online state, never from UI actions.
 15. Solo CPU planning uses a bounded coarse-to-fine search over the shared
     mechanics. Canvas presentation caches the static arena layer and schedules
     frames only while simulation or timed effects are active.
+16. Activating or equipping a power-up never completes a turn. Only resolving a
+    fired shot advances the active player and completed-turn counters.
 
 ## Considered alternatives
 
@@ -125,6 +127,7 @@ for as long as callers require it.
 * Match snapshots never expose concealed opponent coordinates.
 * A client receives complete arena geometry before any geometry-omitting delta.
 * Damage is applied once per resolved explosion.
+* Power-up use never changes the active player or authoritative turn ID.
 * Shield absorption precedes health damage.
 * Every acquisition event has a stable match-scoped ID.
 * Client-local card dismissal cannot mutate shared match state.
