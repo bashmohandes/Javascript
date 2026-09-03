@@ -47,8 +47,9 @@ Full screen keeps the 10×20 board centered at its correct proportions. Score
 and progress sit to its left, hold and enlarged next-piece previews sit to its
 right, and both rails scale with the shorter viewport dimension instead of
 staying at their regular-page size. Related touch actions live in compact
-movement/drop and rotation/hold decks, with pause and restart directly beneath
-them. The layout uses dynamic viewport and safe-area insets, with a CSS fallback
+movement/drop and rotation/hold decks. Pause and restart move to a separate
+safe-area-aware utility bar at the top-left, outside the player's hand-rest
+zones. The layout uses dynamic viewport and safe-area insets, with a CSS fallback
 for installed browsers that cannot use the native Fullscreen API.
 
 ## Clears and high scores

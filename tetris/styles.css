@@ -70,10 +70,8 @@
     .game-tetris .game-layout:fullscreen .mini-board,.game-tetris .game-layout.is-fullscreen .mini-board{width:min(100%,14vmin)}
     .game-tetris .game-layout:fullscreen .next-list,.game-tetris .game-layout.is-fullscreen .next-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(7px,1vmin,14px)}
     .game-tetris .game-layout:fullscreen .next-list .mini-board,.game-tetris .game-layout.is-fullscreen .next-list .mini-board{width:min(100%,11vmin)}
-    .game-tetris .game-layout:fullscreen .control-actions,.game-tetris .game-layout.is-fullscreen .control-actions{display:contents}
-    .game-tetris .game-layout:fullscreen .control-actions button,.game-tetris .game-layout.is-fullscreen .control-actions button{box-sizing:border-box;width:min(var(--tetris-fullscreen-rail),44vmin);min-height:clamp(48px,5vmin,72px);margin-top:clamp(20px,2.5vmin,36px)}
-    .game-tetris .game-layout:fullscreen .control-actions button:first-child,.game-tetris .game-layout.is-fullscreen .control-actions button:first-child{grid-column:1;grid-row:4;justify-self:end}
-    .game-tetris .game-layout:fullscreen .control-actions button:last-child,.game-tetris .game-layout.is-fullscreen .control-actions button:last-child{grid-column:3;grid-row:4;justify-self:start}
+    .game-tetris .game-layout:fullscreen .control-actions,.game-tetris .game-layout.is-fullscreen .control-actions{position:fixed;z-index:11;top:max(10px,env(safe-area-inset-top));left:max(10px,env(safe-area-inset-left));display:flex;gap:8px;padding:6px;background:color-mix(in srgb,var(--tetris-panel) 94%,transparent);border:2px solid var(--tetris-border);border-radius:12px;box-shadow:4px 4px 0 color-mix(in srgb,var(--tetris-shadow) 72%,transparent)}
+    .game-tetris .game-layout:fullscreen .control-actions button,.game-tetris .game-layout.is-fullscreen .control-actions button{box-sizing:border-box;flex:none;width:auto;min-width:clamp(104px,10vmin,144px);min-height:clamp(44px,4vmin,58px);margin:0;padding:8px 16px}
     :is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) .game-tetris .game-layout:fullscreen :is(.control-cluster,.touch-controls button),:is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) .game-tetris .game-layout.is-fullscreen :is(.control-cluster,.touch-controls button){border-radius:0}
 }
 @media (orientation:landscape) and (max-height:620px){
@@ -88,5 +86,6 @@
     .game-tetris .game-layout:fullscreen .next-list .mini-board,.game-tetris .game-layout.is-fullscreen .next-list .mini-board{width:min(48px,100%)}
     .game-tetris .game-layout:fullscreen .control-cluster,.game-tetris .game-layout.is-fullscreen .control-cluster{gap:5px;padding:5px;border-width:2px;box-shadow:3px 3px 0 color-mix(in srgb,var(--tetris-shadow) 72%,transparent)}
     .game-tetris .game-layout:fullscreen .touch-controls button,.game-tetris .game-layout.is-fullscreen .touch-controls button{min-height:39px;padding:4px;font-size:15px}
-    .game-tetris .game-layout:fullscreen .control-actions button,.game-tetris .game-layout.is-fullscreen .control-actions button{width:100%;min-height:44px;margin-top:8px}
+    .game-tetris .game-layout:fullscreen .control-actions,.game-tetris .game-layout.is-fullscreen .control-actions{gap:5px;padding:4px}
+    .game-tetris .game-layout:fullscreen .control-actions button,.game-tetris .game-layout.is-fullscreen .control-actions button{min-width:92px;min-height:44px;margin:0;padding:5px 10px}
 }
