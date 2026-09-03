@@ -144,6 +144,7 @@
                 if (activeSave?.slot === save.slot && activeSave.generation === save.generation) activeSave = null; await refresh(); status('Save deleted.');
             } catch (error) {
                 if (error.code === 'SAVE_CONFLICT') {
+                    if (activeSave?.slot === save.slot) activeSave = error.current;
                     const message = 'That save changed on another device. Review it before deleting again.'; status(message);
                     try { await refresh(); } catch (refreshError) { status(`${message} Could not refresh saves: ${refreshError.message}`); }
                 }

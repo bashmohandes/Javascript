@@ -58,6 +58,7 @@ test('save writes serialize and semantic events own dirty progress tracking', ()
     assert.match(manager, /const capturedProgress = progressVersion;[\s\S]*?if \(progressVersion === capturedProgress\) dirty = false/);
     assert.match(manager, /deleteSave[\s\S]*?activeSave\?\.slot === save\.slot && activeSave\.generation === save\.generation/);
     assert.match(manager, /deleteSave[\s\S]*?error\.code === 'SAVE_CONFLICT'[\s\S]*?try \{ await refresh\(\); \} catch \(refreshError\)/);
+    assert.match(manager, /deleteSave[\s\S]*?error\.code === 'SAVE_CONFLICT'[\s\S]*?activeSave\?\.slot === save\.slot\) activeSave = error\.current/);
     assert.match(manager, /dialogPause; dialogPause = null; exitAfterSave = null; resumeFrom/);
     assert.match(manager, /if \(destination && !dirty\) \{ exitAfterSave = null; location\.assign\(destination\); \}/);
     assert.doesNotMatch(manager, /const destination = exitAfterSave; exitAfterSave = null;/);
