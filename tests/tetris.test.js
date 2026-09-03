@@ -150,8 +150,16 @@ test('Tetris offers a safe-area-aware full-screen board and command deck', () =>
     assert.match(app, /document\.body\.classList\.toggle\('arena-fullscreen', active\)/);
     assert.match(styles, /game-layout(?:\.game-layout)?:fullscreen[^}]*grid-template-columns:minmax\(0,calc\(\(100dvh/);
     assert.match(styles, /game-layout:fullscreen \.touch-controls[^}]*position:static/);
-    assert.match(styles, /orientation:landscape[^}]*max-height:620px[\s\S]*grid-template-areas:"stats pieces"/);
+    assert.match(styles, /orientation:landscape[^}]*max-height:620px[\s\S]*grid-template-columns:minmax\(0,1fr\) var\(--tetris-fullscreen-board\) minmax\(0,1fr\)/);
+    assert.match(styles, /game-layout:fullscreen \.tetris-stage[^}]*grid-column:2[^}]*grid-row:1\/-1/);
+    assert.match(styles, /game-layout:fullscreen \.stats[^}]*grid-column:1[^}]*grid-row:1/);
+    assert.match(styles, /game-layout:fullscreen \.piece-panels[^}]*grid-column:3[^}]*grid-row:1/);
+    assert.match(styles, /tetris-controls[^}]*display:contents/);
+    assert.match(styles, /touch-controls button:nth-child\(1\)[^}]*grid-column:1/);
+    assert.match(styles, /touch-controls button:nth-child\(3\)[^}]*grid-column:4/);
+    assert.match(styles, /touch-controls button:nth-child\(7\)[^}]*grid-column:4\/6/);
     assert.match(styles, /touch-controls button[^}]*min-height:44px/);
+    assert.match(styles, /game-layout:fullscreen \.touch-controls button[^}]*background:var\(--tetris-panel\)/);
     assert.match(styles, /topbar-actions \.icon-button\{[^}]*min-width:44px;min-height:44px/);
 });
 

@@ -43,12 +43,12 @@ fit together without hiding the status information.
 
 ## Full screen
 
-Full screen keeps the 10×20 board at its correct proportions and turns the
-remaining landscape space into a compact command deck. Score, lines, level,
-high score, hold, next pieces, pause, restart, and every touch action remain
-available without covering the board. The layout uses dynamic viewport and
-safe-area insets, with a CSS fallback for installed browsers that cannot use
-the native Fullscreen API.
+Full screen keeps the 10×20 board centered at its correct proportions. Score
+and progress sit to its left, hold and next pieces sit to its right, and touch
+actions are split between both sides so either thumb can reach the common
+controls. Pause and restart remain available without covering the board. The
+layout uses dynamic viewport and safe-area insets, with a CSS fallback for
+installed browsers that cannot use the native Fullscreen API.
 
 ## Clears and high scores
 
