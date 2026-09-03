@@ -41,6 +41,19 @@ test('paused save dialogs freeze elapsed time and automatic Tetris progress beco
     assert.match(tetris, /if\s*\(changed\)\s*\{\s*saves\?\.markDirty\(\);\s*render\(\);\s*\}/);
 });
 
+test('save writes serialize and autonomous local games keep resumed progress dirty', () => {
+    const manager = read('scripts/game-saves.js'), pong = read('pong/scripts/app.js'), battleTanks = read('battle-tanks/scripts/app.js');
+    const saveCurrent = manager.slice(manager.indexOf('async function saveCurrent'), manager.indexOf('async function loadSave'));
+    assert.match(saveCurrent, /if \(saving\) return null/);
+    assert.ok(saveCurrent.indexOf('saving = true') < saveCurrent.indexOf('await authenticated()'));
+    assert.match(saveCurrent, /finally \{ saving = false; renderSlots\(\); \}/);
+    assert.match(manager, /saveButton\.disabled = saving \|\|/);
+    assert.match(pong, /update\(dt\); if\(dt>0\)saves\?\.markDirty\(\)/);
+    assert.match(battleTanks, /if\(moveTank\(state,plan\.direction,stepAmount\)\)saves\?\.markDirty\(\)/);
+    assert.match(battleTanks, /if\(fireProjectile\(state\)\)\{saves\?\.markDirty\(\)/);
+    assert.match(battleTanks, /if\(accumulator>=1\/120\)saves\?\.markDirty\(\)/);
+});
+
 test('save APIs remain authenticated and separate from result authority', () => {
     const server = read('server/index.js'), saves = read('server/saves.js'), migration = read('server/migrations/005_game_saves.sql');
     assert.ok(server.indexOf('const user = sessionUser(request)') < server.indexOf('const saveCollection'));

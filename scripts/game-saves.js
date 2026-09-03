@@ -24,7 +24,7 @@
         return canvas;
     }
     function create({ game, api, user, signIn }) {
-        let adapter = null, activeSave = null, dirty = false, saves = [], replacing = false, exitAfterSave = null, dialogPause = null, leavePause = null, accountId = user()?.id ?? null;
+        let adapter = null, activeSave = null, dirty = false, saving = false, saves = [], replacing = false, exitAfterSave = null, dialogPause = null, leavePause = null, accountId = user()?.id ?? null;
         const button = document.createElement('button'); button.type = 'button'; button.className = 'arcade-saves-button'; button.textContent = 'Saves'; button.setAttribute('aria-haspopup', 'dialog');
         const dialog = document.createElement('dialog'); dialog.className = 'arcade-dialog arcade-saves-dialog';
         dialog.innerHTML = `<div class="arcade-saves-content"><header><div><small>Continue anywhere</small><h2>Game saves</h2></div><button type="button" data-save-close aria-label="Close game saves">×</button></header><div class="arcade-save-create"><label>Optional title<input maxlength="60" data-save-title placeholder="My run"></label><button type="button" data-save-current>Save current game</button></div><p class="arcade-save-status" role="status" aria-live="polite"></p><div class="arcade-save-slots"></div></div>`;
@@ -57,18 +57,18 @@
             if (save?.mode) { const mode = document.createElement('small'); mode.textContent = save.mode.replaceAll('-', ' '); details.append(mode); }
             const actions = document.createElement('div'); actions.className = 'arcade-save-slot-actions';
             if (save) {
-                const load = document.createElement('button'); load.type = 'button'; load.textContent = 'Load'; load.addEventListener('click', () => loadSave(save)); actions.append(load);
-                if (replacing && !activeSave) { const replace = document.createElement('button'); replace.type = 'button'; replace.textContent = 'Replace'; replace.addEventListener('click', () => saveCurrent(save)); actions.append(replace); }
-                const rename = document.createElement('button'); rename.type = 'button'; rename.className = 'secondary'; rename.textContent = 'Rename'; rename.addEventListener('click', () => renameSave(save));
-                const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'secondary'; remove.textContent = 'Delete'; remove.addEventListener('click', () => deleteSave(save)); actions.append(rename, remove);
+                const load = document.createElement('button'); load.type = 'button'; load.textContent = 'Load'; load.disabled = saving; load.addEventListener('click', () => loadSave(save)); actions.append(load);
+                if (replacing && !activeSave) { const replace = document.createElement('button'); replace.type = 'button'; replace.textContent = 'Replace'; replace.disabled = saving; replace.addEventListener('click', () => saveCurrent(save)); actions.append(replace); }
+                const rename = document.createElement('button'); rename.type = 'button'; rename.className = 'secondary'; rename.textContent = 'Rename'; rename.disabled = saving; rename.addEventListener('click', () => renameSave(save));
+                const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'secondary'; remove.textContent = 'Delete'; remove.disabled = saving; remove.addEventListener('click', () => deleteSave(save)); actions.append(rename, remove);
             }
             card.append(preview, details, actions); return card;
         }
         function renderSlots() {
             const bySlot = new Map(saves.map(save => [save.slot, save]));
             dialog.querySelector('.arcade-save-slots').replaceChildren(...[1,2,3,4,5].map(slot => slotCard(slot, bySlot.get(slot))));
-            const saveButton = dialog.querySelector('[data-save-current]'); saveButton.disabled = !eligible() || !hasProgress();
-            saveButton.textContent = activeSave ? `Save to slot ${activeSave.slot}` : 'Save current game';
+            const saveButton = dialog.querySelector('[data-save-current]'); saveButton.disabled = saving || !eligible() || !hasProgress();
+            saveButton.textContent = saving ? 'Saving…' : activeSave ? `Save to slot ${activeSave.slot}` : 'Save current game';
         }
         async function refresh() {
             const result = await api(`/api/saves/${game}`); saves = result.saves; renderSlots();
@@ -82,10 +82,12 @@
             if (destination) { dirty = false; location.assign(destination); }
         }
         async function saveCurrent(replace = null) {
+            if (saving) return null;
             if (!eligible() || !hasProgress()) { status('Start an eligible local game before saving.'); return null; }
-            if (!await authenticated()) return null;
-            status('Saving…');
+            saving = true; renderSlots();
             try {
+                if (!await authenticated()) return null;
+                status('Saving…');
                 const title = dialog.querySelector('[data-save-title]').value.trim() || activeSave?.title || replace?.title || '';
                 const body = await capture(title);
                 let result;
@@ -99,7 +101,7 @@
                 else if (error.code === 'SAVE_CONFLICT') { activeSave = error.current; await refresh(); status('That slot changed on another device. Review it before saving again.'); }
                 else status(error.message);
                 return null;
-            }
+            } finally { saving = false; renderSlots(); }
         }
         async function loadSave(save) {
             if (shouldWarn() && !window.confirm('Load this save and discard your unsaved progress?')) return;

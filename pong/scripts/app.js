@@ -298,7 +298,7 @@ function draw() {
     }) : balls;
     renderedBalls.forEach(drawBall);
 }
-function frame(time) { const dt = Math.min((time - game.last) / 1000, .025) || 0; game.last = time; if (game.mode !== 'online' && game.running && !game.paused) update(dt); draw(); requestAnimationFrame(frame); }
+function frame(time) { const dt = Math.min((time - game.last) / 1000, .025) || 0; game.last = time; if (game.mode !== 'online' && game.running && !game.paused) { update(dt); if(dt>0)saves?.markDirty(); } draw(); requestAnimationFrame(frame); }
 
 async function shareResult() {
     if (!game.over) return;
