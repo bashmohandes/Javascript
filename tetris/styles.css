@@ -71,7 +71,7 @@
     .game-tetris .game-layout:fullscreen .next-list,.game-tetris .game-layout.is-fullscreen .next-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(7px,1vmin,14px)}
     .game-tetris .game-layout:fullscreen .next-list .mini-board,.game-tetris .game-layout.is-fullscreen .next-list .mini-board{width:min(100%,11vmin)}
     .game-tetris .game-layout:fullscreen .control-actions,.game-tetris .game-layout.is-fullscreen .control-actions{display:contents}
-    .game-tetris .game-layout:fullscreen .control-actions button,.game-tetris .game-layout.is-fullscreen .control-actions button{box-sizing:border-box;width:var(--tetris-fullscreen-rail);min-height:clamp(48px,5vmin,72px);margin-top:clamp(5px,.8vmin,10px)}
+    .game-tetris .game-layout:fullscreen .control-actions button,.game-tetris .game-layout.is-fullscreen .control-actions button{box-sizing:border-box;width:min(var(--tetris-fullscreen-rail),44vmin);min-height:clamp(48px,5vmin,72px);margin-top:clamp(20px,2.5vmin,36px)}
     .game-tetris .game-layout:fullscreen .control-actions button:first-child,.game-tetris .game-layout.is-fullscreen .control-actions button:first-child{grid-column:1;grid-row:4;justify-self:end}
     .game-tetris .game-layout:fullscreen .control-actions button:last-child,.game-tetris .game-layout.is-fullscreen .control-actions button:last-child{grid-column:3;grid-row:4;justify-self:start}
     :is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) .game-tetris .game-layout:fullscreen :is(.control-cluster,.touch-controls button),:is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) .game-tetris .game-layout.is-fullscreen :is(.control-cluster,.touch-controls button){border-radius:0}
@@ -88,5 +88,5 @@
     .game-tetris .game-layout:fullscreen .next-list .mini-board,.game-tetris .game-layout.is-fullscreen .next-list .mini-board{width:min(48px,100%)}
     .game-tetris .game-layout:fullscreen .control-cluster,.game-tetris .game-layout.is-fullscreen .control-cluster{gap:5px;padding:5px;border-width:2px;box-shadow:3px 3px 0 color-mix(in srgb,var(--tetris-shadow) 72%,transparent)}
     .game-tetris .game-layout:fullscreen .touch-controls button,.game-tetris .game-layout.is-fullscreen .touch-controls button{min-height:39px;padding:4px;font-size:15px}
-    .game-tetris .game-layout:fullscreen .control-actions button,.game-tetris .game-layout.is-fullscreen .control-actions button{min-height:44px;margin-top:0}
+    .game-tetris .game-layout:fullscreen .control-actions button,.game-tetris .game-layout.is-fullscreen .control-actions button{width:100%;min-height:44px;margin-top:8px}
 }

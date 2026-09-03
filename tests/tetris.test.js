@@ -163,6 +163,7 @@ test('Tetris offers a safe-area-aware full-screen board and command deck', () =>
     assert.match(styles, /piece-controls button:last-child[^}]*grid-column:1\/-1/);
     assert.match(styles, /game-layout:fullscreen \.mini-board[^}]*14vmin/);
     assert.match(styles, /next-list \.mini-board[^}]*11vmin/);
+    assert.match(styles, /control-actions button[^}]*width:min\(var\(--tetris-fullscreen-rail\),44vmin\)[^}]*margin-top:clamp\(20px,2\.5vmin,36px\)/);
     assert.match(styles, /touch-controls button[^}]*min-height:44px/);
     assert.match(styles, /game-layout:fullscreen \.touch-controls button[^}]*background:color-mix\([^}]*var\(--tetris-i\)/);
     assert.match(styles, /topbar-actions \.icon-button\{[^}]*min-width:44px;min-height:44px/);
