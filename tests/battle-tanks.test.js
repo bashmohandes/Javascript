@@ -186,6 +186,8 @@ test('Battle Tanks snapshots restore deterministic local state and Set-backed st
     assert.throws(() => game.restoreSnapshot(invalid), /Invalid Battle Tanks save state/);
     const invalidGenerated = structuredClone(encoded); invalidGenerated.acquiredValues[0][0].capacity = 1000;
     assert.throws(() => game.restoreSnapshot(invalidGenerated), /Invalid Battle Tanks save state/);
+    const legacy = structuredClone(encoded); delete legacy.acquiredValues; const upgraded = game.restoreSnapshot(legacy);
+    assert.deepEqual(upgraded.acquiredValues[0][0], generated); assert.doesNotThrow(() => game.restoreSnapshot(JSON.parse(JSON.stringify(game.snapshot(upgraded)))));
 });
 
 test('terrain explosions carve projectile-sized craters in bounded samples', () => {
