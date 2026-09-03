@@ -9,9 +9,10 @@ const { createBuildInformation } = require('../server/build-info');
 const { compareVersions, loadManifest, publicRelease, releaseForVersion, renderMarkdown, validateManifest, validateReleaseVersion } = require('../scripts/release-notes');
 
 const manifest = loadManifest();
+const packageVersion = require('../package.json').version;
 
 test('release manifest is ordered, unique, and matches the package version', () => {
-    const release = validateReleaseVersion(manifest, require('../package.json').version);
+    const release = validateReleaseVersion(manifest, packageVersion);
     assert.equal(release, manifest.releases[0]);
     assert.ok(compareVersions('1.2.0', '1.1.9') > 0);
     assert.throws(() => validateManifest({ schemaVersion: 1, releases: [release, release] }), /duplicated/);
@@ -39,7 +40,7 @@ test('build information exposes release notes only for an exact stable version',
 test('release CLI can write complete Markdown notes', () => {
     const temporary = path.join(os.tmpdir(), `js-playground-release-notes-${process.pid}.md`);
     try {
-        require('node:child_process').execFileSync(process.execPath, ['scripts/release-notes.js', 'markdown', '1.0.0', temporary]);
+        require('node:child_process').execFileSync(process.execPath, ['scripts/release-notes.js', 'markdown', packageVersion, temporary]);
         assert.match(fs.readFileSync(temporary, 'utf8'), /## Highlights[\s\S]*## Fixes[\s\S]*## Technical notes/);
     } finally { fs.rmSync(temporary, { force: true }); }
 });

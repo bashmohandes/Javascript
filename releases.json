@@ -2,6 +2,21 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "version": "1.0.1",
+      "title": "JavaScript Playground 1.0.1",
+      "summary": "A focused layout update keeps modern games playable and adjustable in iPad and other constrained browser viewports.",
+      "highlights": [
+        "Modern games now fit their boards and primary controls more reliably within tablet browser viewports."
+      ],
+      "fixes": [
+        "Restored normal page scrolling in iPad browsers so players can reach content below the game area.",
+        "Reduced unused top spacing and compacted modern game layouts so gameplay stays visible without scrolling when space permits."
+      ],
+      "technical": [
+        "Applied shared short-viewport and tablet layout rules consistently across the modern arcade."
+      ]
+    },
+    {
       "version": "1.0.0",
       "title": "JavaScript Playground 1.0",
       "summary": "The modern arcade brings six games together with shared profiles, themes, achievements, responsive play, and secure online rooms.",
