@@ -176,6 +176,12 @@ sequenceDiagram
   A-->>G: toast notifications
 ```
 
+Irrevocable in-run milestones use the same validation and catalog path through
+a bounded achievement checkpoint. Checkpoints can unlock only catalog entries
+marked as live; they never create results, scores, leaderboard entries, or
+cumulative finish progress. Terminal conditions such as wins and completed-run
+counts remain exclusively in the result flow.
+
 Registration/login uses scrypt passcode hashes. A random session token is sent
 only in an HttpOnly, SameSite=Strict cookie; only its SHA-256 hash is stored.
 Profile changes revoke existing sessions and rotate the current one. Public

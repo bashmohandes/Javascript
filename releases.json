@@ -2,6 +2,21 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "version": "1.2.0",
+      "title": "JavaScript Playground 1.2.0",
+      "summary": "Achievements now celebrate key Tetris and Battle Tanks milestones at the moment players earn them.",
+      "highlights": [
+        "See achievement unlocks during active play when reaching Tetris level 10, clearing four lines at once, or completing eligible Battle Tanks power-up and tactical challenges."
+      ],
+      "fixes": [
+        "Prevents live achievement notifications from appearing again when the final game result is recorded.",
+        "Keeps achievement celebrations clear of phone touch controls so they never interrupt play."
+      ],
+      "technical": [
+        "Adds rate-limited, server-validated achievement checkpoints for irrevocable in-game milestones without creating results, scores, leaderboard entries, or cumulative completion progress."
+      ]
+    },
+    {
       "version": "1.1.0",
       "title": "JavaScript Playground 1.1.0",
       "summary": "Cloud game saves let signed-in players pause an unfinished game and continue it later from another device.",

@@ -42,6 +42,31 @@ test('result events unlock once and cumulative progress persists', async t => {
     assert.equal(accounts.profile(user.id).achievements.filter(item => item.unlocked).length, 3);
 });
 
+test('live checkpoints unlock eligible milestones without recording results or cumulative progress', async t => {
+    const { accounts, achievements } = fixture(t);
+    const user = await accounts.create('LiveBadges', 'passcode');
+    const tetris = { game: 'tetris', details: { mode: 'marathon', seconds: 80, lines: 40, level: 5, pieces: 25, singles: 0, doubles: 0, triples: 0, tetrises: 10, softDropCells: 0, hardDropCells: 0 } };
+    assert.deepEqual(accounts.checkpoint(user.id, tetris).unlocked.map(item => item.id), ['tetris-four-line']);
+    assert.equal(accounts.profile(user.id).recent.length, 0);
+    assert.equal(achievements.list(user.id, 'tetris').find(item => item.id === 'tetris-five').progress, 0);
+    assert.deepEqual(accounts.checkpoint(user.id, tetris).unlocked, []);
+    const result = accounts.record(user.id, { ...tetris, won: false });
+    assert.equal(result.unlocked.some(item => item.id === 'tetris-four-line'), false);
+    assert.equal(achievements.list(user.id, 'tetris').find(item => item.id === 'tetris-five').progress, 1);
+});
+
+test('Battle Tanks checkpoints validate bounded facts and leave terminal badges locked', async t => {
+    const { accounts, achievements } = fixture(t);
+    const user = await accounts.create('LiveTank', 'passcode');
+    const checkpoint = { game: 'battletanks', details: { mode: 'solo', shots: 3, weapons: { laser: 1, homing: 1, 'heavy-shell': 1 }, powerUpsAcquired: 3, powerUpsUsed: 3, powerUpTypesUsed: ['weapon-laser', 'weapon-homing', 'weapon-heavy-shell'], shieldDamageAbsorbed: 50, laserRicochetHits: 1, homingHits: 1, heavyProjectileMaxDamage: 40 } };
+    const unlocked = accounts.checkpoint(user.id, checkpoint).unlocked.map(item => item.id);
+    for (const id of ['tanks-power-first','tanks-power-variety','tanks-shield-break','tanks-laser-ricochet','tanks-homing-hit','tanks-heavy-hit']) assert.ok(unlocked.includes(id), id);
+    assert.equal(achievements.list(user.id, 'battletanks').find(item => item.id === 'tanks-first').unlocked, false);
+    assert.equal(achievements.list(user.id, 'battletanks').find(item => item.id === 'tanks-power-collector').progress, 0);
+    assert.throws(() => accounts.checkpoint(user.id, { ...checkpoint, details: { ...checkpoint.details, homingHits: 2 } }), /Invalid Battle Tanks/);
+    assert.throws(() => accounts.checkpoint(user.id, { game: 'battletanks', details: { ...checkpoint.details, mode: 'online' } }), /Invalid achievement checkpoint/);
+});
+
 test('achievement progress is isolated between users', async t => {
     const { accounts, achievements } = fixture(t);
     const winner = await accounts.create('Winner', 'passcode');

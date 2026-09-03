@@ -242,6 +242,8 @@
     };
     const scoreMessages = ['The leaderboard just felt that!', 'New legend status unlocked!', 'That record never stood a chance!', 'History, officially rewritten!'];
     const notificationQueue = [];
+    const notifiedAchievementIds = new Set();
+    let notifiedAchievementUserId = null;
     let showingNotification = false;
     const showNextNotification = () => {
         const notification = notificationQueue.shift();
@@ -273,7 +275,10 @@
         notificationQueue.push(...notifications);
         if (!showingNotification) showNextNotification();
     };
-    const showUnlocks = unlocked => enqueueNotifications(unlocked.map(detail => ({ type: 'achievement', detail })));
+    const showUnlocks = unlocked => {
+        const fresh = unlocked.filter(detail => { if (!detail?.id || notifiedAchievementIds.has(detail.id)) return false; notifiedAchievementIds.add(detail.id); return true; });
+        enqueueNotifications(fresh.map(detail => ({ type: 'achievement', detail })));
+    };
     const showTopScore = topScore => { if (topScore) enqueueNotifications([{ type: 'top-score', detail: topScore }]); };
     const notifyResult = result => {
         if (!result || typeof result !== 'object') return result;
@@ -304,6 +309,8 @@
     const settleAuthentication = value => { const waiters = authenticationWaiters; authenticationWaiters = []; waiters.forEach(resolve => resolve(value)); };
     const saveManager = game && window.ArcadeSaveManager ? window.ArcadeSaveManager.create({ game, api, user: () => currentUser, signIn: requestAuthentication }) : null;
     const render = () => {
+        const userId = currentUser?.id ?? null;
+        if (userId !== notifiedAchievementUserId) { notifiedAchievementUserId = userId; notifiedAchievementIds.clear(); }
         account.replaceChildren();
         account.append(appearanceButton);
         if (game && audio) { updateAudioControls(); account.append(audioButton); }
@@ -334,6 +341,7 @@
         signIn: requestAuthentication,
         saves: saveManager,
         record: async result => { if (!currentUser) return null; return notifyResult(await api('/api/results', { method: 'POST', body: JSON.stringify(result) })); },
+        checkpoint: async checkpoint => { if (!currentUser) return null; return notifyResult(await api('/api/achievement-checkpoints', { method: 'POST', body: JSON.stringify(checkpoint) })); },
         achievements: loadAchievements,
         notifyAchievements: showUnlocks,
         notifyResult,
