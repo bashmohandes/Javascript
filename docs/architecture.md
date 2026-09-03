@@ -352,3 +352,5 @@ branch receives promotion pull requests from `master`, and a manual SemVer
 workflow is the only path to `latest` and stable version tags. The same curated
 manifest supplies player-facing notes to the shared browser shell and complete
 technical notes to the GitHub Release. See [ADR 0026](adr/0026-controlled-release-trains.md).
+The operational branch diagram and promotion procedure are in the
+[release-process guide](release-process.md).

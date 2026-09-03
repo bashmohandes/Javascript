@@ -66,6 +66,18 @@ test('Compose services and containers use configurable playground names', () => 
     assert.match(fs.readFileSync('compose.nas.yaml', 'utf8'), /\$\{JSPG_IMAGE:\?Set JSPG_IMAGE/);
 });
 
+test('release operations are documented with the promotion and deployment model', () => {
+    const readme = fs.readFileSync('README.md', 'utf8');
+    const guide = fs.readFileSync('docs/release-process.md', 'utf8');
+    const decision = fs.readFileSync('docs/adr/0026-controlled-release-trains.md', 'utf8');
+    assert.match(readme, /\[release process\]\(docs\/release-process\.md\)/);
+    assert.match(guide, /```mermaid[\s\S]*master[\s\S]*promotion pull request[\s\S]*release/);
+    assert.match(guide, /master.*head branch[\s\S]*release[\s\S]*base branch/);
+    assert.match(guide, /JSPG_IMAGE=.*js-playground:latest[\s\S]*JSPG_IMAGE=.*js-playground:alpha/);
+    assert.match(guide, /Never point[\s\S]*alpha[\s\S]*stable's SQLite database/);
+    assert.match(decision, /retry dispatched from an existing version tag[\s\S]*immutable full-version and SHA/);
+});
+
 test('Dependabot checks every build dependency ecosystem daily', () => {
     const configuration = fs.readFileSync('.github/dependabot.yml', 'utf8');
     const ecosystems = [...configuration.matchAll(/^\s*- package-ecosystem:\s*(\S+)$/gm)].map(match => match[1]);

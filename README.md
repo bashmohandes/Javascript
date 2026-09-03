@@ -9,7 +9,8 @@ history, profiles, and leaderboards. No browser build step is required.
 See the diagram-first [architecture overview](docs/architecture.md) for the game
 topology and subsystem flows. Architectural decisions are indexed in
 [the ADR directory](docs/adr/README.md), with a dedicated guide to
-[online rendering smoothing and prediction](docs/online-rendering.md).
+[online rendering smoothing and prediction](docs/online-rendering.md) and an
+operator-focused [release process](docs/release-process.md).
 
 ## Games
 
@@ -116,6 +117,10 @@ filename order inside a transaction at startup and are recorded in
 than editing a migration that has already shipped.
 
 ### Release and publish images with GitHub Actions
+
+The [release-process guide](docs/release-process.md) is the source of truth for
+the branch model, promotion diagram, release notes, retries, and separate stable
+and alpha NAS deployments.
 
 The `Test and publish alpha container` workflow tests the application and builds
 the container for every pull request. Each successful push to `master` publishes

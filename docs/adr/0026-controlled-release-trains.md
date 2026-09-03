@@ -20,8 +20,9 @@ machine-enforced convention, so they are not sufficient release-note copy.
    the candidate but does not publish it.
 3. Stable publication is a manual workflow dispatched on `release` with an
    exact SemVer. The workflow repeats every quality gate before publishing
-   `latest`, the full version, the major/minor version, and an immutable SHA,
-   then creates the matching immutable Git tag and GitHub Release.
+   anything, creates the matching immutable Git tag, publishes `latest`, the
+   full version, the major/minor version, and an immutable SHA, then creates the
+   GitHub Release.
 4. `releases.json` is the ordered release record. Its newest entry and
    `package.json` must match the requested stable version. Player highlights
    and fixes are exposed in the product; technical notes are included only in
@@ -31,6 +32,9 @@ machine-enforced convention, so they are not sufficient release-note copy.
    identify their channel but never auto-display unpublished notes.
 6. Scheduled CI continues to rebuild and rescan without publishing. Urgent
    fixes follow the same `master` to `release` promotion path.
+7. A retry dispatched from an existing version tag can republish only the
+   immutable full-version and SHA image tags. Only a `release`-branch dispatch
+   may move `latest`, a major/minor tag, or GitHub's latest-release marker.
 
 ## Consequences
 
@@ -42,3 +46,6 @@ device-local and requires no account migration.
 
 The initial controlled release is `1.0.0`, matching the existing package
 version and providing a baseline for subsequent SemVer releases.
+
+See the [release-process guide](../release-process.md) for the branch diagram
+and operator procedure.
