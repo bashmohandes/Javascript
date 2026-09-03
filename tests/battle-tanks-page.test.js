@@ -72,13 +72,16 @@ test('full-screen games expose an on-screen exit and Battle Tanks turn controls'
 
 test('Battle Tanks keeps mobile and short-landscape controls visible without covering play', () => {
     const page = read('battle-tanks/index.html'), app = read('battle-tanks/scripts/app.js'), styles = read('battle-tanks/styles.css');
-    assert.match(page, /class="mobile-controls"[\s\S]*id="mobile-angle"[\s\S]*id="mobile-power"[\s\S]*id="mobile-fire"/);
+    assert.match(page, /class="mobile-controls"[\s\S]*id="mobile-angle"[\s\S]*id="mobile-power"[\s\S]*id="mobile-fire"[\s\S]*id="mobile-fullscreen"[^>]*aria-pressed="false"/);
     assert.match(page, /class="fullscreen-controls"[\s\S]*id="fullscreen-angle"[\s\S]*id="fullscreen-power"/);
     assert.match(page, /id="mobile-effect-status"[^>]*role="status"[^>]*aria-live="polite"/);
     assert.match(app, /\['#angle','#fullscreen-angle','#mobile-angle'\]/);
     assert.match(app, /\['#power','#fullscreen-power','#mobile-power'\]/);
     assert.match(app, /mobileEffectStatus\.hidden=!effects\.length/);
+    assert.match(app, /for\(const button of \[fullscreenButton,mobileFullscreenButton\]\)/);
+    assert.match(app, /mobileFullscreenButton\.addEventListener\('click',toggleFullscreen\)/);
     assert.match(styles, /\.mobile-controls\{position:sticky[^}]*bottom:max\(6px,env\(safe-area-inset-bottom\)\)/);
+    assert.match(styles, /\.mobile-controls \.mobile-fullscreen\{grid-column:1\/-1\}/);
     assert.match(styles, /max-width:620px\) and \(orientation:portrait\)[^}]*place-items:start center/);
     assert.match(styles, /orientation:landscape[^}]*--battle-command-deck:clamp\(150px,18vw,280px\)/);
     assert.match(styles, /grid-template-columns:minmax\(0,1fr\) var\(--battle-command-deck\)/);
