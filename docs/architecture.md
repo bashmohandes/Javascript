@@ -118,9 +118,10 @@ Pong full screen keeps the complete court as the only play surface, reuses the e
 
 Tetris keeps mechanics independent from DOM presentation, submits bounded
 top-out aggregates for server-derived scoring, and consumes a scoped theme-token
-interface. At phone widths, the controller's board and status rail use an
-approximately 70/30 viewport-aware layout while the touch controls remain
-available.
+interface. At phone portrait widths, the controller's board and status rail use
+an approximately 70/30 viewport-aware layout while the touch controls remain
+available. Short phone landscapes preserve a playable board and dock the touch
+controls inside a compact side rail instead of covering the board.
 Line-clear and live-record celebrations are non-authoritative,
 non-blocking presentation driven by mechanics events and local best-score state.
 Random magic breakers and motion-assisted stack compaction are mechanics-owned,

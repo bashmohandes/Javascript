@@ -142,6 +142,15 @@ test('Tetris keeps phone controls visible alongside the board', () => {
     assert.match(page, /class="tetris-controls"[\s\S]*class="stats"[\s\S]*id="next"/);
 });
 
+test('Tetris keeps phone-landscape play clear of the touch controls', () => {
+    const styles = read('tetris/styles.css');
+    assert.match(styles, /@media \(max-width:780px\) and \(max-height:500px\) and \(orientation:landscape\)/);
+    assert.match(styles, /orientation:landscape[\s\S]*?\.game-tetris \.tetris-stage\{[^}]*min-width:120px/);
+    assert.match(styles, /orientation:landscape[\s\S]*?\.game-tetris \.touch-controls\{position:static;[^}]*grid-template-columns:repeat\(7,minmax\(0,1fr\)\)/);
+    assert.match(styles, /orientation:landscape[\s\S]*?\.game-tetris \.touch-controls button\{min-height:44px/);
+    assert.match(styles, /orientation:landscape[\s\S]*?\.game-tetris \.control-actions\{[^}]*grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+});
+
 test('Tetris fits tablet viewports without clipping fallback page scrolling', () => {
     const styles = read('tetris/styles.css'), sharedStyles = read('styles/modern-game.css');
     assert.match(sharedStyles, /\.modern-game \.app-shell\{height:auto;overflow:visible\}/);

@@ -20,6 +20,32 @@
 
 @media(max-width:780px){.app-shell{padding-bottom:calc(126px + env(safe-area-inset-bottom))}.topbar{height:56px}.intro{display:none}:root[data-arcade-theme] .game-tetris .game-layout{grid-template-columns:minmax(0,7fr) minmax(96px,3fr);gap:9px;align-items:start}.game-layout .tetris-stage{width:min(100%,calc((100dvh - 260px - env(safe-area-inset-top) - env(safe-area-inset-bottom))/2));margin-inline:auto}.tetris-controls{min-width:0;gap:8px;padding:7px;border-width:2px;border-radius:12px;box-shadow:3px 3px 0 var(--tetris-shadow)}.tetris-controls>.status{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}.stats{grid-template-columns:1fr;gap:4px;min-width:0;margin:0}.stats div{display:grid;grid-template-columns:1fr;place-items:center;gap:1px;padding:4px;text-align:center}.stats span{font-size:8px}.stats strong{max-width:100%;font-size:clamp(9px,2.6vw,11px)}.piece-panels{grid-template-columns:1fr;gap:8px}.piece-panels h2{margin-bottom:3px;font-size:9px}.mini-board{width:min(54px,100%)}.next-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}.next-list .mini-board{width:min(46px,100%)}.control-actions{display:grid;gap:5px}.control-actions button{min-height:38px;padding:5px;font-size:10px}.instructions{display:none}.touch-controls{grid-template-columns:repeat(4,1fr);gap:6px;padding:7px}.touch-controls button{min-height:43px}.record-callout{min-width:92%;padding:12px}.record-callout strong{font-size:24px}}
 @media(max-width:430px){.game-layout .tetris-stage{width:min(100%,calc((100dvh - 260px - env(safe-area-inset-top) - env(safe-area-inset-bottom))/2))}.tetris-board{padding:5px;border-radius:12px;box-shadow:5px 5px 0 var(--tetris-shadow)}.line-clear-effect{border-radius:12px}.clear-streaks{inset:8px}.clear-multiplier{min-width:100px;padding:10px}.clear-multiplier strong{font-size:calc(30px + var(--clear-count)*5px)}}
+@media (max-width:780px) and (max-height:500px) and (orientation:landscape){
+    .game-tetris>.arcade-topbar{padding:calc(4px + env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) 4px max(10px,env(safe-area-inset-left))}
+    .game-tetris .arcade-topbar-inner{min-height:38px;align-items:center;flex-direction:row;gap:8px}
+    .game-tetris .arcade-home-mark{width:32px;height:32px}
+    .game-tetris .arcade-home>span:last-child{display:none}
+    .game-tetris .arcade-account{width:auto;justify-content:flex-end;padding:0}
+    .game-tetris .arcade-account :is(a,button){padding:6px 7px}
+    .modern-game.game-tetris .app-shell{width:min(100% - 18px,1100px);padding-bottom:calc(8px + env(safe-area-inset-bottom))}
+    .modern-game.game-tetris .topbar{display:none}
+    :root[data-arcade-theme] .modern-game.game-tetris .game-layout{grid-template-columns:auto minmax(0,1fr);gap:8px;align-items:start}
+    .game-tetris .tetris-stage{width:min(34vw,180px,calc((100dvh - 72px - env(safe-area-inset-top) - env(safe-area-inset-bottom))/2));min-width:120px}
+    .game-tetris .tetris-controls{grid-template-columns:minmax(0,4fr) minmax(0,6fr);grid-template-areas:"stats pieces" "touch touch" "actions actions";gap:5px 8px;padding:6px}
+    .game-tetris .stats{grid-area:stats;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px}
+    .game-tetris .stats div{padding:3px}
+    .game-tetris .stats span{font-size:7px}
+    .game-tetris .stats strong{font-size:10px}
+    .game-tetris .piece-panels{grid-area:pieces;grid-template-columns:40px minmax(0,1fr);gap:4px}
+    .game-tetris .piece-panels h2{margin-bottom:2px;font-size:7px}
+    .game-tetris .mini-board{width:min(34px,100%)}
+    .game-tetris .next-list{grid-template-columns:repeat(5,minmax(0,1fr));gap:2px}
+    .game-tetris .next-list .mini-board{width:min(30px,100%)}
+    .game-tetris .touch-controls{position:static;grid-area:touch;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;padding:0;background:transparent;border:0;box-shadow:none}
+    .game-tetris .touch-controls button{min-height:44px;padding:3px;font-size:12px}
+    .game-tetris .control-actions{grid-area:actions;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+    .game-tetris .control-actions button{min-height:44px;padding:4px}
+}
 @media(prefers-reduced-motion:reduce){.line-clear-effect.is-active .clear-flash{animation:none;opacity:.45}.line-clear-effect.is-active .clear-burst i,.record-callout.is-active,.best-stat.is-record,.tetris-cell[data-piece="M"],.game-tetris.is-magic-power::before,.tetris-stage.is-magic .tetris-board,.magic-destruction.is-active i,.compaction-effect.is-active i,.tetris-stage.is-compacting .tetris-board,.power-up-banner,.game-tetris.is-shake-ready::before,.tetris-stage.is-shake-ready{animation:none}.record-callout.is-active{opacity:1;transform:translate(-50%,-50%)}.best-stat.is-record{transform:none}.magic-destruction.is-active i{opacity:.9}.power-up-banner{transform:none}}
 
 /* Crisp block and HUD treatment for Pixel/Cabinet. */
