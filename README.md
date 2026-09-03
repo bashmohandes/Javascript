@@ -133,6 +133,11 @@ then publishes `latest`, the full version, the major/minor version, and the
 release commit tag. It also creates the immutable `v...` Git tag and a GitHub
 Release from the curated notes.
 
+If a release fails after its immutable tag is created, rerun the stable workflow
+from that matching `v...` tag with the same version. This remains safe even when
+the `release` branch has advanced; a version tag pointing at any other commit is
+rejected.
+
 Published images support AMD64 and ARM64 NAS devices and include provenance and
 an SBOM. The embedded version and release channel appear at the bottom of every
 modern page. Stable release notes open once per version in each browser and can

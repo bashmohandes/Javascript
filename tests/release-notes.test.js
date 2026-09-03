@@ -46,10 +46,12 @@ test('release CLI can write complete Markdown notes', () => {
 
 test('shared shell presents stable notes once and keeps the version reusable', () => {
     const script = fs.readFileSync('arcade.js', 'utf8'), styles = fs.readFileSync('arcade.css', 'utf8');
-    assert.match(script, /arcade:last-seen-release/);
+    assert.match(script, /arcade:seen-releases/);
     assert.match(script, /channel === 'stable'/);
     assert.match(script, /buildVersionButton\.addEventListener\('click', showReleaseDialog\)/);
-    assert.match(script, /localStorage\.setItem\(seenKey, release\.version\)/);
+    assert.match(script, /seenVersions\.includes\(release\.version\)/);
+    assert.match(script, /JSON\.stringify\(\[\.\.\.seenVersions, release\.version\]\)/);
+    assert.match(script, /Development · \$\{result\.version\}/);
     assert.match(script, /entry\.textContent = item/);
     assert.match(styles, /\.arcade-release-dialog/);
     assert.match(styles, /\.arcade-build-version button:focus-visible/);

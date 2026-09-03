@@ -43,12 +43,13 @@ test('container scanning uses an immutable Trivy image and cannot publish on sch
 test('stable releases are manual, branch guarded, versioned, and scanned before publishing', () => {
     const workflow = fs.readFileSync('.github/workflows/release.yml', 'utf8');
     assert.match(workflow, /^\s*workflow_dispatch:\s*$/m);
-    assert.match(workflow, /github\.ref != 'refs\/heads\/release'/);
+    assert.match(workflow, /refs\/heads\/release[\s\S]*refs\/tags\/v\$\{RELEASE_VERSION\}/);
     assert.match(workflow, /release-notes\.js validate/);
     assert.match(workflow, /javascript-pong:release-candidate[\s\S]*Scan stable container[\s\S]*type=raw,value=latest/);
     assert.match(workflow, /type=semver,pattern=\{\{version\}\}/);
     assert.match(workflow, /gh release create/);
     assert.match(workflow, /^\s*contents: write$/m);
+    assert.ok(workflow.indexOf('git push origin') < workflow.indexOf('Build and push multi-platform stable image'), 'the immutable tag must exist before public image tags move');
 });
 
 test('Dependabot checks every build dependency ecosystem daily', () => {

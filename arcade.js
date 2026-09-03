@@ -197,7 +197,7 @@
     const showReleaseDialog = () => { if (!releaseDialog.open) releaseDialog.showModal(); };
     const renderBuildInformation = result => {
         const channel = ['stable', 'alpha', 'dev'].includes(result.channel) ? result.channel : 'dev';
-        buildVersionButton.textContent = channel === 'stable' ? `Version ${result.version}` : channel === 'alpha' ? `Alpha · ${result.version}` : 'Development build';
+        buildVersionButton.textContent = channel === 'stable' ? `Version ${result.version}` : channel === 'alpha' ? `Alpha · ${result.version}` : result.version && result.version !== 'dev' ? `Development · ${result.version}` : 'Development build';
         const release = channel === 'stable' && result.release?.version === result.version ? result.release : null;
         const heading = releaseDialog.querySelector('h2'), summary = releaseDialog.querySelector('.arcade-release-summary'), sections = releaseDialog.querySelector('.arcade-release-sections');
         sections.replaceChildren();
@@ -212,16 +212,20 @@
             }
         } else {
             heading.textContent = channel === 'alpha' ? 'Alpha build' : channel === 'stable' ? 'Stable build' : 'Development build';
-            summary.textContent = channel === 'alpha' ? `${result.version} follows the newest changes on master. Automatic release notes appear only for stable releases.` : channel === 'stable' ? `Version ${result.version} does not have bundled release notes.` : 'This local build does not have published release notes.';
+            summary.textContent = channel === 'alpha' ? `${result.version} follows the newest changes on master. Automatic release notes appear only for stable releases.` : channel === 'stable' ? `Version ${result.version} does not have bundled release notes.` : result.version && result.version !== 'dev' ? `Build ${result.version} does not have published release notes.` : 'This local build does not have published release notes.';
         }
         buildVersionButton.addEventListener('click', showReleaseDialog);
         if (!release) return;
-        const seenKey = 'arcade:last-seen-release';
-        let seen = false;
-        try { seen = localStorage.getItem(seenKey) === release.version; } catch { /* Show once in this page when storage is unavailable. */ }
+        const seenKey = 'arcade:seen-releases';
+        let seenVersions = [];
+        try {
+            const stored = JSON.parse(localStorage.getItem(seenKey) || '[]');
+            if (Array.isArray(stored)) seenVersions = [...new Set(stored.filter(version => typeof version === 'string'))];
+        } catch { /* Show once in this page when storage is unavailable. */ }
+        const seen = seenVersions.includes(release.version);
         if (!seen && !document.querySelector('dialog[open]')) {
             showReleaseDialog();
-            try { localStorage.setItem(seenKey, release.version); } catch { /* The dialog remains available from the footer. */ }
+            try { localStorage.setItem(seenKey, JSON.stringify([...seenVersions, release.version])); } catch { /* The dialog remains available from the footer. */ }
         }
     };
     document.body.classList.add('arcade-has-topbar');
