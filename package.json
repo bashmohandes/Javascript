@@ -1,6 +1,6 @@
 {
   "name": "javascript-playground",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "description": "Browser games with authoritative online multiplayer",
   "main": "server/index.js",
