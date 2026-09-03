@@ -30,7 +30,15 @@ test('the save manager provides five slots, sign-in continuation, screenshots, c
     assert.ok(manager.indexOf("const token = pauseFor('saves')") < manager.indexOf('if (!await authenticated()) { resumeFrom(token); return; }'));
     assert.match(manager, /activeSave = result\.save; dialog\.querySelector\('\[data-save-title\]'\)\.value = activeSave\.title/);
     assert.match(shell, /requestAuthentication/); assert.match(shell, /saveManager\.button/); assert.match(shell, /saves: saveManager/);
+    assert.match(shell, /currentUser && dialog\.open && !dialog\.returnValue/); assert.match(shell, /settleAuthentication\(currentUser\); dialog\.close\(\)/);
     assert.match(styles, /\.arcade-save-slot/); assert.match(styles, /@media\(max-width:650px\)/);
+});
+
+test('paused save dialogs freeze elapsed time and automatic Tetris progress becomes dirty', () => {
+    const ticTacToe = read('tictactoe/scripts/app.js'), battleTanks = read('battle-tanks/scripts/app.js'), tetris = read('tetris/scripts/app.js');
+    assert.match(ticTacToe, /savePausedAt\?\?Date\.now\(\)/); assert.match(ticTacToe, /savePausedAt=null/);
+    assert.match(battleTanks, /savePausedAt\?\?Date\.now\(\)/); assert.match(battleTanks, /savePausedAt=null/);
+    assert.match(tetris, /if\s*\(changed\)\s*\{\s*saves\?\.markDirty\(\);\s*render\(\);\s*\}/);
 });
 
 test('save APIs remain authenticated and separate from result authority', () => {

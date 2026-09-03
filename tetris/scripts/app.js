@@ -204,7 +204,7 @@
             activeMilliseconds += elapsed;
             let remaining = elapsed, changed = false;
             while (remaining > 0 && !game.gameOver) { const step = Math.min(100, remaining); changed = game.update(step) || changed; remaining -= step; }
-            if (changed) render(); if (game.gameOver) finish();
+            if (changed) { saves?.markDirty(); render(); } if (game.gameOver) finish();
         }
         requestAnimationFrame(frame);
     }

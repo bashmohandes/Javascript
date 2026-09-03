@@ -344,5 +344,8 @@
         setTheme,
         setColorPreference
     };
-    api('/api/me').then(result => { currentUser = result.user; render(); }).catch(render);
+    api('/api/me').then(result => {
+        currentUser = result.user; render();
+        if (currentUser && dialog.open && !dialog.returnValue) { settleAuthentication(currentUser); dialog.close(); }
+    }).catch(render);
 })();
