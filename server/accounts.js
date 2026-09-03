@@ -110,6 +110,15 @@ class Accounts {
         return { id: Number(insert.lastInsertRowid), score, unlocked, topScore };
     }
 
+    checkpoint(userId, checkpoint) {
+        const game = String(checkpoint.game || '').toLowerCase();
+        if (!GAMES.has(game)) throw new Error('Unknown game.');
+        const details = checkpoint.details && typeof checkpoint.details === 'object' && !Array.isArray(checkpoint.details) ? checkpoint.details : {};
+        const normalizedDetails = validateAchievementCheckpoint(game, details);
+        const unlocked = this.achievements?.process(userId, game, 'checkpoint', { game, details: normalizedDetails }) || [];
+        return { unlocked };
+    }
+
     profile(userId, pageValue = 1, pageSizeValue = 10) {
         const page = Math.max(1, Number.parseInt(pageValue, 10) || 1);
         const pageSize = Math.min(10, Math.max(1, Number.parseInt(pageSizeValue, 10) || 10));
@@ -139,6 +148,29 @@ function integer(value, minimum, maximum, label) {
     const number = Number(value);
     if (!Number.isSafeInteger(number) || number < minimum || number > maximum) throw new Error(`Invalid ${label}.`);
     return number;
+}
+
+function validateAchievementCheckpoint(game, details) {
+    if (game === 'tetris') return validateResult(game, false, details).normalizedDetails;
+    if (game !== 'battletanks' || !['solo', 'local'].includes(details.mode)) throw new Error('Invalid achievement checkpoint.');
+    const field = (name, maximum) => integer(details[name] ?? 0, 0, maximum, `Battle Tanks ${name}`);
+    const shots = field('shots', 200), powerUpsAcquired = field('powerUpsAcquired', 200), powerUpsUsed = field('powerUpsUsed', 200);
+    const knownPowerUps = new Set(['health-pack', 'shield', 'invisibility', 'weapon-heavy-shell', 'weapon-homing', 'weapon-laser', 'weapon-wide-blast', 'damage-boost', 'blast-radius-boost']);
+    const suppliedTypes = details.powerUpTypesUsed ?? [];
+    if (!Array.isArray(suppliedTypes) || suppliedTypes.length > knownPowerUps.size || suppliedTypes.some(id => typeof id !== 'string' || !knownPowerUps.has(id)) || new Set(suppliedTypes).size !== suppliedTypes.length) throw new Error('Invalid Battle Tanks powerUpTypesUsed.');
+    const weapons = {};
+    if (details.weapons !== undefined) {
+        const allowed = new Set(['shell', 'wide-blast', 'heavy-shell', 'homing', 'laser']);
+        if (!details.weapons || typeof details.weapons !== 'object' || Array.isArray(details.weapons)) throw new Error('Invalid Battle Tanks weapons.');
+        for (const [id, count] of Object.entries(details.weapons)) {
+            if (!allowed.has(id) || !Number.isSafeInteger(count) || count < 0 || count > shots) throw new Error('Invalid Battle Tanks weapons.');
+            weapons[id] = count;
+        }
+        if (Object.values(weapons).reduce((sum, count) => sum + count, 0) > shots) throw new Error('Invalid Battle Tanks weapons.');
+    }
+    const shieldDamageAbsorbed = field('shieldDamageAbsorbed', 12000), laserRicochetHits = field('laserRicochetHits', shots), laserSelfDamage = field('laserSelfDamage', 7000), homingHits = field('homingHits', shots), heavyProjectileMaxDamage = field('heavyProjectileMaxDamage', 100);
+    if (powerUpsUsed > powerUpsAcquired || suppliedTypes.length > powerUpsUsed || shieldDamageAbsorbed > powerUpsUsed * 60 || laserRicochetHits > (weapons.laser || 0) || laserSelfDamage > 0 && !(weapons.laser > 0) || homingHits > (weapons.homing || 0) || heavyProjectileMaxDamage > 0 && !(weapons['heavy-shell'] > 0)) throw new Error('Invalid Battle Tanks achievement statistics.');
+    return { mode: details.mode, shots, weapons, powerUpsAcquired, powerUpsUsed, powerUpTypesUsed: suppliedTypes, shieldDamageAbsorbed, laserRicochetHits, laserSelfDamage, homingHits, heavyProjectileMaxDamage };
 }
 
 function validateResult(game, wonValue, details, trustedOnline = false) {
@@ -231,4 +263,4 @@ function validateResult(game, wonValue, details, trustedOnline = false) {
     return { won, score: player * 100 + opponent, normalizedDetails: { mode: details.mode, score: `${player}-${opponent}`, seconds } };
 }
 
-module.exports = { Accounts, hashPasscode, verifyPasscode, validateResult };
+module.exports = { Accounts, hashPasscode, verifyPasscode, validateAchievementCheckpoint, validateResult };

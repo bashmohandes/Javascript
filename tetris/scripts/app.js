@@ -9,6 +9,7 @@
     const destructionElement = document.querySelector('#magic-destruction'), compactionElement = document.querySelector('#compaction-effect'), powerUpBannerElement = document.querySelector('#power-up-banner'), powerUpIconElement = document.querySelector('#power-up-icon'), powerUpTitleElement = document.querySelector('#power-up-title'), powerUpMessageElement = document.querySelector('#power-up-message'), useShakeButton = document.querySelector('#use-shake');
     const cells = Array.from({ length: 200 }, () => { const cell = document.createElement('span'); cell.className = 'tetris-cell'; boardElement.append(cell); return cell; });
     let activeMilliseconds = 0, lastFrame = performance.now(), submitted = false, themeColors = {}, miniatureSignature = '', presentedClearId = 0, presentedDestructionId = 0, presentedCompactionId = 0, presentedPowerUpId = 0, presentedPieces = game.pieces, presentedProgress = '', clearEffectTimer = 0, destructionTimer = 0, compactionTimer = 0, recordTimer = 0, standingBest = Number(localStorage.getItem('tetris-best-score')) || 0, liveBest = standingBest, recordBroken = false, motionPermission = 'unknown', previousMotion = null, lastShakeAt = 0;
+    const checkpointedAchievements = new Set();
     const tokenNames = ['board','grid','border','empty','ghost','ghost-line','ink','panel','overlay','shadow','piece-edge','magic','i','j','l','o','s','t','z'];
     const formatTime = total => `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
     const seconds = () => Math.max(1, Math.floor(activeMilliseconds / 1000));
@@ -93,6 +94,16 @@
         const highest = board.findIndex(row => row.some(Boolean)), danger = highest < 0 ? 0 : Math.max(0, Math.min(1, (8 - highest) / 8));
         return { level: game.level, intensity: Math.min(.9, .2 + game.level * .07), danger };
     }
+    function checkpointLiveAchievements() {
+        if (!window.Arcade?.checkpoint || !window.Arcade.user()) return;
+        const reached = [];
+        if (game.tetrises >= 1) reached.push('tetris-four-line');
+        if (game.level >= 10) reached.push('tetris-level-ten');
+        const fresh = reached.filter(id => !checkpointedAchievements.has(id));
+        if (!fresh.length) return;
+        fresh.forEach(id => checkpointedAchievements.add(id));
+        window.Arcade.checkpoint({ game: 'tetris', details: game.details(seconds()) }).catch(() => {});
+    }
     function render() {
         const board = game.visibleBoard(), active = new Map(game.activeCells().filter(([,y]) => y >= 0).map(([x,y]) => [`${x},${y}`, game.piece.type])), ghost = new Set(game.ghostCells().filter(([,y]) => y >= 0).map(([x,y]) => `${x},${y}`));
         if (game.pieces > presentedPieces) { presentedPieces = game.pieces; events.emit('tetris:piece-locked', { pieces: game.pieces }); }
@@ -108,7 +119,7 @@
         if (game.score > liveBest) { liveBest = game.score; localStorage.setItem('tetris-best-score', liveBest); }
         bestElement.textContent = liveBest.toLocaleString(); if (game.score > standingBest && !recordBroken) celebrateHighScore();
         boardElement.setAttribute('aria-label', `Tetris board. Score ${game.score}, ${game.lines} lines, level ${game.level}. ${game.paused ? 'Paused.' : game.gameOver ? 'Run complete.' : game.shakeReady ? 'Shake power-up ready.' : game.isMagic() ? 'Magic breaker falling.' : `${game.piece.type} piece falling.`}`);
-        renderMiniatures(); presentPowerUp(); presentDestruction(); presentCompaction(); presentLineClear();
+        renderMiniatures(); presentPowerUp(); presentDestruction(); presentCompaction(); presentLineClear(); checkpointLiveAchievements();
     }
     function finish() {
         if (submitted) return; submitted = true;
@@ -123,7 +134,7 @@
     }
     function startGame() {
         saves?.startRun();
-        game.reset(); activeMilliseconds = 0; submitted = false; miniatureSignature = ''; presentedClearId = 0; presentedDestructionId = 0; presentedCompactionId = 0; presentedPowerUpId = 0; presentedPieces = game.pieces; presentedProgress = ''; previousMotion = null; standingBest = Number(localStorage.getItem('tetris-best-score')) || 0; liveBest = standingBest; recordBroken = false; clearTimeout(clearEffectTimer); clearTimeout(destructionTimer); clearTimeout(compactionTimer); clearTimeout(recordTimer); stageElement.classList.remove('is-clearing','is-new-record','is-magic','is-magic-impact','is-shake-ready','is-compacting'); clearEffectElement.classList.remove('is-active'); destructionElement.classList.remove('is-active'); compactionElement.classList.remove('is-active'); recordCalloutElement.classList.remove('is-active'); document.body.classList.remove('is-magic-power','is-shake-ready'); document.querySelector('.best-stat').classList.remove('is-record'); powerUpBannerElement.hidden = true;
+        game.reset(); activeMilliseconds = 0; submitted = false; checkpointedAchievements.clear(); miniatureSignature = ''; presentedClearId = 0; presentedDestructionId = 0; presentedCompactionId = 0; presentedPowerUpId = 0; presentedPieces = game.pieces; presentedProgress = ''; previousMotion = null; standingBest = Number(localStorage.getItem('tetris-best-score')) || 0; liveBest = standingBest; recordBroken = false; clearTimeout(clearEffectTimer); clearTimeout(destructionTimer); clearTimeout(compactionTimer); clearTimeout(recordTimer); stageElement.classList.remove('is-clearing','is-new-record','is-magic','is-magic-impact','is-shake-ready','is-compacting'); clearEffectElement.classList.remove('is-active'); destructionElement.classList.remove('is-active'); compactionElement.classList.remove('is-active'); recordCalloutElement.classList.remove('is-active'); document.body.classList.remove('is-magic-power','is-shake-ready'); document.querySelector('.best-stat').classList.remove('is-record'); powerUpBannerElement.hidden = true;
         finishElement.hidden = true; pauseButton.textContent = 'Pause'; statusElement.textContent = 'Use the controls to place the falling piece.'; lastFrame = performance.now(); render(); boardElement.focus?.();
         events.emit('game:started', { intensity: .2, danger: 0, mode: 'marathon' });
     }

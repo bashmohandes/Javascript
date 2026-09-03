@@ -19,3 +19,10 @@ flowchart LR
 client-reported results still require plausibility validation and catalog changes
 are deployments rather than data administration.
 
+Irrevocable single-run milestones may be evaluated before a game ends through
+a rate-limited checkpoint API. The API accepts bounded game facts rather than
+achievement IDs, applies game-specific consistency checks, and evaluates only
+catalog entries explicitly marked for live unlocks. It does not write game
+results or advance cumulative completion rules; final result processing remains
+the fallback for clients that do not send checkpoints.
+
