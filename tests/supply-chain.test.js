@@ -78,6 +78,22 @@ test('release operations are documented with the promotion and deployment model'
     assert.match(decision, /retry dispatched from an existing version tag[\s\S]*immutable full-version and SHA/);
 });
 
+test('release branch ruleset requires pull-requested, tested, non-destructive promotions', () => {
+    const ruleset = JSON.parse(fs.readFileSync('.github/rulesets/release.json', 'utf8'));
+    assert.equal(ruleset.target, 'branch');
+    assert.equal(ruleset.enforcement, 'active');
+    assert.deepEqual(ruleset.bypass_actors, []);
+    assert.deepEqual(ruleset.conditions.ref_name, { include: ['refs/heads/release'], exclude: [] });
+    const rules = Object.fromEntries(ruleset.rules.map(rule => [rule.type, rule.parameters || null]));
+    assert.ok('deletion' in rules);
+    assert.ok('non_fast_forward' in rules);
+    assert.deepEqual(rules.pull_request.allowed_merge_methods, ['merge']);
+    assert.equal(rules.pull_request.required_approving_review_count, 0);
+    assert.equal(rules.pull_request.required_review_thread_resolution, true);
+    assert.deepEqual(rules.required_status_checks.required_status_checks, [{ context: 'test' }, { context: 'build' }]);
+    assert.equal(rules.required_status_checks.strict_required_status_checks_policy, false);
+});
+
 test('Dependabot checks every build dependency ecosystem daily', () => {
     const configuration = fs.readFileSync('.github/dependabot.yml', 'utf8');
     const ecosystems = [...configuration.matchAll(/^\s*- package-ecosystem:\s*(\S+)$/gm)].map(match => match[1]);

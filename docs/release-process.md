@@ -152,6 +152,28 @@ carefully configured updater if stable should pull and restart automatically.
 - Send urgent fixes through the same `master` → alpha test → promotion pull
   request → `release` workflow. Do not bypass the release train.
 
+The repository includes an API-ready release branch ruleset at
+`.github/rulesets/release.json`. It assumes a solo maintainer, so it requires a
+pull request and resolved conversations but zero approving reviews. Increase
+`required_approving_review_count` to `1` when another maintainer is available to
+approve promotions. It permits only merge commits, preserving the exact
+alpha-tested `master` commits in `release`, and intentionally uses loose status
+checks so the long-lived branches do not have to merge each other's promotion
+commits.
+
+After the `release` branch exists, an administrator can create the ruleset with
+GitHub CLI:
+
+```sh
+gh api --method POST repos/OWNER/REPOSITORY/rulesets \
+  --input .github/rulesets/release.json
+```
+
+The file activates the ruleset immediately. Review it before submitting the
+request, especially if the repository is no longer maintained by one person.
+Creating it through the API is a one-time operation; subsequent changes should
+update the created ruleset rather than create a duplicate.
+
 The architectural rationale is recorded in
 [ADR 0026](adr/0026-controlled-release-trains.md). The workflow implementations
 are `.github/workflows/container.yml` and `.github/workflows/release.yml`.
