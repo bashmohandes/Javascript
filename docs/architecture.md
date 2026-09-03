@@ -216,6 +216,7 @@ erDiagram
     integer state_version
     text state_json
     blob screenshot
+    text generation UK
     integer revision
   }
 ```

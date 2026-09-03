@@ -149,7 +149,7 @@ const server = http.createServer(async (request, response) => {
                 const body = await readJson(request, request.method === 'PUT' ? 768 * 1024 : 10000);
                 if (request.method === 'PUT') return json(response, 200, { save: gameSaves.update(user.id, saveItem[1], saveItem[2], body) });
                 if (request.method === 'PATCH') return json(response, 200, { save: gameSaves.rename(user.id, saveItem[1], saveItem[2], body) });
-                return json(response, 200, gameSaves.delete(user.id, saveItem[1], saveItem[2], body.expectedRevision));
+                return json(response, 200, gameSaves.delete(user.id, saveItem[1], saveItem[2], body.expectedRevision, body.expectedGeneration));
             }
             if (pathname === '/api/profile' && request.method === 'GET') {
                 const parameters = new URL(request.url, 'http://localhost').searchParams;

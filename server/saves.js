@@ -1,5 +1,7 @@
 'use strict';
 
+const { randomBytes } = require('node:crypto');
+
 const GAMES = new Set(['pong', 'sudoku', 'minesweeper', 'tictactoe', 'battletanks', 'tetris']);
 const MODES = Object.freeze({
     pong: new Set(['solo', 'duo']),
@@ -35,6 +37,7 @@ function gameId(value) {
     return game;
 }
 function slotNumber(value) { return integer(value, 1, 5, 'save slot'); }
+function saveGeneration(value) { return String(value || ''); }
 function timestamp(value) { return value ? `${String(value).replace(' ', 'T')}Z` : null; }
 function imageFrom(payload) {
     const mimeType = String(payload?.mimeType || '').toLowerCase();
@@ -66,9 +69,9 @@ function summary(row) {
     if (!row) return null;
     return {
         slot: row.slot, game: row.game, title: row.title, mode: row.mode, stateVersion: row.state_version,
-        elapsedSeconds: row.elapsed_seconds, scoreLabel: row.score_label, revision: row.revision,
+        elapsedSeconds: row.elapsed_seconds, scoreLabel: row.score_label, generation: row.generation, revision: row.revision,
         createdAt: timestamp(row.created_at), updatedAt: timestamp(row.updated_at),
-        screenshotUrl: `/api/saves/${row.game}/${row.slot}/screenshot?v=${row.revision}`
+        screenshotUrl: `/api/saves/${row.game}/${row.slot}/screenshot?g=${row.generation}&v=${row.revision}`
     };
 }
 
@@ -99,8 +102,8 @@ class GameSaves {
             const slot = [1,2,3,4,5].find(candidate => !occupied.has(candidate));
             if (!slot) throw new SaveError('All five save slots are occupied.', 409, 'SAVE_SLOTS_FULL');
             this.database.prepare(`INSERT INTO game_saves
-                (user_id, game, slot, title, mode, state_version, state_json, elapsed_seconds, score_label, screenshot, screenshot_mime)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(userId, game, slot, values.title, values.mode, values.stateVersion, values.stateJson, values.elapsedSeconds, values.scoreLabel, values.data, values.mimeType);
+                (user_id, game, slot, title, mode, state_version, state_json, elapsed_seconds, score_label, screenshot, screenshot_mime, generation)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(userId, game, slot, values.title, values.mode, values.stateVersion, values.stateJson, values.elapsedSeconds, values.scoreLabel, values.data, values.mimeType, randomBytes(16).toString('hex'));
             this.database.exec('COMMIT');
             return summary(this.row(userId, game, slot));
         } catch (error) {
@@ -112,10 +115,10 @@ class GameSaves {
         const game = gameId(gameValue), slot = slotNumber(slotValue), values = validatePayload(game, payload);
         const current = this.row(userId, game, slot);
         if (!current) throw new SaveError('Save slot not found.', 404, 'SAVE_NOT_FOUND');
-        const revision = integer(payload.expectedRevision, 1, Number.MAX_SAFE_INTEGER, 'save revision');
-        if (revision !== current.revision) throw new SaveError('This save changed on another device.', 409, 'SAVE_CONFLICT', summary(current));
+        const revision = integer(payload.expectedRevision, 1, Number.MAX_SAFE_INTEGER, 'save revision'), generation = saveGeneration(payload.expectedGeneration);
+        if (revision !== current.revision || generation !== current.generation) throw new SaveError('This save changed on another device.', 409, 'SAVE_CONFLICT', summary(current));
         const result = this.database.prepare(`UPDATE game_saves SET title = ?, mode = ?, state_version = ?, state_json = ?, elapsed_seconds = ?, score_label = ?, screenshot = ?, screenshot_mime = ?, revision = revision + 1, updated_at = CURRENT_TIMESTAMP
-            WHERE user_id = ? AND game = ? AND slot = ? AND revision = ?`).run(values.title, values.mode, values.stateVersion, values.stateJson, values.elapsedSeconds, values.scoreLabel, values.data, values.mimeType, userId, game, slot, revision);
+            WHERE user_id = ? AND game = ? AND slot = ? AND generation = ? AND revision = ?`).run(values.title, values.mode, values.stateVersion, values.stateJson, values.elapsedSeconds, values.scoreLabel, values.data, values.mimeType, userId, game, slot, generation, revision);
         if (!result.changes) throw new SaveError('This save changed on another device.', 409, 'SAVE_CONFLICT', summary(this.row(userId, game, slot)));
         return summary(this.row(userId, game, slot));
     }
@@ -123,17 +126,19 @@ class GameSaves {
         const game = gameId(gameValue), slot = slotNumber(slotValue), { title } = validatePayload(game, payload, { stateRequired: false });
         const current = this.row(userId, game, slot);
         if (!current) throw new SaveError('Save slot not found.', 404, 'SAVE_NOT_FOUND');
-        const revision = integer(payload.expectedRevision, 1, Number.MAX_SAFE_INTEGER, 'save revision');
-        if (revision !== current.revision) throw new SaveError('This save changed on another device.', 409, 'SAVE_CONFLICT', summary(current));
-        this.database.prepare('UPDATE game_saves SET title = ?, revision = revision + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND revision = ?').run(title, current.id, revision);
+        const revision = integer(payload.expectedRevision, 1, Number.MAX_SAFE_INTEGER, 'save revision'), generation = saveGeneration(payload.expectedGeneration);
+        if (revision !== current.revision || generation !== current.generation) throw new SaveError('This save changed on another device.', 409, 'SAVE_CONFLICT', summary(current));
+        const result = this.database.prepare('UPDATE game_saves SET title = ?, revision = revision + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND generation = ? AND revision = ?').run(title, current.id, generation, revision);
+        if (!result.changes) throw new SaveError('This save changed on another device.', 409, 'SAVE_CONFLICT', summary(this.row(userId, game, slot)));
         return summary(this.row(userId, game, slot));
     }
-    delete(userId, gameValue, slotValue, expectedRevision) {
+    delete(userId, gameValue, slotValue, expectedRevision, expectedGeneration) {
         const game = gameId(gameValue), slot = slotNumber(slotValue), current = this.row(userId, game, slot);
         if (!current) throw new SaveError('Save slot not found.', 404, 'SAVE_NOT_FOUND');
-        const revision = integer(expectedRevision, 1, Number.MAX_SAFE_INTEGER, 'save revision');
-        if (revision !== current.revision) throw new SaveError('This save changed on another device.', 409, 'SAVE_CONFLICT', summary(current));
-        this.database.prepare('DELETE FROM game_saves WHERE id = ? AND revision = ?').run(current.id, revision);
+        const revision = integer(expectedRevision, 1, Number.MAX_SAFE_INTEGER, 'save revision'), generation = saveGeneration(expectedGeneration);
+        if (revision !== current.revision || generation !== current.generation) throw new SaveError('This save changed on another device.', 409, 'SAVE_CONFLICT', summary(current));
+        const result = this.database.prepare('DELETE FROM game_saves WHERE id = ? AND generation = ? AND revision = ?').run(current.id, generation, revision);
+        if (!result.changes) throw new SaveError('This save changed on another device.', 409, 'SAVE_CONFLICT', summary(this.row(userId, game, slot)));
         return { ok: true };
     }
 }

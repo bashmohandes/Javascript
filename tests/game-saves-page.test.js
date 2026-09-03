@@ -25,7 +25,7 @@ test('the save manager provides five slots, sign-in continuation, screenshots, c
     const manager = read('scripts/game-saves.js'), shell = read('arcade.js'), styles = read('arcade.css');
     assert.match(manager, /\[1,2,3,4,5\]/); assert.match(manager, /SAVE_SLOTS_FULL/); assert.match(manager, /SAVE_CONFLICT/); assert.match(manager, /result\.save\.stateVersion !== adapter\.stateVersion/);
     assert.match(manager, /Quick Save &amp; Exit/); assert.match(manager, /beforeunload/); assert.match(manager, /location\.assign/);
-    assert.match(manager, /image\/jpeg/); assert.match(manager, /screenshotUrl/); assert.match(manager, /expectedRevision/);
+    assert.match(manager, /image\/jpeg/); assert.match(manager, /screenshotUrl/); assert.match(manager, /expectedRevision/); assert.match(manager, /expectedGeneration/);
     assert.match(manager, /account:user-changed/); assert.match(manager, /activeSave = null; saves = \[\]/);
     assert.ok(manager.indexOf("const token = pauseFor('saves')") < manager.indexOf('if (!await authenticated()) { resumeFrom(token); return; }'));
     assert.match(manager, /activeSave = result\.save; dialog\.querySelector\('\[data-save-title\]'\)\.value = activeSave\.title/);
@@ -51,6 +51,7 @@ test('save writes serialize and semantic events own dirty progress tracking', ()
     assert.ok(saveCurrent.indexOf('saving = true') < saveCurrent.indexOf('await authenticated()'));
     assert.match(saveCurrent, /finally \{ saving = false; renderSlots\(\); \}/);
     assert.match(manager, /saveButton\.disabled = saving \|\|/);
+    assert.match(manager, /error\.code === 'SAVE_NOT_FOUND'.*activeSave = null; replacing = false; await refresh/);
     assert.match(manager, /dialogPause; dialogPause = null; exitAfterSave = null; resumeFrom/);
     assert.match(manager, /window\.ArcadeEvents\?\.on\('\*', observeProgress\)/);
     assert.match(manager, /event\.type === 'game:started' \|\| event\.type === 'game:progressed'/);
@@ -63,11 +64,12 @@ test('save writes serialize and semantic events own dirty progress tracking', ()
 });
 
 test('save APIs remain authenticated and separate from result authority', () => {
-    const server = read('server/index.js'), saves = read('server/saves.js'), migration = read('server/migrations/005_game_saves.sql');
+    const server = read('server/index.js'), saves = read('server/saves.js'), migration = read('server/migrations/005_game_saves.sql'), generations = read('server/migrations/006_game_save_generations.sql');
     assert.ok(server.indexOf('const user = sessionUser(request)') < server.indexOf('const saveCollection'));
     assert.match(server, /\/api\\\/saves/); assert.match(server, /saveLimiter/); assert.match(server, /768 \* 1024/);
     assert.match(saves, /UNIQUE|SAVE_SLOTS_FULL/); assert.match(saves, /SAVE_CONFLICT/); assert.doesNotMatch(saves, /leaderboard|achievement|recordResult/);
     assert.match(migration, /UNIQUE \(user_id, game, slot\)/); assert.match(migration, /slot BETWEEN 1 AND 5/); assert.match(migration, /screenshot BLOB NOT NULL/);
+    assert.match(generations, /generation TEXT NOT NULL/); assert.match(generations, /randomblob\(16\)/); assert.match(saves, /generation !== current\.generation/);
 });
 
 test('online modes are excluded from restorable cloud slots', () => {
