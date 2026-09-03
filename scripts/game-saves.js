@@ -35,6 +35,11 @@
         const eligible = () => Boolean(adapter?.canSave?.());
         const hasProgress = () => Boolean(adapter?.hasProgress?.());
         const shouldWarn = () => eligible() && hasProgress() && dirty;
+        const observeProgress = event => {
+            const namespace = window.ArcadeEvents?.game;
+            if (!namespace || event.game !== namespace || !eligible() || !hasProgress()) return;
+            if (event.type === 'game:started' || event.type === 'game:progressed' || event.type.startsWith(`${namespace}:`)) dirty = true;
+        };
         async function authenticated() {
             if (user()) return true;
             return Boolean(await signIn('Save your progress and continue from any signed-in device.'));
@@ -168,6 +173,7 @@
             catch { /* Completion and result recording must not depend on cleanup connectivity. */ }
         }
         window.ArcadeEvents?.on('game:completed', completeRun);
+        window.ArcadeEvents?.on('*', observeProgress);
         window.ArcadeEvents?.on('account:user-changed', event => {
             const nextAccountId = event.detail.user?.id ?? null;
             if (nextAccountId === accountId) return;
@@ -178,7 +184,6 @@
             button,
             registerAdapter(value) { adapter = value; renderSlots(); },
             startRun() { activeSave = null; dirty = false; },
-            markDirty() { if (eligible()) dirty = true; },
             completeRun,
             open, save: saveCurrent, active: () => activeSave, isDirty: () => dirty,
             helpers: { makeCanvas, formatTime }

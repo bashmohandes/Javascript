@@ -38,20 +38,24 @@ test('paused save dialogs freeze elapsed time and automatic Tetris progress beco
     const ticTacToe = read('tictactoe/scripts/app.js'), battleTanks = read('battle-tanks/scripts/app.js'), tetris = read('tetris/scripts/app.js');
     assert.match(ticTacToe, /savePausedAt\?\?Date\.now\(\)/); assert.match(ticTacToe, /savePausedAt=null/);
     assert.match(battleTanks, /savePausedAt\?\?Date\.now\(\)/); assert.match(battleTanks, /savePausedAt=null/);
-    assert.match(tetris, /if\s*\(changed\)\s*\{\s*saves\?\.markDirty\(\);\s*render\(\);\s*\}/);
+    assert.match(tetris, /if\s*\(changed\)\s*\{\s*events\.emit\('game:progressed'/);
 });
 
-test('save writes serialize and autonomous local games keep resumed progress dirty', () => {
+test('save writes serialize and semantic events own dirty progress tracking', () => {
     const manager = read('scripts/game-saves.js'), pong = read('pong/scripts/app.js'), battleTanks = read('battle-tanks/scripts/app.js');
     const saveCurrent = manager.slice(manager.indexOf('async function saveCurrent'), manager.indexOf('async function loadSave'));
     assert.match(saveCurrent, /if \(saving\) return null/);
     assert.ok(saveCurrent.indexOf('saving = true') < saveCurrent.indexOf('await authenticated()'));
     assert.match(saveCurrent, /finally \{ saving = false; renderSlots\(\); \}/);
     assert.match(manager, /saveButton\.disabled = saving \|\|/);
-    assert.match(pong, /update\(dt\); if\(dt>0\)saves\?\.markDirty\(\)/);
-    assert.match(battleTanks, /if\(moveTank\(state,plan\.direction,stepAmount\)\)saves\?\.markDirty\(\)/);
-    assert.match(battleTanks, /if\(fireProjectile\(state\)\)\{saves\?\.markDirty\(\)/);
-    assert.match(battleTanks, /if\(accumulator>=1\/120\)saves\?\.markDirty\(\)/);
+    assert.match(manager, /window\.ArcadeEvents\?\.on\('\*', observeProgress\)/);
+    assert.match(manager, /event\.type === 'game:started' \|\| event\.type === 'game:progressed'/);
+    assert.match(manager, /event\.type\.startsWith\(`\$\{namespace\}:`\)/);
+    assert.match(pong, /time-lastLocalProgressEvent>=250/);
+    assert.match(battleTanks, /advanced&&now-lastLocalProgressEvent>=250/);
+    for (const [, appFile] of games) assert.doesNotMatch(read(appFile), /saves\?\.markDirty/, appFile);
+    assert.match(read('Sudoku/scripts/app.js'), /function advanceTimer\(\).*publishProgress\(\)/);
+    assert.match(read('Minesweeper/scripts/app.js'), /const advanceTimer = \(\) => .*publishProgress\(\)/);
 });
 
 test('save APIs remain authenticated and separate from result authority', () => {

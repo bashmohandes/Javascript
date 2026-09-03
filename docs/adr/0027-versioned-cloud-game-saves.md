@@ -16,9 +16,11 @@ client-authored checkpoint as a trusted result.
    title, mode, elapsed time, display-only score text, timestamps, and a
    revision used for optimistic concurrency.
 2. A shared browser manager owns authentication continuation, slot allocation,
-   management UI, leave warnings, and Quick Save & Exit. Each game supplies a
-   narrow adapter for eligibility, pause/resume, strict state import/export,
-   metadata, and a screenshot canvas.
+   management UI, leave warnings, and Quick Save & Exit. It derives its
+   page-local dirty flag from the existing semantic game-event stream; capture
+   and persistence remain direct operations. Each game supplies a narrow
+   adapter for eligibility, pause/resume, strict state import/export, metadata,
+   and a screenshot canvas.
 3. Only unfinished solo and local multiplayer state is saveable. Online games
    retain their server-authoritative room and reconnect lifecycle and never
    export viewer state to cloud slots.

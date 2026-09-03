@@ -67,7 +67,7 @@
         clearInterval(solveTimerId);
         autoSolveButton.disabled = false;
         updateAutoSolveButton(false);
-        timerId = setInterval(() => { elapsed += 1; renderTimer(); }, 1000);
+        timerId = setInterval(advanceTimer, 1000);
         renderTimer();
         render();
         events.emit('game:started', { intensity: 0, danger: 0, difficulty });
@@ -136,7 +136,6 @@
         if (puzzle[row][column]) return;
         if (notesMode && !values[row][column]) {
             notes[row][column].has(number) ? notes[row][column].delete(number) : notes[row][column].add(number);
-            saves?.markDirty();
             events.emit('sudoku:note-entered', { row, column, number, present: notes[row][column].has(number) });
             statusElement.textContent = `Note ${number} ${notes[row][column].has(number) ? 'added' : 'removed'}.`;
             render();
@@ -153,7 +152,6 @@
             return;
         }
         values[row][column] = number;
-        saves?.markDirty();
         events.emit('sudoku:entry-accepted', { row, column, number });
         notes[row][column].clear();
         rules.removePeerNotes(notes, row, column, number);
@@ -166,7 +164,6 @@
     function erase() {
         if (!selected || puzzle[selected.row][selected.column] || gameOver || autoSolving) return;
         values[selected.row][selected.column] = 0;
-        saves?.markDirty();
         notes[selected.row][selected.column].clear();
         events.emit('sudoku:cell-erased', { row: selected.row, column: selected.column });
         statusElement.textContent = 'Square cleared.';
@@ -181,7 +178,6 @@
         if (!hints) { statusElement.textContent = 'You’ve used all three hints.'; return; }
         const { row, column } = selected;
         values[row][column] = solution[row][column];
-        saves?.markDirty();
         notes[row][column].clear();
         rules.removePeerNotes(notes, row, column, solution[row][column]);
         hints -= 1;
@@ -205,6 +201,8 @@
         const progress = Math.max(0, Math.min(1, filled / open));
         events.emit('game:progressed', { progress, intensity: .12 + progress * .55, danger: mistakes / 3 });
     }
+
+    function advanceTimer() { elapsed += 1; renderTimer(); publishProgress(); }
 
     function endGame(won) {
         gameOver = true;
@@ -310,7 +308,7 @@
         updateAutoSolveButton(false);
         statusElement.setAttribute('aria-live', 'polite');
         statusElement.textContent = 'Auto solve stopped. Your board has been restored.';
-        timerId = setInterval(() => { elapsed += 1; renderTimer(); }, 1000);
+        timerId = setInterval(advanceTimer, 1000);
         render();
     }
 
@@ -370,7 +368,7 @@
         canSave: () => !gameOver && !autoSolving,
         hasProgress: () => elapsed > 0 || values.some((row, r) => row.some((value, c) => value !== puzzle[r]?.[c])) || notes.some(row => row.some(cell => cell.size)),
         pause: () => { const running = !gameOver && !autoSolving && Boolean(timerId); clearInterval(timerId); timerId = null; return running; },
-        resume: running => { if (running && !gameOver && !timerId) timerId = setInterval(() => { elapsed += 1; renderTimer(); }, 1000); },
+        resume: running => { if (running && !gameOver && !timerId) timerId = setInterval(advanceTimer, 1000); },
         capture: async () => ({
             mode: difficultySelect.value, elapsedSeconds: elapsed, scoreLabel: `${values.flat().filter(Boolean).length}/81 filled`,
             state: { solution, puzzle, values, notes: notes.map(row => row.map(cell => [...cell])), selected, mistakes, hints, notesMode, elapsed, difficulty: difficultySelect.value }
@@ -379,7 +377,7 @@
             if (!validGrid(state?.solution) || !validGrid(state?.puzzle) || !validGrid(state?.values) || !['easy','medium','hard'].includes(state?.difficulty) || !Number.isInteger(state.elapsed) || state.elapsed < 0 || !Number.isInteger(state.mistakes) || state.mistakes < 0 || state.mistakes > 2 || !Number.isInteger(state.hints) || state.hints < 0 || state.hints > 3 || !Array.isArray(state.notes) || state.notes.length !== 9) throw new Error('This Sudoku save is invalid or incompatible.');
             const restoredNotes = state.notes.map(row => { if (!Array.isArray(row) || row.length !== 9) throw new Error('This Sudoku save is invalid or incompatible.'); return row.map(cell => { if (!Array.isArray(cell) || cell.some(value => !Number.isInteger(value) || value < 1 || value > 9)) throw new Error('This Sudoku save is invalid or incompatible.'); return new Set(cell); }); });
             clearInterval(timerId); clearInterval(solveTimerId); solution = state.solution.map(row => [...row]); puzzle = state.puzzle.map(row => [...row]); values = state.values.map(row => [...row]); notes = restoredNotes; selected = state.selected && Number.isInteger(state.selected.row) && Number.isInteger(state.selected.column) ? { row: state.selected.row, column: state.selected.column } : null;
-            mistakes = state.mistakes; hints = state.hints; notesMode = Boolean(state.notesMode); elapsed = state.elapsed; gameOver = false; autoSolving = false; solvingCell = null; solveSnapshot = null; difficultySelect.value = state.difficulty; difficultyLabel.textContent = state.difficulty[0].toUpperCase() + state.difficulty.slice(1); mistakesElement.textContent = mistakes; notesButton.setAttribute('aria-pressed', String(notesMode)); notesButton.querySelector('small').textContent = notesMode ? 'On' : 'Off'; document.querySelector('#hint').innerHTML = `${CONTROL_ICONS.hint}Hint <small>${hints} left</small>`; modal.hidden = true; autoSolveButton.disabled = false; updateAutoSolveButton(false); statusElement.textContent = 'Saved puzzle loaded.'; renderTimer(); render(); timerId = setInterval(() => { elapsed += 1; renderTimer(); }, 1000);
+            mistakes = state.mistakes; hints = state.hints; notesMode = Boolean(state.notesMode); elapsed = state.elapsed; gameOver = false; autoSolving = false; solvingCell = null; solveSnapshot = null; difficultySelect.value = state.difficulty; difficultyLabel.textContent = state.difficulty[0].toUpperCase() + state.difficulty.slice(1); mistakesElement.textContent = mistakes; notesButton.setAttribute('aria-pressed', String(notesMode)); notesButton.querySelector('small').textContent = notesMode ? 'On' : 'Off'; document.querySelector('#hint').innerHTML = `${CONTROL_ICONS.hint}Hint <small>${hints} left</small>`; modal.hidden = true; autoSolveButton.disabled = false; updateAutoSolveButton(false); statusElement.textContent = 'Saved puzzle loaded.'; renderTimer(); render(); timerId = setInterval(advanceTimer, 1000);
         },
         thumbnail: captured => saves.helpers.makeCanvas(context => {
             context.fillStyle = '#f7f3eb'; context.fillRect(0,0,480,270); context.fillStyle = '#20352f'; context.font = '700 20px system-ui'; context.fillText('SUDOKU', 22, 34);

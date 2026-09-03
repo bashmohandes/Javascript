@@ -43,7 +43,9 @@ validated response and error state.
   existing consumers.
 - Event names and payloads become shared contracts that require documentation and
   compatibility care.
-- The bus is unsuitable for commands, persistence, security decisions, or event
-  sourcing; those require explicit server-owned designs.
+- The bus is unsuitable for commands, persistence writes, security decisions,
+  or event sourcing; those require explicit server-owned designs. Disposable
+  browser state such as an unsaved-progress indicator may observe semantic
+  progress events, while capture and persistence remain explicit operations.
 - Snapshot and burst producers must continue to deduplicate, watermark, or
   summarize events before publishing them.
