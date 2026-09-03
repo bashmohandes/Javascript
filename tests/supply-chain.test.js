@@ -5,8 +5,8 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 
 test('GitHub Actions dependencies use immutable commit SHAs', () => {
-    const workflow = fs.readFileSync('.github/workflows/container.yml', 'utf8');
-    const actions = [...workflow.matchAll(/^\s*uses:\s*([^\s#]+)/gm)].map(match => match[1]);
+    const workflows = fs.readdirSync('.github/workflows').filter(file => file.endsWith('.yml')).map(file => fs.readFileSync(`.github/workflows/${file}`, 'utf8'));
+    const actions = workflows.flatMap(workflow => [...workflow.matchAll(/^\s*uses:\s*([^\s#]+)/gm)].map(match => match[1]));
     assert.ok(actions.length > 0);
     for (const action of actions) assert.match(action, /^[^@\s]+@[0-9a-f]{40}$/, action);
 });
@@ -35,7 +35,20 @@ test('container scanning uses an immutable Trivy image and cannot publish on sch
     assert.match(workflow, /^\s*group: container-\$\{\{ github\.event_name \}\}-\$\{\{ github\.ref \}\}$/m);
     assert.match(workflow, /^\s*load:\s*true$/m);
     assert.match(workflow, /arcade-trivy:ci image[\s\S]*?--severity HIGH,CRITICAL[\s\S]*?javascript-pong:ci/);
-    assert.match(workflow, /^\s*if: github\.event_name == 'push' \|\| github\.event_name == 'workflow_dispatch'$/m);
+    assert.match(workflow, /^\s*if: github\.event_name == 'push' && github\.ref == 'refs\/heads\/master'$/m);
+    assert.match(workflow, /type=raw,value=alpha/);
+    assert.doesNotMatch(workflow, /type=raw,value=latest/);
+});
+
+test('stable releases are manual, branch guarded, versioned, and scanned before publishing', () => {
+    const workflow = fs.readFileSync('.github/workflows/release.yml', 'utf8');
+    assert.match(workflow, /^\s*workflow_dispatch:\s*$/m);
+    assert.match(workflow, /github\.ref != 'refs\/heads\/release'/);
+    assert.match(workflow, /release-notes\.js validate/);
+    assert.match(workflow, /javascript-pong:release-candidate[\s\S]*Scan stable container[\s\S]*type=raw,value=latest/);
+    assert.match(workflow, /type=semver,pattern=\{\{version\}\}/);
+    assert.match(workflow, /gh release create/);
+    assert.match(workflow, /^\s*contents: write$/m);
 });
 
 test('Dependabot checks every build dependency ecosystem daily', () => {

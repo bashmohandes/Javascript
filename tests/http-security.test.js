@@ -65,7 +65,7 @@ test('trusted proxy addresses must be valid and use the proxy-adjacent value', (
 });
 
 test('private implementation and configuration paths are not public assets', () => {
-    for (const pathname of ['/.git/config', '/.env', '/server/index.js', '/tests/accounts.test.js', '/data/arcade.sqlite', '/compose.nas.yaml']) {
+    for (const pathname of ['/.git/config', '/.env', '/server/index.js', '/tests/accounts.test.js', '/data/arcade.sqlite', '/compose.nas.yaml', '/releases.json']) {
         assert.equal(isPrivatePath(pathname), true, pathname);
     }
     assert.equal(isPrivatePath('/pong/index.html'), false);

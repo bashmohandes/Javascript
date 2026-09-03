@@ -115,17 +115,30 @@ filename order inside a transaction at startup and are recorded in
 `schema_migrations`. Add future changes as the next zero-padded migration rather
 than editing a migration that has already shipped.
 
-### Publish the image with GitHub Actions
+### Release and publish images with GitHub Actions
 
-The `Test and publish container` workflow tests the application and builds the
-container for every pull request. Pushes to `main` or `master` publish `latest`
-and immutable `sha-...` tags to Docker Hub. Tags such as `v1.2.3` additionally
-publish `1.2.3` and `1.2`. Published images support both AMD64 and ARM64 NAS
-devices and include provenance and an SBOM. The matching immutable tag (`sha-...`
-for commits or the semantic version for releases) is embedded in the image and
-shown at the bottom of every page. For a local build, set `BUILD_VERSION` before
-running Docker Compose; the same value is used for both the image tag and the
-displayed build version.
+The `Test and publish alpha container` workflow tests the application and builds
+the container for every pull request. Each successful push to `master` publishes
+the movable `alpha` image and an immutable `sha-...` image to Docker Hub. Daily
+scheduled runs rebuild and scan without publishing. Alpha is intended for early
+testing; `latest` never follows `master` directly.
+
+Stable releases come only from the protected `release` branch. Prepare the next
+release on `master` by updating `package.json`, `package-lock.json`, and the
+newest entry in `releases.json` to the same semantic version. After testing the
+alpha image, merge a promotion pull request from `master` into `release`. In
+**Actions → Publish stable release**, select the `release` branch and enter the
+matching version without a `v` prefix. The workflow repeats every quality gate,
+then publishes `latest`, the full version, the major/minor version, and the
+release commit tag. It also creates the immutable `v...` Git tag and a GitHub
+Release from the curated notes.
+
+Published images support AMD64 and ARM64 NAS devices and include provenance and
+an SBOM. The embedded version and release channel appear at the bottom of every
+modern page. Stable release notes open once per version in each browser and can
+always be reopened from that version button. Local Compose builds use the `dev`
+channel by default; set both `BUILD_VERSION` and `BUILD_CHANNEL` only when
+testing other build metadata.
 
 The workflow's third-party actions and Node container base are pinned to
 immutable revisions. Update those pins deliberately after reviewing upstream
@@ -144,8 +157,14 @@ Set up Docker Hub once:
 3. In the GitHub repository, open **Settings → Secrets and variables → Actions**.
 4. Add `DOCKERHUB_USERNAME` with your Docker Hub username.
 5. Add `DOCKERHUB_TOKEN` with the access token—not your Docker Hub password.
-6. Open **Actions → Test and publish container → Run workflow**, or merge a
-   change into the default branch.
+6. Merge to `master` to publish alpha, or follow the stable promotion process
+   above to publish `latest` and versioned images.
+
+Create a `release` branch from `master` before the first promotion. Protect both
+branches with required pull requests and CI, and block force pushes and branch
+deletion. Protect `v*` tags against updates and deletion while allowing the
+stable release workflow to create them. Urgent fixes still merge through
+`master`, prove out on `alpha`, and use the same promotion path.
 
 Pulls and deployments should use an immutable version tag where possible. On
 the NAS, save the following as `.env` beside `compose.nas.yaml`:
@@ -196,13 +215,9 @@ docker compose -f compose.nas.yaml up -d
 docker compose -f compose.nas.yaml ps
 ```
 
-For a private Docker Hub repository, first run `docker login` on the NAS. To
-publish a version, create and push a matching Git tag:
-
-```sh
-git tag v1.0.0
-git push origin v1.0.0
-```
+For a private Docker Hub repository, first run `docker login` on the NAS. Do not
+create release tags manually; the stable workflow creates the tag only after
+the image has passed validation and has been published.
 
 ### Reverse proxy and HTTPS
 

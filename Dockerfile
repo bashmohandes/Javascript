@@ -5,9 +5,12 @@ RUN npm ci --omit=dev
 
 FROM node:26-alpine@sha256:2d984a15c9b54fd0aeb608b8e0d0d83529eb34d2966db27a1fb4f1edc3d298a3
 ARG BUILD_VERSION=dev
+ARG BUILD_CHANNEL=dev
 ENV NODE_ENV=production PORT=8080
 ENV BUILD_VERSION=${BUILD_VERSION}
+ENV BUILD_CHANNEL=${BUILD_CHANNEL}
 LABEL org.opencontainers.image.version=${BUILD_VERSION}
+LABEL org.opencontainers.image.release-channel=${BUILD_CHANNEL}
 WORKDIR /app
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .

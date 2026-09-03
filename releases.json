@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "releases": [
+    {
+      "version": "1.0.0",
+      "title": "JavaScript Arcade 1.0",
+      "summary": "The modern arcade brings six games together with shared profiles, themes, achievements, responsive play, and secure online rooms.",
+      "highlights": [
+        "Play modern versions of Pong, Sudoku, Minesweeper, Tic-tac-toe, Battle Tanks, and Tetris from one arcade.",
+        "Keep scores, history, achievements, appearance, and audio preferences together across games.",
+        "Install the arcade as an app and play with layouts designed for phones, tablets, and desktops.",
+        "Create private or public online rooms for Pong, Tic-tac-toe, and Battle Tanks."
+      ],
+      "fixes": [
+        "Improved full-screen controls and responsive layouts across the modern games.",
+        "Strengthened reconnect behavior, server-authoritative results, and multiplayer safety limits.",
+        "Improved keyboard, touch, focus, and screen-reader support throughout the shared arcade interface."
+      ],
+      "technical": [
+        "Ships as a build-free browser application and one unprivileged Node.js container.",
+        "Includes immutable build dependencies, multi-platform images, an SBOM, provenance, and continuous vulnerability scanning.",
+        "Uses transactional SQLite migrations and server-derived scoring for authenticated results."
+      ]
+    }
+  ]
+}

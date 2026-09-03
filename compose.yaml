@@ -5,6 +5,7 @@ services:
       context: .
       args:
         BUILD_VERSION: ${BUILD_VERSION:-dev}
+        BUILD_CHANNEL: ${BUILD_CHANNEL:-dev}
     container_name: javascript-pong
     restart: unless-stopped
     ports:
