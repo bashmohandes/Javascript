@@ -143,10 +143,10 @@ test('Tetris keeps phone controls visible alongside the board', () => {
 });
 
 test('Tetris fits tablet viewports without clipping fallback page scrolling', () => {
-    const styles = read('tetris/styles.css');
-    assert.match(styles, /\.game-tetris \.app-shell\{[^}]*height:auto;[^}]*overflow:visible/);
+    const styles = read('tetris/styles.css'), sharedStyles = read('styles/modern-game.css');
+    assert.match(sharedStyles, /\.modern-game \.app-shell\{height:auto;overflow:visible\}/);
     assert.match(styles, /@media \(min-width:781px\) and \(max-width:850px\)[\s\S]*?\.game-tetris \.intro\{display:none\}/);
-    assert.match(styles, /@media \(min-width:781px\) and \(max-height:900px\)[\s\S]*?\.game-tetris>\.arcade-topbar\{[^}]*padding-top:calc\(6px \+ env\(safe-area-inset-top\)\)/);
+    assert.match(sharedStyles, /\.modern-game>\.arcade-topbar\{[^}]*padding-top:calc\(6px \+ env\(safe-area-inset-top\)\)/);
     assert.match(styles, /max-height:900px[\s\S]*?\.game-tetris \.game-layout\{height:auto;[^}]*grid-template-columns:minmax\(300px,1fr\) minmax\(360px,440px\)/);
     assert.match(styles, /max-height:900px[\s\S]*?\.game-tetris \.tetris-stage\{width:min\([^}]*100dvh - 124px/);
 });

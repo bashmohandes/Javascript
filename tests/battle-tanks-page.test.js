@@ -88,6 +88,8 @@ test('Battle Tanks keeps mobile and short-landscape controls visible without cov
     assert.match(styles, /fullscreen-inventory \.inventory button\{min-height:44px/);
     assert.match(styles, /compact-loadout select\{min-height:44px/);
     assert.match(styles, /fullscreen-inventory[^}]*overflow:hidden/);
+    assert.match(styles, /max-height:900px[\s\S]*?\.game-battle-tanks \.mobile-controls\{[^}]*position:static;[^}]*display:grid;[^}]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
+    assert.match(styles, /max-height:900px[\s\S]*?\.game-battle-tanks \.controls>\.readouts[^}]*display:none/);
 });
 
 test('Battle Tanks widens its default arena without overriding experience layout contracts', () => {

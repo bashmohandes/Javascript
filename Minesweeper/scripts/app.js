@@ -31,7 +31,7 @@
         clearInterval(timerId); timerElement.textContent = '00:00'; modal.hidden = true;
         flagButton.setAttribute('aria-pressed', 'false'); flagButton.querySelector('small').textContent = 'Off';
         statusElement.textContent = 'Choose any tile to begin. Your first move is always safe.';
-        boardElement.style.setProperty('--columns', level.columns); boardElement.setAttribute('aria-rowcount', level.rows); boardElement.setAttribute('aria-colcount', level.columns);
+        boardElement.style.setProperty('--columns', level.columns); boardElement.style.setProperty('--rows', level.rows); boardElement.setAttribute('aria-rowcount', level.rows); boardElement.setAttribute('aria-colcount', level.columns);
         events.emit('game:started', { intensity: .08, danger: 0, difficulty: difficultyElement.value });
         updateBest(); render();
     }

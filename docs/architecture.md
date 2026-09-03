@@ -59,6 +59,11 @@ appearance dialog, persists changes, synchronizes tabs, and emits the
 `system:theme-changed` domain event for DOM and canvas games. Shared component and layout
 tokens live in `arcade.css` and `styles/modern-game.css`; homepage and profile
 styles consume the same root attributes for their page-specific layouts.
+Modern game shells always retain natural document scrolling. At tablet widths
+and short landscape heights, the shared presentation hides decorative intros,
+compacts both header rows, and keeps the playable surface and primary controls
+in the initial viewport; game-specific styles only supply the board or command
+deck sizing needed to satisfy that shared contract.
 
 The shared shell also owns the progressive-web-app install surface. It points
 modern pages at the root arcade manifest, uses the browser's native install
