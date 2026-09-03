@@ -14,6 +14,7 @@ function request(headers = {}, encrypted = false) {
 test('JSON request limits count chunks incrementally and reject oversized declarations before reading', async () => {
     const streamed = (chunks, headers = {}) => ({ headers, async *[Symbol.asyncIterator]() { yield* chunks; } });
     assert.deepEqual(await readJson(streamed(['{"value":', '"✓"}']), 64), { value: '✓' });
+    assert.deepEqual(await readJson(streamed([...Buffer.from('{"value":1}')].map(byte => Buffer.from([byte]))), 64), { value: 1 });
     await assert.rejects(readJson(streamed(['12345', '67890']), 8), /too large/i);
     let read = false;
     await assert.rejects(readJson({ headers: { 'content-length': '9' }, async *[Symbol.asyncIterator]() { read = true; yield '{}'; } }, 8), /too large/i);

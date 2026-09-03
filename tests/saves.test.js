@@ -92,7 +92,9 @@ test('enforces per-account and aggregate payload budgets before storage grows', 
     const bytes = Buffer.byteLength(JSON.stringify(payload().state)) + Buffer.from(PNG, 'base64').length;
     const userFixture = fixture(t, { maxUserBytes: bytes, maxTotalBytes: bytes * 10 });
     const first = userFixture.saves.create(1, 'tetris', payload());
-    userFixture.saves.update(1, 'tetris', first.slot, payload({ expectedRevision: first.revision, expectedGeneration: first.generation }));
+    userFixture.saves.maxUserBytes = 1; userFixture.saves.maxTotalBytes = 1;
+    const replaced = userFixture.saves.update(1, 'tetris', first.slot, payload({ expectedRevision: first.revision, expectedGeneration: first.generation }));
+    assert.equal(replaced.revision, 2, 'non-growing replacements stay available above a lowered quota');
     assert.throws(() => userFixture.saves.create(1, 'pong', { ...payload(), mode: 'solo' }), error => error.code === 'SAVE_STORAGE_FULL' && error.status === 507);
     const totalFixture = fixture(t, { maxUserBytes: bytes * 10, maxTotalBytes: bytes });
     totalFixture.saves.create(1, 'tetris', payload());

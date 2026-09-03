@@ -3,20 +3,23 @@
 const net = require('node:net');
 
 async function readJson(request, maximum = 10000) {
-    const declaredValue = request.headers?.['content-length'];
+    const declaredValue = request.headers?.['content-length']; let capacity = maximum;
     if (declaredValue !== undefined) {
         const normalized = String(declaredValue);
         if (!/^\d+$/.test(normalized) || !Number.isSafeInteger(Number(normalized))) throw new Error('Invalid Content-Length.');
         if (Number(normalized) > maximum) throw new Error('Request is too large.');
+        capacity = Number(normalized);
     }
-    const chunks = []; let received = 0;
+    let bodyBuffer = null, received = 0;
     for await (const chunk of request) {
         const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
         received += bytes.length;
         if (received > maximum) throw new Error('Request is too large.');
-        chunks.push(bytes);
+        if (received > capacity) throw new Error('Invalid Content-Length.');
+        bodyBuffer ||= Buffer.allocUnsafe(capacity);
+        bytes.copy(bodyBuffer, received - bytes.length);
     }
-    const body = Buffer.concat(chunks, received).toString('utf8');
+    const body = bodyBuffer ? bodyBuffer.subarray(0, received).toString('utf8') : '';
     try { return body ? JSON.parse(body) : {}; } catch { throw new Error('Invalid JSON.'); }
 }
 

@@ -89,6 +89,7 @@ class GameSaves {
         return this.database.prepare(`SELECT COALESCE(SUM(length(CAST(state_json AS BLOB)) + length(screenshot)), 0) bytes FROM game_saves${where}`).get(...(userId === null ? [] : [userId])).bytes;
     }
     assertCapacity(userId, addedBytes, replacedBytes = 0) {
+        if (addedBytes <= replacedBytes) return;
         if (this.storedBytes(userId) - replacedBytes + addedBytes > this.maxUserBytes) throw new SaveError('Your cloud-save storage is full.', 507, 'SAVE_STORAGE_FULL');
         if (this.storedBytes() - replacedBytes + addedBytes > this.maxTotalBytes) throw new SaveError('Cloud-save storage is temporarily full.', 507, 'SAVE_STORAGE_FULL');
     }
