@@ -104,16 +104,19 @@ See [ADR 0014](adr/0014-browser-domain-event-bus.md) and the
 |---|---|---|---|
 | Sudoku | Shared modern mechanics core plus DOM controller for notes, hints and animated solving; separate p5.js classic (`board`, `cell`, `builder`, `solver`, `sketch`) | None | Modern results, scores and achievements |
 | Minesweeper | Modern controller plus tile/grid engine; separate p5.js classic (`sketch`, `tile`) | None | Modern results, browser best times, scores and achievements |
-| Pong | Modern canvas controller + tested online lifecycle adapter + motion prediction; solo, couch duo, online; separate p5.js classic (`board`, `ball`, `sketch`) | Server engine at 60 Hz; snapshots at 30 Hz | Modern results, scores and achievements |
+| Pong | Resolution-aware modern canvas controller + tested online lifecycle adapter + motion prediction; solo, couch duo, online; separate p5.js classic (`board`, `ball`, `sketch`) | Server engine at 60 Hz; snapshots at 30 Hz | Modern results, scores and achievements |
 | Tic-tac-toe | Shared deterministic mechanics core, modern controller, minimax AI, couch duo and online | Room manager validates lifecycle and intent, then applies shared transitions | Results, scores and achievements |
 | Battle Tanks | Shared deterministic engine + canvas controller; solo CPU, local duo and online | Server validates commands and owns physics, damage, turns and online result recording | Results, scores and achievements |
 | Tetris | Modern DOM controller plus testable seven-bag/SRS mechanics engine; endless solo marathon | None | Results, scores, history and achievements |
+
+Pong full screen keeps the complete court as the only play surface, reuses the existing faded side score overlay near the top, and exposes only an exit action; keyboard and pointer input remain the control paths.
 
 Tetris keeps mechanics independent from DOM presentation, submits bounded
 top-out aggregates for server-derived scoring, and consumes a scoped theme-token
 interface. At phone widths, the controller's board and status rail use an
 approximately 70/30 viewport-aware layout while the touch controls remain
-available. Line-clear and live-record celebrations are non-authoritative,
+available.
+Line-clear and live-record celebrations are non-authoritative,
 non-blocking presentation driven by mechanics events and local best-score state.
 Random magic breakers and motion-assisted stack compaction are mechanics-owned,
 use validated score facts, and retain keyboard and button fallbacks for sensor

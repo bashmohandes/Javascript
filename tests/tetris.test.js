@@ -142,6 +142,12 @@ test('Tetris keeps phone controls visible alongside the board', () => {
     assert.match(page, /class="tetris-controls"[\s\S]*class="stats"[\s\S]*id="next"/);
 });
 
+test('Tetris gives occupied cells layered code-native block faces', () => {
+    const styles = read('tetris/styles.css');
+    assert.match(styles, /tetris-cell,\.mini-cell\)\[data-piece\]::after/);
+    assert.match(styles, /linear-gradient\(135deg,#ffffff25,transparent 42%,#0002\)/);
+});
+
 test('Tetris presents escalating, accessible line-clear effects without delaying play', () => {
     const page = read('tetris/index.html'), app = read('tetris/scripts/app.js'), styles = read('tetris/styles.css');
     assert.match(page, /id="line-clear-effect"[^>]*aria-hidden="true"/); assert.match(page, /id="clear-multiplier">x1/);

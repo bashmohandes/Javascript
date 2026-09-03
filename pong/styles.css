@@ -5,3 +5,12 @@
 :is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) .game-pong #game{image-rendering:pixelated}
 :is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) .game-pong :is(.arena-message,.mode-switch,.player-color,.online-panel,.power-guide){border-radius:0}
 :is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) .game-pong .arena-message strong{font-family:var(--pixel-font);text-shadow:4px 4px 0 #000}
+
+.game-pong .arena-wrap{overflow:hidden;background:var(--pong-field);box-shadow:0 18px 54px rgba(9,20,18,.2)}
+.game-pong #game{image-rendering:auto}
+/* Full screen keeps the court unobstructed; existing keyboard and pointer input remain active. */
+.game-pong .arena-wrap:fullscreen,.game-pong .arena-wrap.is-fullscreen{box-sizing:border-box;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);background:color-mix(in srgb,var(--pong-field) 86%,#03090a)}
+.game-pong .arena-wrap:fullscreen canvas,.game-pong .arena-wrap.is-fullscreen canvas{width:min(100vw,160dvh);height:auto;max-width:100%;max-height:100%;object-fit:contain}
+.game-pong .arena-wrap:fullscreen .arena-score,.game-pong .arena-wrap.is-fullscreen .arena-score{display:block;width:min(100vw,160dvh);height:min(100dvh,62.5vw);top:50%;left:50%;font-size:clamp(96px,18vmin,240px);transform:translate(-50%,-50%)}
+.game-pong .arena-wrap:fullscreen .arena-score span,.game-pong .arena-wrap.is-fullscreen .arena-score span{top:clamp(56px,12%,110px);opacity:.14;transform:none}
+.game-pong .arena-wrap:fullscreen .fullscreen-exit,.game-pong .arena-wrap.is-fullscreen .fullscreen-exit{z-index:10;border:2px solid #fff;border-radius:0}

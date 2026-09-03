@@ -29,3 +29,8 @@
 :is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) .game-tetris .tetris-controls{background-image:linear-gradient(90deg,#ffffff07 1px,transparent 1px),linear-gradient(#ffffff07 1px,transparent 1px);background-size:16px 16px}
 :is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) .game-tetris :is(.stats span,.piece-panels h2,.record-callout,.power-up-banner strong){font-family:var(--pixel-font)}
 :is([data-arcade-theme="playful"],[data-arcade-theme="cabinet"]) .game-tetris .clear-burst i{width:8px;height:20px;border-radius:0}
+/* Layered block faces stay code-native while adding depth at every scale. */
+.game-tetris .tetris-board{background:radial-gradient(circle at 50% -12%,color-mix(in srgb,var(--tetris-i) 13%,transparent),transparent 46%),var(--tetris-board)}
+.game-tetris :is(.tetris-cell,.mini-cell){position:relative;overflow:hidden}
+.game-tetris :is(.tetris-cell,.mini-cell)[data-piece]::after{position:absolute;inset:12%;content:"";border:1px solid #ffffff38;background:linear-gradient(135deg,#ffffff25,transparent 42%,#0002);pointer-events:none}
+.game-tetris .tetris-cell.ghost::after{display:none}

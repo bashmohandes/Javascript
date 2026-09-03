@@ -24,10 +24,12 @@ function updatePongTheme() {
     const styles = getComputedStyle(arena);
     arenaColors = {
         field: styles.getPropertyValue('--pong-field').trim() || '#122c2b',
+        fieldDeep: styles.getPropertyValue('--pong-field-deep').trim() || '#071b1b',
         line: styles.getPropertyValue('--pong-line').trim() || 'rgba(255,244,214,.34)',
         ball: styles.getPropertyValue('--pong-ball').trim() || '#fff4d6',
         decoy: styles.getPropertyValue('--pong-decoy').trim() || '#ff70b7',
-        trail: styles.getPropertyValue('--pong-trail').trim() || '#6ef2d0'
+        trail: styles.getPropertyValue('--pong-trail').trim() || '#6ef2d0',
+        glow: styles.getPropertyValue('--pong-glow').trim() || 'rgba(110,242,208,.34)'
     };
     if (canvas.width) draw();
 }
@@ -152,7 +154,7 @@ function leaveOnline(notify = true) {
 function onlineInput() { onlineClient.clearInput(); sendOnline({ type: 'input', up: game.keys.has('KeyW') || game.keys.has('ArrowUp'), down: game.keys.has('KeyS') || game.keys.has('ArrowDown'), targetY: null }); }
 
 function makeBall(x = game.width / 2, y = game.height / 2, vx = 0, vy = 0, decoy = false) { return { x, y, r: 10, vx, vy, decoy, curveAcceleration: 0, curveTime: 0 }; }
-function resize() { const ratio = Math.min(window.devicePixelRatio || 1, 2); canvas.width = game.width * ratio; canvas.height = game.height * ratio; ctx.setTransform(ratio, 0, 0, ratio, 0, 0); draw(); }
+function resize() { const rect = canvas.getBoundingClientRect(), displayScale = Math.max(rect.width / game.width, rect.height / game.height), ratio = Math.round(Math.min(2.5, Math.max(1, (window.devicePixelRatio || 1) * displayScale)) * 4) / 4; canvas.width = Math.round(game.width * ratio); canvas.height = Math.round(game.height * ratio); ctx.setTransform(ratio, 0, 0, ratio, 0, 0); draw(); }
 function resetBall(direction = game.serve) { balls = [makeBall()]; game.serve = direction; }
 function launch() { const angle = (Math.random() * .8) - .4; balls[0].vx = game.serve * 410 * Math.cos(angle); balls[0].vy = 410 * Math.sin(angle); game.serve *= -1; events.emit('pong:served', { angle }); }
 function setScore(side, value) { (side ? scoreRight : scoreLeft).textContent = value; (side ? arenaScoreRight : arenaScoreLeft).textContent = value; }
@@ -266,17 +268,31 @@ function drawPowerUp(powerUp) {
     if (type.collection === 'ball') { ctx.rotate(Math.PI / 4); ctx.rect(-powerUp.r, -powerUp.r, powerUp.r * 2, powerUp.r * 2); } else { const size = powerUp.r * 1.55; ctx.rect(-size / 2, -size / 2, size, size); }
     ctx.fill(); ctx.rotate(type.collection === 'ball' ? -Math.PI / 4 : 0); ctx.fillStyle = '#0a1020'; ctx.font = `700 ${powerUp.type === 'split' ? 9 : 16}px monospace`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(type.icon, 0, 1); ctx.restore();
 }
+function drawCourt() {
+    const field = ctx.createLinearGradient(0, 0, game.width, game.height); field.addColorStop(0, arenaColors.fieldDeep); field.addColorStop(.48, arenaColors.field); field.addColorStop(1, arenaColors.fieldDeep); ctx.fillStyle = field; ctx.fillRect(0, 0, game.width, game.height);
+    ctx.save(); ctx.strokeStyle = arenaColors.line; ctx.lineWidth = 3; ctx.strokeRect(11.5, 11.5, game.width - 23, game.height - 23);
+    ctx.globalAlpha = .23; ctx.fillStyle = arenaColors.glow; ctx.fillRect(14, 14, 76, game.height - 28); ctx.fillRect(game.width - 90, 14, 76, game.height - 28);
+    ctx.globalAlpha = 1; ctx.fillStyle = arenaColors.line; for (let y = 18; y < game.height - 18; y += 34) ctx.fillRect(game.width / 2 - 2, y, 4, 18);
+    ctx.beginPath(); ctx.arc(game.width / 2, game.height / 2, 79, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = .45; ctx.beginPath(); ctx.arc(game.width / 2, game.height / 2, 56, 0, Math.PI * 2); ctx.stroke();
+    ctx.globalAlpha = .12; ctx.fillStyle = arenaColors.line; for (let y = 0; y < game.height; y += 12) ctx.fillRect(0, y, game.width, 1); ctx.restore();
+}
+function drawPaddle(paddle) {
+    const x = Math.round(paddle.x), y = Math.round(paddle.y); ctx.save(); ctx.fillStyle = '#0008'; ctx.fillRect(x + 5, y + 6, paddle.w, paddle.h); ctx.shadowColor = paddle.color; ctx.shadowBlur = 13; ctx.fillStyle = paddle.color; ctx.fillRect(x, y, paddle.w, paddle.h); ctx.shadowBlur = 0; ctx.fillStyle = '#ffffff70'; ctx.fillRect(x + 3, y + 3, 3, Math.max(0, paddle.h - 6)); ctx.fillRect(x, y, paddle.w, 4); ctx.restore();
+}
+function drawBall(ball) {
+    const speed = Math.hypot(ball.vx || 0, ball.vy || 0) || 1, color = ball.decoy ? arenaColors.decoy : arenaColors.ball;
+    ctx.save(); for (let step = 5; step > 0; step -= 1) { const size = ball.r * 2 - step; ctx.globalAlpha = .035 * step; ctx.fillStyle = arenaColors.trail; ctx.fillRect(Math.round(ball.x - ball.vx / speed * step * 10 - size / 2), Math.round(ball.y - ball.vy / speed * step * 10 - size / 2), size, size); }
+    ctx.globalAlpha = ball.decoy ? .34 : .26; ctx.fillStyle = ball.decoy ? arenaColors.decoy : arenaColors.glow; ctx.fillRect(Math.round(ball.x - ball.r - 6), Math.round(ball.y - ball.r - 6), ball.r * 2 + 12, ball.r * 2 + 12);
+    ctx.globalAlpha = ball.decoy ? .82 : 1; ctx.fillStyle = color; ctx.fillRect(Math.round(ball.x - ball.r), Math.round(ball.y - ball.r), ball.r * 2, ball.r * 2); ctx.fillStyle = '#fff9'; ctx.fillRect(Math.round(ball.x - ball.r + 3), Math.round(ball.y - ball.r + 3), 5, 5); ctx.restore();
+}
 function draw() {
-    ctx.clearRect(0, 0, game.width, game.height); ctx.fillStyle = arenaColors.field; ctx.fillRect(0, 0, game.width, game.height);
-    ctx.fillStyle = arenaColors.line; for (let y = 14; y < game.height; y += 32) ctx.fillRect(game.width / 2 - 3, y, 6, 18);
-    ctx.strokeStyle = arenaColors.line; ctx.lineWidth = 4; ctx.strokeRect(game.width / 2 - 76, game.height / 2 - 76, 152, 152);
-    ctx.globalAlpha = .12; ctx.fillStyle = arenaColors.line; for (let y = 0; y < game.height; y += 16) ctx.fillRect(0, y, game.width, 1); ctx.globalAlpha = 1;
-    game.powerUps.forEach(drawPowerUp); paddles.forEach(paddle => { ctx.fillStyle = paddle.color; ctx.fillRect(Math.round(paddle.x), Math.round(paddle.y), paddle.w, paddle.h); ctx.fillStyle = 'rgba(255,255,255,.28)'; ctx.fillRect(Math.round(paddle.x) + 3, Math.round(paddle.y) + 3, 3, Math.max(0, paddle.h - 6)); });
+    ctx.clearRect(0, 0, game.width, game.height); drawCourt();
+    game.powerUps.forEach(drawPowerUp); paddles.forEach(drawPaddle);
     const renderedBalls = game.mode === 'online' && onlineBallSample ? onlineBallSample.balls.map(ball => {
         const elapsed = Math.min((performance.now() - onlineBallSample.receivedAt) / 1000, .075);
         return predictBall(ball, elapsed, { width: game.width, height: game.height, snapshotElapsed: onlineBallSample.elapsed, effects: onlineBallSample.effects, paddles: onlineBallSample.paddles });
     }) : balls;
-    renderedBalls.forEach(ball => { const speed = Math.hypot(ball.vx || 0, ball.vy || 0) || 1; for (let step = 3; step > 0; step -= 1) { ctx.globalAlpha = .08 * step; ctx.fillStyle = arenaColors.trail; ctx.fillRect(Math.round(ball.x - ball.vx / speed * step * 12 - ball.r), Math.round(ball.y - ball.vy / speed * step * 12 - ball.r), ball.r * 2, ball.r * 2); } ctx.fillStyle = ball.decoy ? arenaColors.decoy : arenaColors.ball; ctx.globalAlpha = ball.decoy ? .78 : 1; ctx.fillRect(Math.round(ball.x - ball.r), Math.round(ball.y - ball.r), ball.r * 2, ball.r * 2); }); ctx.globalAlpha = 1;
+    renderedBalls.forEach(drawBall);
 }
 function frame(time) { const dt = Math.min((time - game.last) / 1000, .025) || 0; game.last = time; if (game.mode !== 'online' && game.running && !game.paused) update(dt); draw(); requestAnimationFrame(frame); }
 
@@ -324,6 +340,7 @@ function setFullscreenState(active) {
     document.body.classList.toggle('arena-fullscreen', active);
     fullscreenButton.textContent = active ? 'Exit full screen' : 'Enter full screen';
     fullscreenButton.setAttribute('aria-pressed', active);
+    requestAnimationFrame(resize);
 }
 fullscreenButton.addEventListener('click', async () => {
     const active = document.fullscreenElement === arena || arena.classList.contains('is-fullscreen');
