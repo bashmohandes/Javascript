@@ -155,11 +155,16 @@ test('Tetris offers a safe-area-aware full-screen board and command deck', () =>
     assert.match(styles, /game-layout:fullscreen \.stats[^}]*grid-column:1[^}]*grid-row:1/);
     assert.match(styles, /game-layout:fullscreen \.piece-panels[^}]*grid-column:3[^}]*grid-row:1/);
     assert.match(styles, /tetris-controls[^}]*display:contents/);
-    assert.match(styles, /touch-controls button:nth-child\(1\)[^}]*grid-column:1/);
-    assert.match(styles, /touch-controls button:nth-child\(3\)[^}]*grid-column:4/);
-    assert.match(styles, /touch-controls button:nth-child\(7\)[^}]*grid-column:4\/6/);
+    assert.match(page, /class="control-cluster movement-controls"[^>]*aria-label="Movement and drop controls"/);
+    assert.match(page, /class="control-cluster piece-controls"[^>]*aria-label="Rotation and hold controls"/);
+    assert.match(styles, /--tetris-fullscreen-rail:min\(100%,58vmin\)/);
+    assert.match(styles, /movement-controls[^}]*grid-column:1[^}]*grid-row:3/);
+    assert.match(styles, /piece-controls[^}]*grid-column:3[^}]*grid-row:3/);
+    assert.match(styles, /piece-controls button:last-child[^}]*grid-column:1\/-1/);
+    assert.match(styles, /game-layout:fullscreen \.mini-board[^}]*14vmin/);
+    assert.match(styles, /next-list \.mini-board[^}]*11vmin/);
     assert.match(styles, /touch-controls button[^}]*min-height:44px/);
-    assert.match(styles, /game-layout:fullscreen \.touch-controls button[^}]*background:var\(--tetris-panel\)/);
+    assert.match(styles, /game-layout:fullscreen \.touch-controls button[^}]*background:color-mix\([^}]*var\(--tetris-i\)/);
     assert.match(styles, /topbar-actions \.icon-button\{[^}]*min-width:44px;min-height:44px/);
 });
 

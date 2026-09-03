@@ -44,11 +44,12 @@ fit together without hiding the status information.
 ## Full screen
 
 Full screen keeps the 10×20 board centered at its correct proportions. Score
-and progress sit to its left, hold and next pieces sit to its right, and touch
-actions are split between both sides so either thumb can reach the common
-controls. Pause and restart remain available without covering the board. The
-layout uses dynamic viewport and safe-area insets, with a CSS fallback for
-installed browsers that cannot use the native Fullscreen API.
+and progress sit to its left, hold and enlarged next-piece previews sit to its
+right, and both rails scale with the shorter viewport dimension instead of
+staying at their regular-page size. Related touch actions live in compact
+movement/drop and rotation/hold decks, with pause and restart directly beneath
+them. The layout uses dynamic viewport and safe-area insets, with a CSS fallback
+for installed browsers that cannot use the native Fullscreen API.
 
 ## Clears and high scores
 
