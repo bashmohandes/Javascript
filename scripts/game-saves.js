@@ -127,7 +127,10 @@
                 if (activeSave?.slot === save.slot && activeSave.generation === save.generation) { activeSave = result.save; dialog.querySelector('[data-save-title]').value = activeSave.title || ''; }
                 await refresh(); status('Title updated.');
             }
-            catch (error) { status(error.message); }
+            catch (error) {
+                if (error.code === 'SAVE_CONFLICT') { await refresh(); status('That save changed on another device. Review its current title before renaming again.'); }
+                else status(error.message);
+            }
         }
         async function deleteSave(save) {
             if (!window.confirm(`Delete ${save.title || `slot ${save.slot}`}? This cannot be undone.`)) return;

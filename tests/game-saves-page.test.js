@@ -53,6 +53,7 @@ test('save writes serialize and semantic events own dirty progress tracking', ()
     assert.match(manager, /saveButton\.disabled = saving \|\|/);
     assert.match(manager, /error\.code === 'SAVE_NOT_FOUND'.*activeSave = null; replacing = false; await refresh/);
     assert.match(manager, /activeSave\?\.slot === save\.slot && activeSave\.generation === save\.generation/);
+    assert.match(manager, /renameSave[\s\S]*?error\.code === 'SAVE_CONFLICT'\) \{ await refresh\(\); status\('That save changed/);
     assert.match(manager, /dialogPause; dialogPause = null; exitAfterSave = null; resumeFrom/);
     assert.match(manager, /window\.ArcadeEvents\?\.on\('\*', observeProgress\)/);
     assert.match(manager, /event\.type === 'game:started' \|\| event\.type === 'game:progressed'/);
@@ -62,6 +63,14 @@ test('save writes serialize and semantic events own dirty progress tracking', ()
     for (const [, appFile] of games) assert.doesNotMatch(read(appFile), /saves\?\.markDirty/, appFile);
     assert.match(read('Sudoku/scripts/app.js'), /function advanceTimer\(\).*publishProgress\(\)/);
     assert.match(read('Minesweeper/scripts/app.js'), /const advanceTimer = \(\) => .*publishProgress\(\)/);
+});
+
+test('save and leave dialogs keep controls inside phone safe areas', () => {
+    const styles = read('arcade.css');
+    assert.match(styles, /\.arcade-saves-dialog\{[^}]*safe-area-inset-left[^}]*safe-area-inset-right[^}]*safe-area-inset-top[^}]*safe-area-inset-bottom/);
+    assert.match(styles, /\.arcade-saves-content\{[^}]*padding:[^}]*safe-area-inset-top[^}]*safe-area-inset-right[^}]*safe-area-inset-bottom[^}]*safe-area-inset-left/);
+    assert.match(styles, /\.arcade-leave-dialog\{[^}]*safe-area-inset-left[^}]*safe-area-inset-right[^}]*safe-area-inset-top[^}]*safe-area-inset-bottom/);
+    assert.match(styles, /\.arcade-leave-dialog>div\{[^}]*padding:[^}]*safe-area-inset-top[^}]*safe-area-inset-right[^}]*safe-area-inset-bottom[^}]*safe-area-inset-left/);
 });
 
 test('save APIs remain authenticated and separate from result authority', () => {
