@@ -64,7 +64,7 @@ jobs:
           context: .
           push: false
           load: true
-          tags: javascript-pong:ci
+          tags: js-playground:ci
           build-args: |
             BUILD_VERSION=${{ steps.version.outputs.version }}
             BUILD_CHANNEL=${{ steps.version.outputs.channel }}
@@ -81,7 +81,7 @@ jobs:
           --ignore-unfixed
           --severity HIGH,CRITICAL
           --exit-code 1
-          javascript-pong:ci
+          js-playground:ci
 
   publish-alpha:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
@@ -103,7 +103,7 @@ jobs:
         id: metadata
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         with:
-          images: ${{ secrets.DOCKERHUB_USERNAME }}/javascript-pong
+          images: ${{ secrets.DOCKERHUB_USERNAME }}/js-playground
           tags: |
             type=raw,value=alpha
             type=sha,prefix=sha-

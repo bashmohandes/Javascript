@@ -19,7 +19,7 @@ mode.
 `arcade.js` owns the install suggestion and instructions as part of the shared
 browser shell. It ensures pages using the shell reference the root arcade
 manifest and the Apple standalone metadata. Pong now references that same root
-manifest so every shared install action installs JavaScript Arcade rather than
+manifest so every shared install action installs JavaScript Playground rather than
 a game-specific application. The shell registers a root service worker that
 uses network-first navigation and stale-while-revalidate static assets in a
 versioned cache. Cache writes run in the background so a fetched response is

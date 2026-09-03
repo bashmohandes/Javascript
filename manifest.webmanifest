@@ -1,6 +1,6 @@
 {
-  "name": "JavaScript Arcade",
-  "short_name": "JS Arcade",
+  "name": "JavaScript Playground",
+  "short_name": "JSPG",
   "description": "A collection of thoughtfully rebuilt browser games.",
   "start_url": "./",
   "scope": "./",

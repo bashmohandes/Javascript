@@ -88,14 +88,14 @@ five-character code with a friend.
 Set a different host port in a `.env` file if port 8080 is occupied:
 
 ```dotenv
-PONG_PORT=8090
+JSPG_PORT=8090
 ```
 
 Useful operations:
 
 ```sh
 docker compose ps
-docker compose logs -f pong
+docker compose logs -f js-playground
 docker compose pull
 docker compose up -d --build
 docker compose down
@@ -107,7 +107,7 @@ Both Compose files mount the named `arcade-data` volume at `/app/data`, with the
 database at `/app/data/arcade.sqlite`, so account data survives restarts and
 deployments. Back up that volume as part of the NAS backup routine. To use a
 bind mount, replace the volume source with a NAS directory such as
-`/volume1/docker/javascript-arcade:/app/data` and ensure the container user can
+`/volume1/docker/javascript-playground:/app/data` and ensure the container user can
 write to it.
 
 Versioned migrations live in `server/migrations`. Unapplied `.sql` files run in
@@ -157,7 +157,7 @@ an image.
 
 Set up Docker Hub once:
 
-1. Create a public or private Docker Hub repository named `javascript-pong`.
+1. Create a public or private Docker Hub repository named `js-playground`.
 2. In Docker Hub, create a personal access token with **Read & Write** access.
 3. In the GitHub repository, open **Settings → Secrets and variables → Actions**.
 4. Add `DOCKERHUB_USERNAME` with your Docker Hub username.
@@ -175,9 +175,9 @@ Pulls and deployments should use an immutable version tag where possible. On
 the NAS, save the following as `.env` beside `compose.nas.yaml`:
 
 ```dotenv
-PONG_IMAGE=YOUR_DOCKERHUB_USERNAME/javascript-pong:1.0.0
-ARCADE_CONTAINER_NAME=javascript-playground
-PONG_PORT=8080
+JSPG_IMAGE=YOUR_DOCKERHUB_USERNAME/js-playground:1.0.0
+JSPG_CONTAINER_NAME=javascript-playground
+JSPG_PORT=8080
 ALLOWED_ORIGINS=https://js-playground.tail01f640.ts.net
 COOKIE_SECURE=true
 TRUST_PROXY=true
@@ -186,10 +186,10 @@ ROOM_MAX_PER_IP=5
 ```
 
 The container defaults to `javascript-playground` when
-`ARCADE_CONTAINER_NAME` is omitted. To run stable and alpha deployments side by
+`JSPG_CONTAINER_NAME` is omitted. To run stable and alpha deployments side by
 side, give them distinct container names, ports, and Compose project names (for
-example, `javascript-playground-stable` with `-p arcade-stable` and
-`javascript-playground-alpha` with `-p arcade-alpha`). The different project
+example, `javascript-playground-stable` with `-p jspg-stable` and
+`javascript-playground-alpha` with `-p jspg-alpha`). The different project
 names keep their `arcade-data` volumes isolated.
 
 `TRUST_PROXY=true` is appropriate when the container is reachable only through

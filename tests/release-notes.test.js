@@ -24,7 +24,7 @@ test('release notes render tailored public and GitHub views', () => {
     const browser = publicRelease(release), markdown = renderMarkdown(release);
     assert.deepEqual(Object.keys(browser), ['version', 'title', 'summary', 'highlights', 'fixes']);
     assert.equal(browser.technical, undefined);
-    assert.match(release.title, /^JavaScript Arcade 1\.0/);
+    assert.match(release.title, /^JavaScript Playground 1\.0/);
     assert.match(markdown, /^## Technical notes$/m);
 });
 
@@ -37,7 +37,7 @@ test('build information exposes release notes only for an exact stable version',
 });
 
 test('release CLI can write complete Markdown notes', () => {
-    const temporary = path.join(os.tmpdir(), `javascript-arcade-release-notes-${process.pid}.md`);
+    const temporary = path.join(os.tmpdir(), `js-playground-release-notes-${process.pid}.md`);
     try {
         require('node:child_process').execFileSync(process.execPath, ['scripts/release-notes.js', 'markdown', '1.0.0', temporary]);
         assert.match(fs.readFileSync(temporary, 'utf8'), /## Highlights[\s\S]*## Fixes[\s\S]*## Technical notes/);

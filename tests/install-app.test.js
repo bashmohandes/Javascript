@@ -13,7 +13,8 @@ const worker = fs.readFileSync('service-worker.js', 'utf8');
 const manifest = JSON.parse(fs.readFileSync('manifest.webmanifest', 'utf8'));
 
 test('shared shell owns one installable arcade manifest', () => {
-    assert.equal(manifest.name, 'JavaScript Arcade');
+    assert.equal(manifest.name, 'JavaScript Playground');
+    assert.equal(manifest.short_name, 'JSPG');
     assert.equal(manifest.display, 'standalone');
     assert.equal(manifest.start_url, './');
     assert.ok(manifest.icons.some(icon => icon.sizes === '192x192'));

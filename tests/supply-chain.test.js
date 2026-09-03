@@ -34,8 +34,9 @@ test('container scanning uses an immutable Trivy image and cannot publish on sch
     assert.match(workflow, /^\s*schedule:\s*$[\s\S]*?^\s*- cron:/m);
     assert.match(workflow, /^\s*group: container-\$\{\{ github\.event_name \}\}-\$\{\{ github\.ref \}\}$/m);
     assert.match(workflow, /^\s*load:\s*true$/m);
-    assert.match(workflow, /arcade-trivy:ci image[\s\S]*?--severity HIGH,CRITICAL[\s\S]*?javascript-pong:ci/);
+    assert.match(workflow, /arcade-trivy:ci image[\s\S]*?--severity HIGH,CRITICAL[\s\S]*?js-playground:ci/);
     assert.match(workflow, /^\s*if: github\.event_name == 'push' && github\.ref == 'refs\/heads\/master'$/m);
+    assert.match(workflow, /images: \$\{\{ secrets\.DOCKERHUB_USERNAME \}\}\/js-playground/);
     assert.match(workflow, /type=raw,value=alpha/);
     assert.doesNotMatch(workflow, /type=raw,value=latest/);
 });
@@ -45,18 +46,22 @@ test('stable releases are manual, branch guarded, versioned, and scanned before 
     assert.match(workflow, /^\s*workflow_dispatch:\s*$/m);
     assert.match(workflow, /refs\/heads\/release[\s\S]*refs\/tags\/v\$\{RELEASE_VERSION\}/);
     assert.match(workflow, /release-notes\.js validate/);
-    assert.match(workflow, /javascript-pong:release-candidate[\s\S]*Scan stable container[\s\S]*type=raw,value=latest/);
+    assert.match(workflow, /js-playground:release-candidate[\s\S]*Scan stable container[\s\S]*type=raw,value=latest/);
     assert.match(workflow, /type=semver,pattern=\{\{version\}\}/);
     assert.match(workflow, /gh release create/);
+    assert.match(workflow, /images: \$\{\{ secrets\.DOCKERHUB_USERNAME \}\}\/js-playground/);
     assert.match(workflow, /^\s*contents: write$/m);
     assert.ok(workflow.indexOf('git push origin') < workflow.indexOf('Build and push multi-platform stable image'), 'the immutable tag must exist before public image tags move');
 });
 
-test('Compose containers use a configurable playground name', () => {
+test('Compose services and containers use configurable playground names', () => {
     for (const file of ['compose.yaml', 'compose.nas.yaml']) {
         const compose = fs.readFileSync(file, 'utf8');
-        assert.match(compose, /^\s*container_name: \$\{ARCADE_CONTAINER_NAME:-javascript-playground\}$/m, file);
+        assert.match(compose, /^\s{2}js-playground:$/m, file);
+        assert.match(compose, /^\s*container_name: \$\{JSPG_CONTAINER_NAME:-javascript-playground\}$/m, file);
+        assert.match(compose, /\$\{JSPG_PORT:-8080\}/, file);
     }
+    assert.match(fs.readFileSync('compose.nas.yaml', 'utf8'), /\$\{JSPG_IMAGE:\?Set JSPG_IMAGE/);
 });
 
 test('Dependabot checks every build dependency ecosystem daily', () => {

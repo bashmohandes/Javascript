@@ -3,7 +3,7 @@
   "releases": [
     {
       "version": "1.0.0",
-      "title": "JavaScript Arcade 1.0",
+      "title": "JavaScript Playground 1.0",
       "summary": "The modern arcade brings six games together with shared profiles, themes, achievements, responsive play, and secure online rooms.",
       "highlights": [
         "Play modern versions of Pong, Sudoku, Minesweeper, Tic-tac-toe, Battle Tanks, and Tetris from one arcade.",

@@ -113,12 +113,12 @@
         const updateHint = () => { hint.hidden = isStandalone() || dismissed() || (!installPrompt && !manualGuide()); };
         const renderDialog = () => {
             const guide = installPrompt ? {
-                label: 'Install JavaScript Arcade',
+                label: 'Install JavaScript Playground',
                 intro: 'Your browser can install the arcade now.',
-                steps: ['Select “Install now” below.', 'Confirm Install in your browser.', 'Open JavaScript Arcade from your apps, Home Screen, or Dock.']
+                steps: ['Select “Install now” below.', 'Confirm Install in your browser.', 'Open JavaScript Playground from your apps, Home Screen, or Dock.']
             } : manualGuide();
             if (!guide) return false;
-            installDialog.innerHTML = `<form method="dialog"><header><div><small>JavaScript Arcade</small><h2>${guide.label}</h2></div><button value="close" aria-label="Close install instructions">×</button></header><p>${guide.intro}</p><ol>${guide.steps.map(step => `<li>${step}</li>`).join('')}</ol><p class="arcade-install-status" role="status" aria-live="polite"></p><div class="arcade-install-actions">${installPrompt ? '<button type="button" class="arcade-install-now">Install now</button>' : ''}<button value="close" class="secondary">${installPrompt ? 'Not now' : 'Got it'}</button></div></form>`;
+            installDialog.innerHTML = `<form method="dialog"><header><div><small>JavaScript Playground</small><h2>${guide.label}</h2></div><button value="close" aria-label="Close install instructions">×</button></header><p>${guide.intro}</p><ol>${guide.steps.map(step => `<li>${step}</li>`).join('')}</ol><p class="arcade-install-status" role="status" aria-live="polite"></p><div class="arcade-install-actions">${installPrompt ? '<button type="button" class="arcade-install-now">Install now</button>' : ''}<button value="close" class="secondary">${installPrompt ? 'Not now' : 'Got it'}</button></div></form>`;
             installDialog.querySelector('.arcade-install-now')?.addEventListener('click', async event => {
                 event.currentTarget.disabled = true;
                 const prompt = installPrompt;
@@ -146,8 +146,8 @@
     topbarInner.className = 'arcade-topbar-inner';
     const home = document.createElement('a');
     home.className = 'arcade-home'; home.href = rootPath;
-    home.setAttribute('aria-label', 'JavaScript Arcade home');
-    home.innerHTML = '<span class="arcade-home-mark" aria-hidden="true">JS</span><span>JavaScript Arcade</span>';
+    home.setAttribute('aria-label', 'JavaScript Playground home');
+    home.innerHTML = '<span class="arcade-home-mark" aria-hidden="true">JSPG</span><span>JavaScript Playground</span>';
     const account = document.createElement('nav');
     account.className = 'arcade-account'; account.setAttribute('aria-label', 'Arcade account and appearance');
     topbarInner.append(home, account); topbar.append(topbarInner);
@@ -193,7 +193,7 @@
     buildVersionButton.type = 'button'; buildVersionButton.textContent = 'Build …'; buildVersionButton.setAttribute('aria-haspopup', 'dialog');
     buildVersion.append(buildVersionButton);
     const releaseDialog = document.createElement('dialog'); releaseDialog.className = 'arcade-dialog arcade-release-dialog';
-    releaseDialog.innerHTML = '<form method="dialog"><header><div><small>JavaScript Arcade</small><h2>Build details</h2></div><button value="close" aria-label="Close release notes">×</button></header><p class="arcade-release-summary"></p><div class="arcade-release-sections"></div><div class="arcade-release-actions"><button value="close">Got it</button></div></form>';
+    releaseDialog.innerHTML = '<form method="dialog"><header><div><small>JavaScript Playground</small><h2>Build details</h2></div><button value="close" aria-label="Close release notes">×</button></header><p class="arcade-release-summary"></p><div class="arcade-release-sections"></div><div class="arcade-release-actions"><button value="close">Got it</button></div></form>';
     const showReleaseDialog = () => { if (!releaseDialog.open) releaseDialog.showModal(); };
     const renderBuildInformation = result => {
         const channel = ['stable', 'alpha', 'dev'].includes(result.channel) ? result.channel : 'dev';
@@ -233,7 +233,7 @@
     document.body.append(dialog, appearanceDialog, ...(audioDialog ? [audioDialog] : []), releaseDialog, buildVersion);
     let achievementDialog;
     const shareAchievement = async achievement => {
-        const text = `${achievement.icon} Achievement unlocked: “${achievement.title}” in JavaScript Arcade — ${achievement.condition}`;
+        const text = `${achievement.icon} Achievement unlocked: “${achievement.title}” in JavaScript Playground — ${achievement.condition}`;
         const url = location.origin + '/profile.html#achievements';
         const image = window.ResultShare?.achievement(achievement);
         if (image) return window.ResultShare.share({ image, filename: `achievement-${achievement.id}.png`, title: achievement.title, text, url });
