@@ -26,6 +26,9 @@ test('the save manager provides five slots, sign-in continuation, screenshots, c
     assert.match(manager, /\[1,2,3,4,5\]/); assert.match(manager, /SAVE_SLOTS_FULL/); assert.match(manager, /SAVE_CONFLICT/); assert.match(manager, /result\.save\.stateVersion !== adapter\.stateVersion/);
     assert.match(manager, /Quick Save &amp; Exit/); assert.match(manager, /beforeunload/); assert.match(manager, /location\.assign/);
     assert.match(manager, /image\/jpeg/); assert.match(manager, /screenshotUrl/); assert.match(manager, /expectedRevision/);
+    assert.match(manager, /account:user-changed/); assert.match(manager, /activeSave = null; saves = \[\]/);
+    assert.ok(manager.indexOf("const token = pauseFor('saves')") < manager.indexOf('if (!await authenticated()) { resumeFrom(token); return; }'));
+    assert.match(manager, /activeSave = result\.save; dialog\.querySelector\('\[data-save-title\]'\)\.value = activeSave\.title/);
     assert.match(shell, /requestAuthentication/); assert.match(shell, /saveManager\.button/); assert.match(shell, /saves: saveManager/);
     assert.match(styles, /\.arcade-save-slot/); assert.match(styles, /@media\(max-width:650px\)/);
 });
@@ -39,7 +42,7 @@ test('save APIs remain authenticated and separate from result authority', () => 
 });
 
 test('online modes are excluded from restorable cloud slots', () => {
-    assert.match(read('pong/scripts/app.js'), /game\.mode !== 'online'/);
+    const pong = read('pong/scripts/app.js'); assert.match(pong, /game\.mode !== 'online'/); assert.match(pong, /Object\.hasOwn\(powerUpTypes,item\.type\)/);
     assert.match(read('tictactoe/scripts/app.js'), /game\.mode!=='online'/);
     assert.match(read('battle-tanks/scripts/app.js'), /mode!=='online'/);
     const service = read('server/saves.js');

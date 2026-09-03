@@ -24,7 +24,7 @@
         return canvas;
     }
     function create({ game, api, user, signIn }) {
-        let adapter = null, activeSave = null, dirty = false, saves = [], replacing = false, exitAfterSave = null, dialogPause = null, leavePause = null;
+        let adapter = null, activeSave = null, dirty = false, saves = [], replacing = false, exitAfterSave = null, dialogPause = null, leavePause = null, accountId = user()?.id ?? null;
         const button = document.createElement('button'); button.type = 'button'; button.className = 'arcade-saves-button'; button.textContent = 'Saves'; button.setAttribute('aria-haspopup', 'dialog');
         const dialog = document.createElement('dialog'); dialog.className = 'arcade-dialog arcade-saves-dialog';
         dialog.innerHTML = `<div class="arcade-saves-content"><header><div><small>Continue anywhere</small><h2>Game saves</h2></div><button type="button" data-save-close aria-label="Close game saves">×</button></header><div class="arcade-save-create"><label>Optional title<input maxlength="60" data-save-title placeholder="My run"></label><button type="button" data-save-current>Save current game</button></div><p class="arcade-save-status" role="status" aria-live="polite"></p><div class="arcade-save-slots"></div></div>`;
@@ -114,7 +114,11 @@
         async function renameSave(save) {
             const title = window.prompt('Save title (leave blank to use the slot number):', save.title || '');
             if (title === null) return;
-            try { await api(`/api/saves/${game}/${save.slot}`, { method: 'PATCH', body: JSON.stringify({ title, expectedRevision: save.revision }) }); await refresh(); status('Title updated.'); }
+            try {
+                const result = await api(`/api/saves/${game}/${save.slot}`, { method: 'PATCH', body: JSON.stringify({ title, expectedRevision: save.revision }) });
+                if (activeSave?.slot === save.slot) { activeSave = result.save; dialog.querySelector('[data-save-title]').value = activeSave.title || ''; }
+                await refresh(); status('Title updated.');
+            }
             catch (error) { status(error.message); }
         }
         async function deleteSave(save) {
@@ -125,8 +129,9 @@
             } catch (error) { status(error.message); }
         }
         async function open() {
-            if (!await authenticated()) return;
-            dialogPause = pauseFor('saves'); status('Loading saves…'); dialog.showModal();
+            const token = pauseFor('saves');
+            if (!await authenticated()) { resumeFrom(token); return; }
+            dialogPause = token; status('Loading saves…'); dialog.showModal();
             try { await refresh(); status(eligible() ? '' : 'Cloud saves are available during solo and local games.'); }
             catch (error) { status(error.message); }
         }
@@ -161,6 +166,12 @@
             catch { /* Completion and result recording must not depend on cleanup connectivity. */ }
         }
         window.ArcadeEvents?.on('game:completed', completeRun);
+        window.ArcadeEvents?.on('account:user-changed', event => {
+            const nextAccountId = event.detail.user?.id ?? null;
+            if (nextAccountId === accountId) return;
+            accountId = nextAccountId; activeSave = null; saves = []; replacing = false;
+            dialog.querySelector('[data-save-title]').value = ''; renderSlots();
+        });
         return {
             button,
             registerAdapter(value) { adapter = value; renderSlots(); },
