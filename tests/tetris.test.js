@@ -29,6 +29,16 @@ test('movement, rotation, hold, ghost, and hard drop obey game boundaries', () =
     const distance = game.hardDrop(); assert.equal(distance, ghost); assert.equal(game.pieces, 1); assert.equal(game.hardDropCells, distance);
 });
 
+test('Tetris save states round-trip every mechanics counter and reject corrupt boards', () => {
+    const original = new TetrisGame({ random: () => .2, powerUpChance: 0 });
+    original.move(-1); original.rotate(1); original.hardDrop(); original.softDrop(); original.hold();
+    const encoded = JSON.parse(JSON.stringify(original.saveState())), restored = new TetrisGame({ random: () => .8 });
+    restored.loadState(encoded);
+    assert.deepEqual(restored.saveState(), encoded); assert.equal(restored.paused, true); assert.equal(restored.gameOver, false);
+    const before = restored.saveState(), invalid = structuredClone(encoded); invalid.board[0] = [];
+    assert.throws(() => restored.loadState(invalid), /Invalid Tetris save state/); assert.deepEqual(restored.saveState(), before);
+});
+
 test('line clears update counters, score, level, and gravity', () => {
     const game = new TetrisGame();
     game.board[21].fill('J'); game.board[20].fill('L');

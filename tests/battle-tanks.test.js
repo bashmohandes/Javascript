@@ -174,6 +174,16 @@ test('snapshots deep-serialize the complete match arena', () => {
     assert.notDeepEqual(copy.arena, state.arena);
 });
 
+test('Battle Tanks snapshots restore deterministic local state and Set-backed statistics', () => {
+    const state = match('cloud-save'), tank = state.tanks[0];
+    state.pickups = [{ id: 'shield', x: tank.x + game.TANK_W / 2, y: tank.y + game.TANK_H }];
+    game.collectPickup(state, 0); game.activatePowerUp(state, 0, 'shield'); game.adjustAim(state, 4); game.moveTank(state, 'forward', 20);
+    const encoded = JSON.parse(JSON.stringify(game.snapshot(state))), restored = game.restoreSnapshot(encoded);
+    assert.deepEqual(game.snapshot(restored), encoded); assert.ok(restored.statistics.powerUpTypesUsed[0] instanceof Set); assert.equal(restored.onlineMode, false); assert.equal(restored.resultSubmitted, false);
+    const invalid = structuredClone(encoded); invalid.tanks[0].health = 101;
+    assert.throws(() => game.restoreSnapshot(invalid), /Invalid Battle Tanks save state/);
+});
+
 test('terrain explosions carve projectile-sized craters in bounded samples', () => {
     const state = match(321), x = 240, before = [...state.arena.terrain];
     game.resolveExplosion(state, { x, y: game.terrainHeightAt(state.arena, x) - game.PROJECTILE_R }, { radius: 24, depth: 30 }, 'terrain');

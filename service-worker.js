@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE_NAME = 'js-playground-v6';
+const CACHE_NAME = 'js-playground-v7';
 const APP_SHELL = [
     './',
     './index.html',
@@ -10,6 +10,7 @@ const APP_SHELL = [
     './fonts/OFL-Silkscreen.txt',
     './scripts/game-events.js',
     './scripts/audio.js',
+    './scripts/game-saves.js',
     './theme-init.js',
     './manifest.webmanifest'
 ];
