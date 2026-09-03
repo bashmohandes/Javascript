@@ -110,9 +110,9 @@ jobs:
         with:
           images: ${{ secrets.DOCKERHUB_USERNAME }}/js-playground
           tags: |
-            type=raw,value=latest
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/release' }}
             type=semver,pattern={{version}},value=${{ inputs.version }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ inputs.version }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ inputs.version }},enable=${{ github.ref == 'refs/heads/release' }}
             type=sha,prefix=sha-
       - name: Build and push multi-platform stable image
         uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
@@ -141,5 +141,9 @@ jobs:
         run: |
           release_title=$(node scripts/release-notes.js title "$RELEASE_VERSION")
           if ! gh release view "v${RELEASE_VERSION}" >/dev/null 2>&1; then
-            gh release create "v${RELEASE_VERSION}" --title "$release_title" --notes-file "$RUNNER_TEMP/release-notes.md" --latest
+            latest_flag=--latest=false
+            if [[ "$GITHUB_REF" == refs/heads/release ]]; then
+              latest_flag=--latest
+            fi
+            gh release create "v${RELEASE_VERSION}" --verify-tag --title "$release_title" --notes-file "$RUNNER_TEMP/release-notes.md" "$latest_flag"
           fi

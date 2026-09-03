@@ -46,9 +46,11 @@ test('stable releases are manual, branch guarded, versioned, and scanned before 
     assert.match(workflow, /^\s*workflow_dispatch:\s*$/m);
     assert.match(workflow, /refs\/heads\/release[\s\S]*refs\/tags\/v\$\{RELEASE_VERSION\}/);
     assert.match(workflow, /release-notes\.js validate/);
-    assert.match(workflow, /js-playground:release-candidate[\s\S]*Scan stable container[\s\S]*type=raw,value=latest/);
+    assert.match(workflow, /js-playground:release-candidate[\s\S]*Scan stable container[\s\S]*type=raw,value=latest,enable=\$\{\{ github\.ref == 'refs\/heads\/release' \}\}/);
     assert.match(workflow, /type=semver,pattern=\{\{version\}\}/);
+    assert.match(workflow, /type=semver,pattern=\{\{major\}\}\.\{\{minor\}\},value=\$\{\{ inputs\.version \}\},enable=\$\{\{ github\.ref == 'refs\/heads\/release' \}\}/);
     assert.match(workflow, /gh release create/);
+    assert.match(workflow, /latest_flag=--latest=false[\s\S]*GITHUB_REF[\s\S]*latest_flag=--latest[\s\S]*gh release create[^\n]+--verify-tag[^\n]+"\$latest_flag"/);
     assert.match(workflow, /images: \$\{\{ secrets\.DOCKERHUB_USERNAME \}\}\/js-playground/);
     assert.match(workflow, /^\s*contents: write$/m);
     assert.ok(workflow.indexOf('git push origin') < workflow.indexOf('Build and push multi-platform stable image'), 'the immutable tag must exist before public image tags move');

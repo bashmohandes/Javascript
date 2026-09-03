@@ -136,7 +136,9 @@ Release from the curated notes.
 If a release fails after its immutable tag is created, rerun the stable workflow
 from that matching `v...` tag with the same version. This remains safe even when
 the `release` branch has advanced; a version tag pointing at any other commit is
-rejected.
+rejected. A tag-based retry republishes only the immutable full-version and
+commit tags and never moves `latest`, the major/minor tag, or GitHub's latest
+release marker backward.
 
 Published images support AMD64 and ARM64 NAS devices and include provenance and
 an SBOM. The embedded version and release channel appear at the bottom of every
