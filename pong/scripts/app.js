@@ -19,6 +19,7 @@ const roomList = document.querySelector('#room-list');
 const shareButton = document.querySelector('#share-result');
 const { predictBall } = window.PongMotion;
 const events = window.ArcadeEvents;
+const saves = window.Arcade?.saves;
 let arenaColors = {};
 function updatePongTheme() {
     const styles = getComputedStyle(arena);
@@ -161,6 +162,7 @@ function setScore(side, value) { (side ? scoreRight : scoreLeft).textContent = v
 function clearPowerUps() { game.powerUps = []; game.effects = [{}, {}]; paddles.forEach(paddle => paddle.h = paddle.baseH); }
 function schedulePowerUp(first = false) { game.nextPowerUp = game.elapsed + (first ? 5 : 8 + Math.random() * 6); }
 function newGame() {
+    saves?.startRun();
     shareButton.hidden = true;
     game.score = [0, 0]; game.over = false; game.elapsed = 0; game.lastTouch = 0; setScore(0, 0); setScore(1, 0);
     paddles.forEach(paddle => { paddle.y = 240; paddle.h = paddle.baseH; }); clearPowerUps(); schedulePowerUp(true);
@@ -172,9 +174,10 @@ function newGame() {
 function showOverlay(title, hint) { overlayTitle.textContent = title; overlayHint.textContent = hint; overlay.hidden = false; }
 function togglePause() { if (game.mode === 'online') return; if (game.over || !game.running) { newGame(); return; } game.paused = !game.paused; events.emit('game:paused', { paused: game.paused }); game.paused ? showOverlay('Game paused', 'Click or press Space to continue') : overlay.hidden = true; }
 function point(side) {
+    saves?.markDirty();
     game.score[side]++; setScore(side, game.score[side]); clearPowerUps();
     events.emit('pong:point-scored', { side, score: [...game.score] }); events.emit('game:progressed', { intensity: .2 + Math.min(.65, (game.score[0] + game.score[1]) / 14), danger: Math.max(...game.score) / 7 });
-    if (game.score[side] === 7) { game.over = true; game.running = false; const playerSide = 0; const won = side === playerSide; events.emit('game:completed', { outcome: won ? 'win' : 'loss', score: [...game.score] }); window.Arcade?.record({ game: 'pong', won, details: { mode: game.mode, score: `${game.score[playerSide]}-${game.score[1 - playerSide]}`, seconds: Math.max(1, Math.round(game.elapsed)) } }).catch(() => {}); const name = side === 0 ? (game.mode === 'solo' ? 'You' : 'Left player') : (game.mode === 'solo' ? 'Computer' : 'Right player'); status.textContent = `${name} won ${game.score[side]}–${game.score[1 - side]} in ${formatDuration(game.elapsed)}.`; showOverlay(`${name} wins!`, `Finished in ${formatDuration(game.elapsed)} · Click to play again`); shareButton.hidden = false; return; }
+    if (game.score[side] === 7) { game.over = true; game.running = false; const playerSide = 0; const won = side === playerSide; saves?.completeRun(); events.emit('game:completed', { outcome: won ? 'win' : 'loss', score: [...game.score] }); window.Arcade?.record({ game: 'pong', won, details: { mode: game.mode, score: `${game.score[playerSide]}-${game.score[1 - playerSide]}`, seconds: Math.max(1, Math.round(game.elapsed)) } }).catch(() => {}); const name = side === 0 ? (game.mode === 'solo' ? 'You' : 'Left player') : (game.mode === 'solo' ? 'Computer' : 'Right player'); status.textContent = `${name} won ${game.score[side]}–${game.score[1 - side]} in ${formatDuration(game.elapsed)}.`; showOverlay(`${name} wins!`, `Finished in ${formatDuration(game.elapsed)} · Click to play again`); shareButton.hidden = false; return; }
     resetBall(side === 0 ? 1 : -1); schedulePowerUp(true); setTimeout(() => { if (game.running && !game.paused && balls[0].vx === 0) launch(); }, 650);
 }
 function spawnPowerUp() {
@@ -245,6 +248,7 @@ canvas.addEventListener('pointerdown', event => {
     if (side === 1 && game.mode !== 'duo' && game.mode !== 'online') return;
     if (game.pointerControls.has(side)) return;
     event.preventDefault();
+    if (game.mode !== 'online') saves?.markDirty();
     game.pointerControls.set(side, event.pointerId);
     canvas.setPointerCapture(event.pointerId);
     movePaddleToPointer(side, event);
@@ -318,6 +322,22 @@ async function shareResult() {
     finally { shareButton.disabled = false; setTimeout(() => { shareButton.textContent = 'Share result'; }, 2600); }
 }
 
+const finite = (value, minimum, maximum) => Number.isFinite(value) && value >= minimum && value <= maximum;
+saves?.registerAdapter({
+    stateVersion: 1,
+    canSave: () => game.mode !== 'online' && game.running && !game.over,
+    hasProgress: () => game.elapsed > 0 || game.score.some(Boolean),
+    pause: () => { const wasPaused = game.paused; if (game.mode !== 'online' && game.running) { game.paused = true; showOverlay('Game paused', 'Close saves to continue'); } return wasPaused; },
+    resume: wasPaused => { if (!wasPaused && game.mode !== 'online' && game.running && !game.over) { game.paused = false; overlay.hidden = true; game.last = performance.now(); } },
+    capture: async () => ({ mode: game.mode, elapsedSeconds: Math.max(0, Math.round(game.elapsed)), scoreLabel: `${game.score[0]}–${game.score[1]}`, state: { mode: game.mode, running: game.running, paused: game.paused, serve: game.serve, score: [...game.score], nextPowerUp: game.nextPowerUp, elapsed: game.elapsed, lastTouch: game.lastTouch, powerUps: game.powerUps.map(item=>({...item})), effects: game.effects.map(item=>({...item})), paddles: paddles.map(item=>({...item,vy:0})), balls: balls.map(item=>({...item})) } }),
+    restore: async state => {
+        const validScore=Array.isArray(state?.score)&&state.score.length===2&&state.score.every(value=>Number.isInteger(value)&&value>=0&&value<=6),validPaddles=Array.isArray(state?.paddles)&&state.paddles.length===2&&state.paddles.every(paddle=>finite(paddle.x,0,960)&&finite(paddle.y,0,600)&&finite(paddle.w,1,50)&&finite(paddle.h,20,220)&&typeof paddle.color==='string'),validBalls=Array.isArray(state?.balls)&&state.balls.length>=1&&state.balls.length<=6&&state.balls.every(ball=>finite(ball.x,-60,1020)&&finite(ball.y,-60,660)&&finite(ball.r,1,30)&&finite(ball.vx,-1200,1200)&&finite(ball.vy,-1200,1200)),validPowerUps=Array.isArray(state?.powerUps)&&state.powerUps.length<=4&&state.powerUps.every(item=>item&&Object.hasOwn(powerUpTypes,item.type)&&[0,1].includes(item.side)&&finite(item.x,-30,990)&&finite(item.y,-30,630)&&finite(item.r,1,40)&&finite(item.expires,0,8640100)),validEffects=Array.isArray(state?.effects)&&state.effects.length===2&&state.effects.every(effect=>effect&&typeof effect==='object'&&Object.entries(effect).every(([name,value])=>name==='curve'?typeof value==='boolean':['reachUntil','quickUntil','slowUntil'].includes(name)&&finite(value,0,8640100)));
+        if(!state||!['solo','duo'].includes(state.mode)||!validScore||!validPaddles||!validBalls||!finite(state.elapsed,0,8640000)||!finite(state.nextPowerUp,0,8640100)||![0,1].includes(state.lastTouch)||![-1,1].includes(state.serve)||!validPowerUps||!validEffects)throw new Error('This Pong save is invalid or incompatible.');
+        game.mode=state.mode;game.running=true;game.paused=true;game.over=false;game.serve=state.serve;game.score=[...state.score];game.nextPowerUp=state.nextPowerUp;game.elapsed=state.elapsed;game.lastTouch=state.lastTouch;game.powerUps=state.powerUps.map(item=>({...item}));game.effects=state.effects.map(item=>({...item}));paddles.forEach((paddle,index)=>Object.assign(paddle,state.paddles[index],{vy:0}));balls=state.balls.map(item=>({...item}));game.keys.clear();game.pointerControls.clear();onlineBallSample=null;setScore(0,game.score[0]);setScore(1,game.score[1]);document.querySelectorAll('[data-mode]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.mode===game.mode)));onlinePanel.hidden=true;document.querySelectorAll('.local-control').forEach(item=>item.hidden=false);document.querySelector('#pause').hidden=false;shareButton.hidden=true;status.textContent='Saved match loaded.';showOverlay('Game loaded','Click or press Space to resume');draw();
+    },
+    thumbnail: () => canvas
+});
+
 document.querySelectorAll('[data-mode]').forEach(button => button.addEventListener('click', () => { shareButton.hidden = true; if (game.mode === 'online' && button.dataset.mode !== 'online') leaveOnline(); game.mode = button.dataset.mode; document.querySelectorAll('[data-mode]').forEach(item => item.setAttribute('aria-pressed', item === button)); onlinePanel.hidden = game.mode !== 'online'; document.querySelectorAll('.local-control').forEach(item => item.hidden = game.mode === 'online'); document.querySelector('#pause').hidden = game.mode === 'online'; if (game.mode === 'online') { game.running = false; game.paused = true; resetBall(); refreshRooms(); showOverlay('Online match', 'Choose a public room or create your own'); } else { resetColorControls(); newGame(); } }));
 document.querySelector('#new-game').addEventListener('click', () => { if (game.mode === 'online') { if (game.over) sendOnline({ type: 'rematch' }); return; } newGame(); }); document.querySelector('#pause').addEventListener('click', togglePause); overlay.addEventListener('click', togglePause);
 shareButton.addEventListener('click', shareResult);
@@ -356,8 +376,8 @@ fullscreenButton.addEventListener('click', async () => {
 });
 arena.querySelector('.fullscreen-exit').addEventListener('click', () => fullscreenButton.click());
 document.addEventListener('fullscreenchange', () => setFullscreenState(document.fullscreenElement === arena));
-addEventListener('keydown', event => { if (event.code === 'Escape') { document.querySelectorAll('.color-menu').forEach(menu => menu.hidden = true); document.querySelectorAll('.color-trigger').forEach(trigger => trigger.setAttribute('aria-expanded', false)); if (arena.classList.contains('is-fullscreen')) setFullscreenState(false); return; } if (['ArrowUp', 'ArrowDown', 'Space'].includes(event.code)) event.preventDefault(); if (event.code === 'Space') { togglePause(); return; } game.keys.add(event.code); if (game.mode === 'online') onlineInput(); }); addEventListener('keyup', event => { game.keys.delete(event.code); if (game.mode === 'online') onlineInput(); });
-document.querySelectorAll('[data-key]').forEach(button => { const key = button.dataset.key; const on = event => { event.preventDefault(); game.keys.add(key); if (game.mode === 'online') onlineInput(); }; const off = event => { event.preventDefault(); game.keys.delete(key); if (game.mode === 'online') onlineInput(); }; button.addEventListener('pointerdown', on); button.addEventListener('pointerup', off); button.addEventListener('pointercancel', off); button.addEventListener('pointerleave', off); });
+addEventListener('keydown', event => { if (event.code === 'Escape') { document.querySelectorAll('.color-menu').forEach(menu => menu.hidden = true); document.querySelectorAll('.color-trigger').forEach(trigger => trigger.setAttribute('aria-expanded', false)); if (arena.classList.contains('is-fullscreen')) setFullscreenState(false); return; } if (['ArrowUp', 'ArrowDown', 'Space'].includes(event.code)) event.preventDefault(); if (event.code === 'Space') { togglePause(); return; } game.keys.add(event.code); if (game.mode === 'online') onlineInput(); else saves?.markDirty(); }); addEventListener('keyup', event => { game.keys.delete(event.code); if (game.mode === 'online') onlineInput(); });
+document.querySelectorAll('[data-key]').forEach(button => { const key = button.dataset.key; const on = event => { event.preventDefault(); game.keys.add(key); if (game.mode === 'online') onlineInput(); else saves?.markDirty(); }; const off = event => { event.preventDefault(); game.keys.delete(key); if (game.mode === 'online') onlineInput(); }; button.addEventListener('pointerdown', on); button.addEventListener('pointerup', off); button.addEventListener('pointercancel', off); button.addEventListener('pointerleave', off); });
 events.on('system:theme-changed', updatePongTheme);
 addEventListener('resize', resize); updatePongTheme(); resize(); requestAnimationFrame(frame);
 const invitedRoom = new URLSearchParams(location.search).get('room');

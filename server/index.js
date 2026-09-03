@@ -8,6 +8,7 @@ const { TicTacToeRooms } = require('./tictactoe-rooms');
 const { BattleTanksRooms } = require('./battle-tanks-rooms');
 const { openDatabase } = require('./database');
 const { Accounts } = require('./accounts');
+const { GameSaves, SaveError } = require('./saves');
 const { Achievements } = require('./achievements');
 const { clientIp: getClientIp, contentSecurityPolicy, isPrivatePath, originAllowed, parseCookies, RateLimiter, useSecureCookies, WebSocketGuard } = require('./http-security');
 const { createStaticAssetHandler } = require('./static-assets');
@@ -22,6 +23,7 @@ const buildInformation = createBuildInformation();
 const database = openDatabase();
 const achievements = new Achievements(database);
 const accounts = new Accounts(database, achievements);
+const gameSaves = new GameSaves(database);
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').map(value => value.trim()).filter(Boolean);
 const trustProxy = process.env.TRUST_PROXY === 'true';
 const trustedResult = (userId, result) => accounts.record(userId, result, { trustedOnline: true });
@@ -69,11 +71,12 @@ const loginLimiter = new RateLimiter(10, 15 * 60 * 1000);
 const loginIpLimiter = new RateLimiter(50, 15 * 60 * 1000);
 const registrationLimiter = new RateLimiter(5, 60 * 60 * 1000);
 const resultLimiter = new RateLimiter(60, 60 * 60 * 1000);
+const saveLimiter = new RateLimiter(120, 60 * 60 * 1000);
 function clientIp(request) { return getClientIp(request, trustProxy); }
 function throttle(response, retryAfter) { return json(response, 429, { error: 'Too many attempts. Try again later.' }, { 'retry-after': retryAfter }); }
-async function readJson(request) {
+async function readJson(request, maximum = 10000) {
     let body = '';
-    for await (const chunk of request) { body += chunk; if (body.length > 10000) throw new Error('Request is too large.'); }
+    for await (const chunk of request) { body += chunk; if (Buffer.byteLength(body) > maximum) throw new Error('Request is too large.'); }
     try { return body ? JSON.parse(body) : {}; } catch { throw new Error('Invalid JSON.'); }
 }
 function sameOrigin(request, requireOrigin = false) {
@@ -127,6 +130,27 @@ const server = http.createServer(async (request, response) => {
             if (leaderboard && request.method === 'GET') return json(response, 200, { game: leaderboard[1], entries: accounts.leaderboard(leaderboard[1]) });
             const user = sessionUser(request);
             if (!user) return json(response, 401, { error: 'Sign in to continue.' });
+            const saveCollection = pathname.match(/^\/api\/saves\/(pong|sudoku|minesweeper|tictactoe|battletanks|tetris)$/);
+            const saveItem = pathname.match(/^\/api\/saves\/(pong|sudoku|minesweeper|tictactoe|battletanks|tetris)\/([1-5])$/);
+            const saveScreenshot = pathname.match(/^\/api\/saves\/(pong|sudoku|minesweeper|tictactoe|battletanks|tetris)\/([1-5])\/screenshot$/);
+            if (saveScreenshot && request.method === 'GET') {
+                const image = gameSaves.screenshot(user.id, saveScreenshot[1], saveScreenshot[2]);
+                response.writeHead(200, { 'content-type': image.mimeType, 'content-length': image.data.length, 'cache-control': 'private, no-store', 'x-content-type-options': 'nosniff' });
+                response.end(image.data); return;
+            }
+            if (saveCollection && request.method === 'GET') return json(response, 200, { game: saveCollection[1], saves: gameSaves.list(user.id, saveCollection[1]) });
+            if (saveCollection && request.method === 'POST') {
+                const retryAfter = saveLimiter.consume(user.id); if (retryAfter) return throttle(response, retryAfter);
+                return json(response, 201, { save: gameSaves.create(user.id, saveCollection[1], await readJson(request, 768 * 1024)) });
+            }
+            if (saveItem && request.method === 'GET') return json(response, 200, { save: gameSaves.load(user.id, saveItem[1], saveItem[2]) });
+            if (saveItem && ['PUT', 'PATCH', 'DELETE'].includes(request.method)) {
+                const retryAfter = saveLimiter.consume(user.id); if (retryAfter) return throttle(response, retryAfter);
+                const body = await readJson(request, request.method === 'PUT' ? 768 * 1024 : 10000);
+                if (request.method === 'PUT') return json(response, 200, { save: gameSaves.update(user.id, saveItem[1], saveItem[2], body) });
+                if (request.method === 'PATCH') return json(response, 200, { save: gameSaves.rename(user.id, saveItem[1], saveItem[2], body) });
+                return json(response, 200, gameSaves.delete(user.id, saveItem[1], saveItem[2], body.expectedRevision));
+            }
             if (pathname === '/api/profile' && request.method === 'GET') {
                 const parameters = new URL(request.url, 'http://localhost').searchParams;
                 return json(response, 200, accounts.profile(user.id, parameters.get('page'), parameters.get('pageSize')));
@@ -141,6 +165,7 @@ const server = http.createServer(async (request, response) => {
             }
             return json(response, 404, { error: 'API endpoint not found.' });
         } catch (error) {
+            if (error instanceof SaveError) return json(response, error.status, { error: error.message, code: error.code, ...(error.current ? { current: error.current } : {}) });
             const clientError = /Gamertag|Passcode|passcode|incorrect|taken|Unknown game|Invalid|details|JSON|large/.test(error.message);
             return json(response, clientError ? 400 : 500, { error: clientError ? error.message : 'Server error.' });
         }

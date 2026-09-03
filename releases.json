@@ -2,6 +2,23 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "version": "1.1.0",
+      "title": "JavaScript Playground 1.1.0",
+      "summary": "Cloud game saves let signed-in players pause an unfinished game and continue it later from another device.",
+      "highlights": [
+        "Save, load, rename, replace, and delete up to five private save slots in every modern game.",
+        "Recognize saves at a glance with game-state screenshots, titles, elapsed time, score or progress, and the local save date.",
+        "Use Quick Save & Exit when leaving unfinished local play, then continue the same slot without choosing it again."
+      ],
+      "fixes": [
+        "Prevents stale save data from silently replacing a newer version created on another device."
+      ],
+      "technical": [
+        "Adds authenticated, revision-aware SQLite game saves with bounded versioned state and private screenshot storage.",
+        "Keeps online rooms authoritative and separate from client-authored solo and local save adapters."
+      ]
+    },
+    {
       "version": "1.0.1",
       "title": "JavaScript Playground 1.0.1",
       "summary": "A focused layout update keeps modern games playable and adjustable in iPad and other constrained browser viewports.",
