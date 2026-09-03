@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { DatabaseSync } = require('node:sqlite');
 const { openDatabase } = require('../server/database');
 const { GameSaves, SaveError, MAX_SCREENSHOT_BYTES, MAX_STATE_BYTES } = require('../server/saves');
 
@@ -37,14 +38,37 @@ test('loads private state and screenshot while isolating users and games', t => 
 
 test('updates, renames, and deletes only with the current revision', t => {
     const { saves } = fixture(t), first = saves.create(1, 'tetris', payload());
-    const updated = saves.update(1, 'tetris', 1, payload({ expectedRevision: first.revision, state: { score: 90 }, scoreLabel: '90 points' }));
+    const updated = saves.update(1, 'tetris', 1, payload({ expectedRevision: first.revision, expectedGeneration: first.generation, state: { score: 90 }, scoreLabel: '90 points' }));
     assert.equal(updated.revision, 2); assert.equal(saves.load(1, 'tetris', 1).state.score, 90);
-    assert.throws(() => saves.update(1, 'tetris', 1, payload({ expectedRevision: 1 })), error => error.code === 'SAVE_CONFLICT' && error.current.revision === 2);
-    const renamed = saves.rename(1, 'tetris', 1, { title: 'Final tower', expectedRevision: 2 });
+    assert.throws(() => saves.update(1, 'tetris', 1, payload({ expectedRevision: 1, expectedGeneration: first.generation })), error => error.code === 'SAVE_CONFLICT' && error.current.revision === 2);
+    const renamed = saves.rename(1, 'tetris', 1, { title: 'Final tower', expectedRevision: 2, expectedGeneration: first.generation });
     assert.equal(renamed.title, 'Final tower'); assert.equal(renamed.revision, 3);
-    assert.throws(() => saves.delete(1, 'tetris', 1, 2), error => error.code === 'SAVE_CONFLICT');
-    assert.deepEqual(saves.delete(1, 'tetris', 1, 3), { ok: true });
+    assert.throws(() => saves.delete(1, 'tetris', 1, 2, first.generation), error => error.code === 'SAVE_CONFLICT');
+    assert.deepEqual(saves.delete(1, 'tetris', 1, 3, first.generation), { ok: true });
     assert.deepEqual(saves.list(1, 'tetris'), []);
+});
+
+test('a deleted and recreated slot rejects the previous generation', t => {
+    const { saves } = fixture(t), first = saves.create(1, 'tetris', payload({ title: 'First run' }));
+    saves.delete(1, 'tetris', first.slot, first.revision, first.generation);
+    const replacement = saves.create(1, 'tetris', payload({ title: 'Replacement' }));
+    assert.equal(replacement.slot, first.slot); assert.equal(replacement.revision, first.revision); assert.notEqual(replacement.generation, first.generation);
+    assert.notEqual(replacement.screenshotUrl, first.screenshotUrl);
+    assert.throws(() => saves.update(1, 'tetris', first.slot, payload({ expectedRevision: first.revision, expectedGeneration: first.generation })), error => error.code === 'SAVE_CONFLICT' && error.current.generation === replacement.generation);
+    assert.equal(saves.load(1, 'tetris', replacement.slot).title, 'Replacement');
+});
+
+test('the generation migration preserves existing save data', t => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'arcade-save-migration-')), filename = path.join(directory, 'test.sqlite'), database = new DatabaseSync(filename); let migrated;
+    t.after(() => { migrated?.close(); fs.rmSync(directory, { recursive: true, force: true }); });
+    database.exec("CREATE TABLE users (id INTEGER PRIMARY KEY); INSERT INTO users (id) VALUES (1); CREATE TABLE schema_migrations (version TEXT PRIMARY KEY, applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)");
+    database.exec(fs.readFileSync('server/migrations/005_game_saves.sql', 'utf8'));
+    database.prepare(`INSERT INTO game_saves (user_id, game, slot, title, mode, state_version, state_json, elapsed_seconds, score_label, screenshot, screenshot_mime) VALUES (1, 'tetris', 1, 'Legacy run', 'marathon', 1, '{}', 12, '40 points', ?, 'image/png')`).run(Buffer.from(PNG, 'base64'));
+    for (const version of fs.readdirSync('server/migrations').filter(file => file.endsWith('.sql') && file !== '006_game_save_generations.sql')) database.prepare('INSERT INTO schema_migrations (version) VALUES (?)').run(version);
+    database.close();
+    migrated = openDatabase(filename);
+    const save = new GameSaves(migrated).load(1, 'tetris', 1);
+    assert.equal(save.title, 'Legacy run'); assert.match(save.generation, /^[0-9a-f]{32}$/); assert.equal(save.revision, 1);
 });
 
 test('validates games, modes, metadata, state size, and real image signatures', t => {

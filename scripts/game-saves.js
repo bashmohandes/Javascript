@@ -96,14 +96,15 @@
                 const title = dialog.querySelector('[data-save-title]').value.trim() || activeSave?.title || replace?.title || '';
                 const body = await capture(title);
                 let result;
-                if (activeSave) result = await api(`/api/saves/${game}/${activeSave.slot}`, { method: 'PUT', body: JSON.stringify({ ...body, expectedRevision: activeSave.revision }) });
-                else if (replace) result = await api(`/api/saves/${game}/${replace.slot}`, { method: 'PUT', body: JSON.stringify({ ...body, expectedRevision: replace.revision }) });
+                if (activeSave) result = await api(`/api/saves/${game}/${activeSave.slot}`, { method: 'PUT', body: JSON.stringify({ ...body, expectedRevision: activeSave.revision, expectedGeneration: activeSave.generation }) });
+                else if (replace) result = await api(`/api/saves/${game}/${replace.slot}`, { method: 'PUT', body: JSON.stringify({ ...body, expectedRevision: replace.revision, expectedGeneration: replace.generation }) });
                 else result = await api(`/api/saves/${game}`, { method: 'POST', body: JSON.stringify(body) });
                 activeSave = result.save; dirty = false; replacing = false; dialog.querySelector('[data-save-title]').value = activeSave.title || '';
                 await refresh(); status(`Saved to slot ${activeSave.slot}.`); await navigateAfterSave(); return activeSave;
             } catch (error) {
                 if (error.code === 'SAVE_SLOTS_FULL') { replacing = true; await refresh(); status('All five slots are full. Choose one to replace.'); }
                 else if (error.code === 'SAVE_CONFLICT') { activeSave = error.current; await refresh(); status('That slot changed on another device. Review it before saving again.'); }
+                else if (error.code === 'SAVE_NOT_FOUND') { activeSave = null; replacing = false; await refresh(); status('That slot was deleted on another device. Save again to use an available slot.'); }
                 else status(error.message);
                 return null;
             } finally { saving = false; renderSlots(); }
@@ -122,8 +123,8 @@
             const title = window.prompt('Save title (leave blank to use the slot number):', save.title || '');
             if (title === null) return;
             try {
-                const result = await api(`/api/saves/${game}/${save.slot}`, { method: 'PATCH', body: JSON.stringify({ title, expectedRevision: save.revision }) });
-                if (activeSave?.slot === save.slot) { activeSave = result.save; dialog.querySelector('[data-save-title]').value = activeSave.title || ''; }
+                const result = await api(`/api/saves/${game}/${save.slot}`, { method: 'PATCH', body: JSON.stringify({ title, expectedRevision: save.revision, expectedGeneration: save.generation }) });
+                if (activeSave?.slot === save.slot && activeSave.generation === save.generation) { activeSave = result.save; dialog.querySelector('[data-save-title]').value = activeSave.title || ''; }
                 await refresh(); status('Title updated.');
             }
             catch (error) { status(error.message); }
@@ -131,7 +132,7 @@
         async function deleteSave(save) {
             if (!window.confirm(`Delete ${save.title || `slot ${save.slot}`}? This cannot be undone.`)) return;
             try {
-                await api(`/api/saves/${game}/${save.slot}`, { method: 'DELETE', body: JSON.stringify({ expectedRevision: save.revision }) });
+                await api(`/api/saves/${game}/${save.slot}`, { method: 'DELETE', body: JSON.stringify({ expectedRevision: save.revision, expectedGeneration: save.generation }) });
                 if (activeSave?.slot === save.slot) activeSave = null; await refresh(); status('Save deleted.');
             } catch (error) { status(error.message); }
         }
@@ -169,7 +170,7 @@
         async function completeRun() {
             const completed = activeSave; activeSave = null; dirty = false;
             if (!completed || !user()) return;
-            try { await api(`/api/saves/${game}/${completed.slot}`, { method: 'DELETE', body: JSON.stringify({ expectedRevision: completed.revision }) }); }
+            try { await api(`/api/saves/${game}/${completed.slot}`, { method: 'DELETE', body: JSON.stringify({ expectedRevision: completed.revision, expectedGeneration: completed.generation }) }); }
             catch { /* Completion and result recording must not depend on cleanup connectivity. */ }
         }
         window.ArcadeEvents?.on('game:completed', completeRun);

@@ -177,11 +177,17 @@ test('snapshots deep-serialize the complete match arena', () => {
 test('Battle Tanks snapshots restore deterministic local state and Set-backed statistics', () => {
     const state = match('cloud-save'), tank = state.tanks[0];
     state.pickups = [{ id: 'shield', x: tank.x + game.TANK_W / 2, y: tank.y + game.TANK_H }];
-    game.collectPickup(state, 0); game.activatePowerUp(state, 0, 'shield'); game.adjustAim(state, 4); game.moveTank(state, 'forward', 20);
+    game.collectPickup(state, 0); const generated = { ...state.acquiredValues[0][0] }; game.adjustAim(state, 4); game.moveTank(state, 'forward', 20);
     const encoded = JSON.parse(JSON.stringify(game.snapshot(state))), restored = game.restoreSnapshot(encoded);
     assert.deepEqual(game.snapshot(restored), encoded); assert.ok(restored.statistics.powerUpTypesUsed[0] instanceof Set); assert.equal(restored.onlineMode, false); assert.equal(restored.resultSubmitted, false);
+    game.activatePowerUp(restored, 0, 'shield', () => { throw new Error('restored power-up must not reroll'); });
+    assert.equal(restored.activeEffects[0][0].remainingCapacity, generated.capacity); assert.equal(restored.activeEffects[0][0].remainingTurns, generated.durationTurns);
     const invalid = structuredClone(encoded); invalid.tanks[0].health = 101;
     assert.throws(() => game.restoreSnapshot(invalid), /Invalid Battle Tanks save state/);
+    const invalidGenerated = structuredClone(encoded); invalidGenerated.acquiredValues[0][0].capacity = 1000;
+    assert.throws(() => game.restoreSnapshot(invalidGenerated), /Invalid Battle Tanks save state/);
+    const legacy = structuredClone(encoded); delete legacy.acquiredValues; const upgraded = game.restoreSnapshot(legacy);
+    assert.deepEqual(upgraded.acquiredValues[0][0], generated); assert.doesNotThrow(() => game.restoreSnapshot(JSON.parse(JSON.stringify(game.snapshot(upgraded)))));
 });
 
 test('terrain explosions carve projectile-sized craters in bounded samples', () => {

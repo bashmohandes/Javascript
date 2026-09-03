@@ -14,7 +14,7 @@ client-authored checkpoint as a trusted result.
 1. Signed-in users receive five SQLite-backed slots per modern game. A slot
    contains bounded, versioned JSON state, private screenshot bytes, optional
    title, mode, elapsed time, display-only score text, timestamps, and a
-   revision used for optimistic concurrency.
+   per-creation generation and revision used together for optimistic concurrency.
 2. A shared browser manager owns authentication continuation, slot allocation,
    management UI, leave warnings, and Quick Save & Exit. It derives its
    page-local dirty flag from the existing semantic game-event stream; capture
@@ -29,8 +29,9 @@ client-authored checkpoint as a trusted result.
    The server validates the bounded envelope and image; each current game
    version validates its own state before applying it.
 5. The first save atomically selects the lowest empty slot. Later saves update
-   the active slot. Conflicting device revisions fail rather than silently
-   overwrite newer progress, and terminal completion clears the active slot.
+   the active slot. Conflicting device generations or revisions fail rather than
+   silently overwrite newer progress, including when a slot was deleted and
+   recreated, and terminal completion clears the active slot.
 6. Browser-native close and reload warnings remain generic. The custom Quick
    Save & Exit choice is available for same-origin navigation, where the page
    can safely complete an authenticated screenshot and state upload first.
