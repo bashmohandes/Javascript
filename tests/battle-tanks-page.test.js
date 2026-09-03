@@ -84,7 +84,17 @@ test('Battle Tanks keeps mobile and short-landscape controls visible without cov
     assert.match(styles, /grid-template-columns:minmax\(0,1fr\) var\(--battle-command-deck\)/);
     assert.match(styles, /fullscreen-controls[^}]*height:100%[^}]*grid-column:2/);
     assert.match(styles, /max-height:500px[^}]*--battle-command-deck:clamp\(148px,18vw,190px\)/);
+    assert.match(styles, /max-height:500px[\s\S]*\.fullscreen-controls button\{min-height:44px/);
+    assert.match(styles, /fullscreen-inventory \.inventory button\{min-height:44px/);
+    assert.match(styles, /compact-loadout select\{min-height:44px/);
     assert.match(styles, /fullscreen-inventory[^}]*overflow:hidden/);
+});
+
+test('Battle Tanks widens its default arena without overriding experience layout contracts', () => {
+    const styles = read('battle-tanks/styles.css');
+    assert.match(styles, /\.game-battle-tanks \.app-shell\{width:min\(1360px/);
+    assert.match(styles, /\.game-battle-tanks \.game-layout\{grid-template-columns:minmax\(0,1fr\)/);
+    assert.doesNotMatch(styles, /body\.game-battle-tanks\.modern-game/);
 });
 
 test('Battle Tanks exposes usable power-ups in full screen', () => {
