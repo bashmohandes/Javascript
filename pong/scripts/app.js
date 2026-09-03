@@ -4,11 +4,8 @@ const scoreLeft = document.querySelector('#score-left');
 const scoreRight = document.querySelector('#score-right');
 const arenaScoreLeft = document.querySelector('#arena-score-left');
 const arenaScoreRight = document.querySelector('#arena-score-right');
-const fullscreenScoreLeft = document.querySelector('#fullscreen-score-left');
-const fullscreenScoreRight = document.querySelector('#fullscreen-score-right');
 const arena = document.querySelector('#arena');
 const fullscreenButton = document.querySelector('#fullscreen');
-const fullscreenPauseButton = document.querySelector('#fullscreen-pause');
 const status = document.querySelector('#status');
 const overlay = document.querySelector('#arena-message');
 const overlayTitle = overlay.querySelector('strong');
@@ -160,7 +157,7 @@ function makeBall(x = game.width / 2, y = game.height / 2, vx = 0, vy = 0, decoy
 function resize() { const rect = canvas.getBoundingClientRect(), displayScale = Math.max(rect.width / game.width, rect.height / game.height), ratio = Math.round(Math.min(2.5, Math.max(1, (window.devicePixelRatio || 1) * displayScale)) * 4) / 4; canvas.width = Math.round(game.width * ratio); canvas.height = Math.round(game.height * ratio); ctx.setTransform(ratio, 0, 0, ratio, 0, 0); draw(); }
 function resetBall(direction = game.serve) { balls = [makeBall()]; game.serve = direction; }
 function launch() { const angle = (Math.random() * .8) - .4; balls[0].vx = game.serve * 410 * Math.cos(angle); balls[0].vy = 410 * Math.sin(angle); game.serve *= -1; events.emit('pong:served', { angle }); }
-function setScore(side, value) { (side ? scoreRight : scoreLeft).textContent = value; (side ? arenaScoreRight : arenaScoreLeft).textContent = value; (side ? fullscreenScoreRight : fullscreenScoreLeft).textContent = value; }
+function setScore(side, value) { (side ? scoreRight : scoreLeft).textContent = value; (side ? arenaScoreRight : arenaScoreLeft).textContent = value; }
 function clearPowerUps() { game.powerUps = []; game.effects = [{}, {}]; paddles.forEach(paddle => paddle.h = paddle.baseH); }
 function schedulePowerUp(first = false) { game.nextPowerUp = game.elapsed + (first ? 5 : 8 + Math.random() * 6); }
 function newGame() {
@@ -321,8 +318,8 @@ async function shareResult() {
     finally { shareButton.disabled = false; setTimeout(() => { shareButton.textContent = 'Share result'; }, 2600); }
 }
 
-document.querySelectorAll('[data-mode]').forEach(button => button.addEventListener('click', () => { shareButton.hidden = true; if (game.mode === 'online' && button.dataset.mode !== 'online') leaveOnline(); game.mode = button.dataset.mode; document.querySelectorAll('[data-mode]').forEach(item => item.setAttribute('aria-pressed', item === button)); onlinePanel.hidden = game.mode !== 'online'; document.querySelectorAll('.local-control').forEach(item => item.hidden = game.mode === 'online'); document.querySelector('#pause').hidden = game.mode === 'online'; fullscreenPauseButton.hidden = game.mode === 'online'; if (game.mode === 'online') { game.running = false; game.paused = true; resetBall(); refreshRooms(); showOverlay('Online match', 'Choose a public room or create your own'); } else { resetColorControls(); newGame(); } }));
-document.querySelector('#new-game').addEventListener('click', () => { if (game.mode === 'online') { if (game.over) sendOnline({ type: 'rematch' }); return; } newGame(); }); document.querySelector('#pause').addEventListener('click', togglePause); fullscreenPauseButton.addEventListener('click', togglePause); overlay.addEventListener('click', togglePause);
+document.querySelectorAll('[data-mode]').forEach(button => button.addEventListener('click', () => { shareButton.hidden = true; if (game.mode === 'online' && button.dataset.mode !== 'online') leaveOnline(); game.mode = button.dataset.mode; document.querySelectorAll('[data-mode]').forEach(item => item.setAttribute('aria-pressed', item === button)); onlinePanel.hidden = game.mode !== 'online'; document.querySelectorAll('.local-control').forEach(item => item.hidden = game.mode === 'online'); document.querySelector('#pause').hidden = game.mode === 'online'; if (game.mode === 'online') { game.running = false; game.paused = true; resetBall(); refreshRooms(); showOverlay('Online match', 'Choose a public room or create your own'); } else { resetColorControls(); newGame(); } }));
+document.querySelector('#new-game').addEventListener('click', () => { if (game.mode === 'online') { if (game.over) sendOnline({ type: 'rematch' }); return; } newGame(); }); document.querySelector('#pause').addEventListener('click', togglePause); overlay.addEventListener('click', togglePause);
 shareButton.addEventListener('click', shareResult);
 document.querySelector('#room-visibility').addEventListener('change', event => { document.querySelector('#create-passcode').hidden = event.target.value !== 'private'; });
 document.querySelector('#create-room').addEventListener('click', () => { const visibility=document.querySelector('#room-visibility').value,result=OnlineRooms.validateRoom(visibility,document.querySelector('#create-passcode').value);if(!result.ok){status.textContent=result.message;return;}connectOnline({type:'create-room',visibility,passcode:result.passcode}); });

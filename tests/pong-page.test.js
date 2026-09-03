@@ -27,12 +27,12 @@ test('Pong renders a layered theme-owned court without changing mechanics', () =
     assert.match(design, /--pong-glow:/);
 });
 
-test('Pong fills landscape full screen with a touch-sized command deck', () => {
+test('Pong keeps full screen focused on the court, score, and exit', () => {
     const page = read('pong/index.html'), app = read('pong/scripts/app.js'), styles = read('pong/styles.css');
-    assert.match(page, /class="pong-fullscreen-deck"[\s\S]*id="fullscreen-score-left"[\s\S]*id="fullscreen-pause"/);
-    assert.match(app, /fullscreenScoreRight : fullscreenScoreLeft/);
-    assert.match(app, /fullscreenPauseButton\.addEventListener\('click', togglePause\)/);
-    assert.match(styles, /grid-template-columns:minmax\(0,1fr\) var\(--pong-command-deck\)/);
-    assert.match(styles, /pong-fullscreen-deck[^}]*grid-column:2[^}]*grid-row:1/);
-    assert.match(styles, /max-height:500px[\s\S]*min-height:44px/);
+    assert.doesNotMatch(page, /pong-fullscreen-deck|fullscreen-paddle-controls|fullscreen-pause/);
+    assert.doesNotMatch(app, /fullscreenScore|fullscreenPause/);
+    assert.match(page, /class="arena-score"[^>]*aria-hidden="true"[\s\S]*id="arena-score-left"[\s\S]*id="arena-score-right"/);
+    assert.match(styles, /arena-wrap:fullscreen \.arena-score[^}]*display:block/);
+    assert.match(styles, /arena-score span[^}]*top:clamp\(56px,12%,110px\)[^}]*opacity:\.14/);
+    assert.match(styles, /arena-wrap:fullscreen \.fullscreen-exit[^}]*z-index:10/);
 });

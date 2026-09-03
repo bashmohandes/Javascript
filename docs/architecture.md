@@ -109,13 +109,13 @@ See [ADR 0014](adr/0014-browser-domain-event-bus.md) and the
 | Battle Tanks | Shared deterministic engine + canvas controller; solo CPU, local duo and online | Server validates commands and owns physics, damage, turns and online result recording | Results, scores and achievements |
 | Tetris | Modern DOM controller plus testable seven-bag/SRS mechanics engine; endless solo marathon | None | Results, scores, history and achievements |
 
+Pong full screen keeps the complete court as the only play surface, reuses the existing faded side score overlay near the top, and exposes only an exit action; keyboard and pointer input remain the control paths.
+
 Tetris keeps mechanics independent from DOM presentation, submits bounded
 top-out aggregates for server-derived scoring, and consumes a scoped theme-token
 interface. At phone widths, the controller's board and status rail use an
 approximately 70/30 viewport-aware layout while the touch controls remain
-available. Full screen preserves and centers the portrait board, balancing
-viewport-proportional status and preview rails with grouped touch-control decks
-around it. Match-interrupting actions remain in a separate top utility zone.
+available.
 Line-clear and live-record celebrations are non-authoritative,
 non-blocking presentation driven by mechanics events and local best-score state.
 Random magic breakers and motion-assisted stack compaction are mechanics-owned,

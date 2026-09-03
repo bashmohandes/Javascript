@@ -41,17 +41,6 @@ the existing touch controls remain below the play area. Board height is also
 limited by the dynamic viewport and bottom safe area so the board and controls
 fit together without hiding the status information.
 
-## Full screen
-
-Full screen keeps the 10×20 board centered at its correct proportions. Score
-and progress sit to its left, hold and enlarged next-piece previews sit to its
-right, and both rails scale with the shorter viewport dimension instead of
-staying at their regular-page size. Related touch actions live in compact
-movement/drop and rotation/hold decks. Pause and restart move to a separate
-safe-area-aware utility bar at the top-left, outside the player's hand-rest
-zones. The layout uses dynamic viewport and safe-area insets, with a CSS fallback
-for installed browsers that cannot use the native Fullscreen API.
-
 ## Clears and high scores
 
 Line clears trigger an intentionally theatrical, non-blocking presentation:
