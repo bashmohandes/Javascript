@@ -124,7 +124,7 @@
             if (title === null) return;
             try {
                 const result = await api(`/api/saves/${game}/${save.slot}`, { method: 'PATCH', body: JSON.stringify({ title, expectedRevision: save.revision, expectedGeneration: save.generation }) });
-                if (activeSave?.slot === save.slot) { activeSave = result.save; dialog.querySelector('[data-save-title]').value = activeSave.title || ''; }
+                if (activeSave?.slot === save.slot && activeSave.generation === save.generation) { activeSave = result.save; dialog.querySelector('[data-save-title]').value = activeSave.title || ''; }
                 await refresh(); status('Title updated.');
             }
             catch (error) { status(error.message); }

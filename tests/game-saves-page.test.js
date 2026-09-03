@@ -52,6 +52,7 @@ test('save writes serialize and semantic events own dirty progress tracking', ()
     assert.match(saveCurrent, /finally \{ saving = false; renderSlots\(\); \}/);
     assert.match(manager, /saveButton\.disabled = saving \|\|/);
     assert.match(manager, /error\.code === 'SAVE_NOT_FOUND'.*activeSave = null; replacing = false; await refresh/);
+    assert.match(manager, /activeSave\?\.slot === save\.slot && activeSave\.generation === save\.generation/);
     assert.match(manager, /dialogPause; dialogPause = null; exitAfterSave = null; resumeFrom/);
     assert.match(manager, /window\.ArcadeEvents\?\.on\('\*', observeProgress\)/);
     assert.match(manager, /event\.type === 'game:started' \|\| event\.type === 'game:progressed'/);
