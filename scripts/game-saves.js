@@ -50,7 +50,7 @@
         }
         function resumeFrom(token) { if (token !== null && adapter?.resume) { try { adapter.resume(token); } catch { /* Keep the restored state usable. */ } } }
         function slotCard(slot, save) {
-            const card = document.createElement('article'); card.className = `arcade-save-slot${activeSave?.slot === slot ? ' is-active' : ''}`;
+            const card = document.createElement('article'); card.className = `arcade-save-slot${activeSave?.slot === slot && activeSave.generation === save?.generation ? ' is-active' : ''}`;
             const preview = document.createElement('div'); preview.className = 'arcade-save-preview';
             if (save) { const image = document.createElement('img'); image.src = save.screenshotUrl; image.alt = `Screenshot for ${save.title || `slot ${slot}`}`; preview.append(image); }
             else preview.innerHTML = '<span aria-hidden="true">＋</span>';
@@ -128,7 +128,10 @@
                 await refresh(); status('Title updated.');
             }
             catch (error) {
-                if (error.code === 'SAVE_CONFLICT') { await refresh(); status('That save changed on another device. Review its current title before renaming again.'); }
+                if (error.code === 'SAVE_CONFLICT') {
+                    const message = 'That save changed on another device. Review its current title before renaming again.'; status(message);
+                    try { await refresh(); } catch (refreshError) { status(`${message} Could not refresh saves: ${refreshError.message}`); }
+                }
                 else status(error.message);
             }
         }

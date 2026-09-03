@@ -53,7 +53,8 @@ test('save writes serialize and semantic events own dirty progress tracking', ()
     assert.match(manager, /saveButton\.disabled = saving \|\|/);
     assert.match(manager, /error\.code === 'SAVE_NOT_FOUND'.*activeSave = null; replacing = false; await refresh/);
     assert.match(manager, /activeSave\?\.slot === save\.slot && activeSave\.generation === save\.generation/);
-    assert.match(manager, /renameSave[\s\S]*?error\.code === 'SAVE_CONFLICT'\) \{ await refresh\(\); status\('That save changed/);
+    assert.match(manager, /activeSave\?\.slot === slot && activeSave\.generation === save\?\.generation/);
+    assert.match(manager, /renameSave[\s\S]*?error\.code === 'SAVE_CONFLICT'[\s\S]*?status\(message\);[\s\S]*?try \{ await refresh\(\); \} catch \(refreshError\)/);
     assert.match(manager, /dialogPause; dialogPause = null; exitAfterSave = null; resumeFrom/);
     assert.match(manager, /window\.ArcadeEvents\?\.on\('\*', observeProgress\)/);
     assert.match(manager, /event\.type === 'game:started' \|\| event\.type === 'game:progressed'/);
