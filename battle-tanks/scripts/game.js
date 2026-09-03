@@ -15,25 +15,25 @@
     // Weapon ids are protocol values.  Labels are deliberately presentation-only.
     const WEAPON_REGISTRY = Object.freeze({
         shell: Object.freeze({ id: 'shell', label: 'Standard shell', strategy: 'ballistic', launch: Object.freeze({ baseSpeed: 170, powerSpeed: 3.2, mass: 1 }), baseDamage: DAMAGE, blastRadius: 52, terrainDamage: 22, powerMultiplier: 1, velocityMultiplier: 0, ammo: Object.freeze({ unlimited: true, perPickup: 0 }) }),
-        'wide-blast': Object.freeze({ id: 'wide-blast', label: 'Wide blast shell', strategy: 'ballistic', launch: Object.freeze({ baseSpeed: 165, powerSpeed: 3, mass: 1.1 }), baseDamage: 42, blastRadius: 76, terrainDamage: 30, powerMultiplier: 1, velocityMultiplier: 0, ammo: Object.freeze({ unlimited: false, perPickup: 2 }) }),
+        'wide-blast': Object.freeze({ id: 'wide-blast', label: 'Wide blast shell', strategy: 'ballistic', launch: Object.freeze({ baseSpeed: 165, powerSpeed: 3, mass: 1.1 }), baseDamage: 42, blastRadius: 130, terrainDamage: 34, powerMultiplier: 1, velocityMultiplier: 0, ammo: Object.freeze({ unlimited: false, perPickup: 2 }) }),
         'heavy-shell': Object.freeze({ id: 'heavy-shell', label: 'Heavy shell', strategy: 'ballistic', launch: Object.freeze({ baseSpeed: 145, powerSpeed: 2.35, mass: 2.2, maximumPower: 100 }), baseDamage: 72, blastRadius: 70, terrainDamage: 38, powerMultiplier: 1, velocityMultiplier: 0, ammo: Object.freeze({ unlimited: false, perPickup: 2 }) }),
         homing: Object.freeze({ id: 'homing', label: 'Homing missile', strategy: 'homing', launch: Object.freeze({ baseSpeed: 135, powerSpeed: 2.25, mass: 1.15 }), baseDamage: 46, blastRadius: 58, terrainDamage: 25, powerMultiplier: 1, velocityMultiplier: 0, ammo: Object.freeze({ unlimited: false, perPickup: 2 }), homing: Object.freeze({ acquisitionRange: 1050, targetInvisible: false, lockDelay: .18, turnRate: Math.PI * .72, acceleration: 75, unavailable: 'ballistic' }) }),
         laser: Object.freeze({ id: 'laser', label: 'Ricochet laser', strategy: 'ray', launch: Object.freeze({ baseSpeed: 0, powerSpeed: 0, mass: 0 }), baseDamage: 38, blastRadius: 1, terrainDamage: 0, powerMultiplier: 1, velocityMultiplier: 0, ammo: Object.freeze({ unlimited: false, perPickup: 2 }), ray: Object.freeze({ maxBounces: 5, maxDistance: 2700, energyRetention: .68, minimumEnergy: .12 }) })
     });
     const DEFAULT_WEAPON = WEAPON_REGISTRY.shell;
     const DEFAULT_BLAST = Object.freeze({ radius: DEFAULT_WEAPON.blastRadius, depth: DEFAULT_WEAPON.terrainDamage });
-    const PICKUP_SIZE = 36, INVENTORY_LIMIT = 3, MAX_PICKUPS = 3, SPAWN_EVERY_TURNS = 3;
+    const PICKUP_SIZE = 48, INVENTORY_LIMIT = 3, MAX_PICKUPS = 3, SPAWN_EVERY_TURNS = 3;
     // IDs are protocol values: never derive them from labels or array positions.
     const POWER_UP_CATALOG = Object.freeze({
-        'health-pack': Object.freeze({ id: 'health-pack', label: 'Health pack', kind: 'consumable', effect: 'heal', amount: 35, consumesTurn: true }),
-        shield: Object.freeze({ id: 'shield', label: 'Shield', kind: 'consumable', effect: 'absorb', capacityRange: Object.freeze({ min: 40, max: 60 }), durationRange: Object.freeze({ min: 2, max: 4 }), consumesTurn: true }),
-        invisibility: Object.freeze({ id: 'invisibility', label: 'Invisibility', kind: 'consumable', effect: 'invisible', durationRange: Object.freeze({ min: 1, max: 3 }), consumesTurn: true, onlineOnly: true }),
+        'health-pack': Object.freeze({ id: 'health-pack', label: 'Health pack', kind: 'consumable', effect: 'heal', amount: 35, consumesTurn: false }),
+        shield: Object.freeze({ id: 'shield', label: 'Shield', kind: 'consumable', effect: 'absorb', capacityRange: Object.freeze({ min: 40, max: 60 }), durationRange: Object.freeze({ min: 2, max: 4 }), consumesTurn: false }),
+        invisibility: Object.freeze({ id: 'invisibility', label: 'Invisibility', kind: 'consumable', effect: 'invisible', durationRange: Object.freeze({ min: 1, max: 3 }), consumesTurn: false, onlineOnly: true }),
         'weapon-heavy-shell': Object.freeze({ id: 'weapon-heavy-shell', label: 'Heavy shell ammo', kind: 'weapon', weaponId: 'heavy-shell', weapon: WEAPON_REGISTRY['heavy-shell'], consumesTurn: false }),
         'weapon-homing': Object.freeze({ id: 'weapon-homing', label: 'Homing missile ammo', kind: 'weapon', weaponId: 'homing', weapon: WEAPON_REGISTRY.homing, consumesTurn: false }),
         'weapon-laser': Object.freeze({ id: 'weapon-laser', label: 'Ricochet laser ammo', kind: 'weapon', weaponId: 'laser', weapon: WEAPON_REGISTRY.laser, consumesTurn: false }),
         'weapon-wide-blast': Object.freeze({ id: 'weapon-wide-blast', label: 'Wide blast ammo', kind: 'weapon', weaponId: 'wide-blast', weapon: WEAPON_REGISTRY['wide-blast'], consumesTurn: false }),
-        'damage-boost': Object.freeze({ id: 'damage-boost', label: 'Damage boost', kind: 'modifier', effect: 'damage', multiplier: 1.35, durationTurns: 2, consumesTurn: true }),
-        'blast-radius-boost': Object.freeze({ id: 'blast-radius-boost', label: 'Blast boost', kind: 'modifier', effect: 'blastRadius', multiplier: 1.3, durationTurns: 2, consumesTurn: true })
+        'damage-boost': Object.freeze({ id: 'damage-boost', label: 'Damage boost', kind: 'modifier', effect: 'damage', multiplier: 1.35, durationTurns: 2, consumesTurn: false }),
+        'blast-radius-boost': Object.freeze({ id: 'blast-radius-boost', label: 'Blast boost', kind: 'modifier', effect: 'blastRadius', multiplier: 1.3, durationTurns: 2, consumesTurn: false })
     });
     const PICKUP_IDS = Object.freeze(Object.keys(POWER_UP_CATALOG));
     const LOCAL_PICKUP_IDS = Object.freeze(PICKUP_IDS.filter(id => !POWER_UP_CATALOG[id].onlineOnly));

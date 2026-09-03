@@ -34,11 +34,13 @@ Stable power-up IDs are `health-pack`, `shield`, `invisibility`,
 `weapon-wide-blast`, `weapon-heavy-shell`, `weapon-homing`, `weapon-laser`,
 `damage-boost`, and `blast-radius-boost`. Shields have 40–60 capacity for 2–4
 turns. Invisibility lasts 1–3 of the activating player's turns and is available
-only online. Damage and blast boosts last two turns.
+only online. Damage and blast boosts last two turns. Activating or equipping any
+power-up preserves the current turn, so the player may still move, aim, or fire.
 
 Stable weapon IDs are `shell`, `wide-blast`, `heavy-shell`, `homing`, and
 `laser`. The standard shell has unlimited ammunition. Each weapon pickup grants
-two rounds. Wide blast trades peak damage for a larger radius. Heavy shells are
+two rounds. Wide blast trades peak damage for a 130-unit radius, compared with
+the standard shell's 52-unit radius. Heavy shells are
 slower but inflict greater damage and deformation. Homing missiles begin
 ballistically, climb toward a clearance waypoint while an intact central wall
 blocks the route, then pursue a visible opponent with a bounded turn rate. They
@@ -66,12 +68,14 @@ reconstruct or reveal its concealed launch path.
 
 ## Controls
 
-Single player puts you in the Player 1 tank against the CPU. The CPU evaluates
-legal weapon, angle, and power combinations against the current destructible
-arena, repositions before every shot, and deliberately mixes partial-damage
-shots with credible near misses. Its choices are deterministic for the match
-and use the same movement and combat mechanics as local players. It is designed
-to remain fallible rather than maximize damage on every turn.
+Single player puts you in the Player 1 tank against the CPU. The CPU prioritizes
+reachable pickups while it has inventory space, activates useful health,
+defence, and boost items, and equips collected ammunition. It evaluates legal
+weapon, angle, and power combinations against the current destructible arena,
+repositions before every shot, and deliberately mixes partial-damage shots with
+credible near misses. Its choices are deterministic for the match and use the
+same movement and combat mechanics as local players. It is designed to remain
+fallible rather than maximize damage on every turn.
 Local 2-player keeps both tanks under shared keyboard, pointer, or touch control.
 
 Use <kbd>A</kbd>/<kbd>D</kbd> or <kbd>←</kbd>/<kbd>→</kbd> to move,

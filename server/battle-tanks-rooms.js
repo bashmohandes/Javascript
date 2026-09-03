@@ -89,11 +89,6 @@ class BattleTanksRooms {
             if (message.type === 'equip' && item.kind !== 'weapon') throw new Error('That item cannot be equipped.');
             if (message.type === 'activate' && item.kind === 'weapon') throw new Error('Equip weapon pickups instead.');
             const result = game.activatePowerUp(room.game, player.side, message.itemId, this.random); if (!result) throw new Error('That item is not available.'); changed = true;
-            if (result.consumesTurn) {
-                // Activation is not one of invisibility's protected owner turns. Firing does not cancel it.
-                if (result.id !== 'invisibility') game.endTurnEffects(room.game, player.side);
-                game.advancePickupSchedule(room.game); game.beginTurn(room.game, 1 - player.side); room.turnId += 1;
-            }
         }
         else if (message.type === 'select-weapon') {
             if (typeof message.weaponId !== 'string' || !game.WEAPON_REGISTRY[message.weaponId]) throw new Error('Invalid weapon.');

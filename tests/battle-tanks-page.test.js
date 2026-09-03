@@ -21,7 +21,7 @@ test('Battle Tanks exposes solo, local duo, and online modes with a CPU turn ada
     const page = read('battle-tanks/index.html'), app = read('battle-tanks/scripts/app.js');
     for (const mode of ['solo','local','online']) assert.match(page, new RegExp(`data-mode="${mode}"`));
     assert.match(page, /scripts\/game\.js[\s\S]*scripts\/ai\.js[\s\S]*scripts\/app\.js/);
-    assert.match(app, /cpu\.planMove\(state,1\)/); assert.match(app, /moveTank\(state,plan\.direction,stepAmount\)/); assert.match(app, /cpu\.planShot\(state,1\)/); assert.match(app, /mode==='solo'&&state\.activePlayer===1/);
+    assert.match(app, /cpu\.planMove\(state,1\)/); assert.match(app, /moveTank\(state,plan\.direction,stepAmount\)/); assert.match(app, /cpu\.planPowerUps\(state,1\)/); assert.match(app, /activatePowerUp\(state,1,id\)/); assert.match(app, /cpu\.planShot\(state,1\)/); assert.match(app, /mode==='solo'&&state\.activePlayer===1/);
     assert.match(app, /mode:solo\?'solo':'local'/); assert.match(app, /shots:solo\?soloStatistics\.shots:state\.shots/); assert.match(app, /hits:solo\?soloStatistics\.hits:state\.hits/);
 });
 
@@ -156,6 +156,20 @@ test('Battle Tanks reverses screen-direction movement for the right-facing tank'
 test('Battle Tanks collects pickups along local pointer-drag movement', () => {
     const app = read('battle-tanks/scripts/app.js');
     assert.match(app, /pointermove[\s\S]*?tank\.y=tankYAt\(state,tank\);collectPickup\(state,state\.activePlayer\);sync\(\)/);
+});
+
+test('Battle Tanks renders larger, item-specific power-up crates', () => {
+    const app = read('battle-tanks/scripts/app.js'), styles = read('styles/modern-game.css'), core = require('../battle-tanks/scripts/game'), visuals = app.match(/const pickupVisuals=\{([\s\S]*?)\};/)?.[1] || '';
+    assert.ok(core.PICKUP_SIZE >= 48);
+    for (const id of Object.keys(core.POWER_UP_CATALOG)) assert.ok(visuals.includes(id), `${id} should have a crate treatment`);
+    assert.doesNotMatch(visuals, /#[0-9a-f]{3,8}/i); assert.match(styles, /--battle-pickup-health:/); assert.match(styles, /data-arcade-theme="cabinet"[^}]+--battle-pickup-health:/); assert.match(styles, /data-arcade-theme="calm"[^}]+--battle-pickup-health:/); assert.match(app, /pickupHealth:'--battle-pickup-health'/);
+    assert.match(app, /shadowBlur=26/); assert.match(app, /arc\(pickup\.x,top\+size\/2,14/);
+});
+
+test('Battle Tanks local power-up use never advances the turn', () => {
+    const app = read('battle-tanks/scripts/app.js');
+    assert.match(app, /function usePowerUp\(id\)[\s\S]*activatePowerUp\(state,state\.activePlayer,id\);sync\(\);render\(\);/);
+    assert.doesNotMatch(app, /result\?\.consumesTurn/);
 });
 
 test('Battle Tanks disables online-only power-ups in local matches and guards activation', () => {

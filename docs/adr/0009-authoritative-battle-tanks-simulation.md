@@ -48,9 +48,11 @@ transitions and authoritative online state, never from UI actions.
 10. Battle Tanks state snapshots and result-detail payloads are versioned.
     Unsupported versions are rejected so incompatible clients fail safely.
 11. Solo mode is a browser adapter over the shared mechanics core. Its
-    deterministic CPU repositions within legal movement bounds, plans against
-    current destructible geometry, and intentionally chooses bounded damaging
-    shots and credible near misses rather than maximizing every turn.
+    deterministic CPU prioritizes reachable pickups while inventory space is
+    available, activates useful collected items, repositions within legal
+    movement bounds, plans against current destructible geometry, and
+    intentionally chooses bounded damaging shots and credible near misses
+    rather than maximizing every turn.
 12. Solo result aggregation includes only human Player 1 activity. A CPU win
     derives a zero player score, preventing CPU statistics from entering human
     leaderboards.
@@ -64,6 +66,8 @@ transitions and authoritative online state, never from UI actions.
 15. Solo CPU planning uses a bounded coarse-to-fine search over the shared
     mechanics. Canvas presentation caches the static arena layer and schedules
     frames only while simulation or timed effects are active.
+16. Activating or equipping a power-up never completes a turn. Only resolving a
+    fired shot advances the active player and completed-turn counters.
 
 ## Considered alternatives
 
@@ -125,6 +129,7 @@ for as long as callers require it.
 * Match snapshots never expose concealed opponent coordinates.
 * A client receives complete arena geometry before any geometry-omitting delta.
 * Damage is applied once per resolved explosion.
+* Power-up use never changes the active player or authoritative turn ID.
 * Shield absorption precedes health damage.
 * Every acquisition event has a stable match-scoped ID.
 * Client-local card dismissal cannot mutate shared match state.

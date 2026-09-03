@@ -244,6 +244,18 @@ test('weapon strength changes damage independently of aiming power', () => {
     assert.equal(weak.weapon.powerMultiplier, strong.weapon.powerMultiplier);
 });
 
+test('wide blast damages tanks well outside the standard shell radius', () => {
+    const standardState = match(), wideState = match(), standardTarget = standardState.tanks[1], wideTarget = wideState.tanks[1];
+    const impact = tank => ({ x: tank.x - 90, y: tank.y + game.TANK_H / 2, type: 'terrain' });
+    game.fireProjectile(standardState); Object.assign(standardState.projectile, impact(standardTarget)); game.resolveShot(standardState, { type: 'terrain' });
+    wideState.weaponAmmo[0]['wide-blast'] = 1; game.selectWeapon(wideState, 0, 'wide-blast'); game.fireProjectile(wideState); Object.assign(wideState.projectile, impact(wideTarget));
+    assert.equal(wideState.projectile.weapon.id, 'wide-blast'); assert.equal(wideState.projectile.weapon.blastRadius, game.WEAPON_REGISTRY['wide-blast'].blastRadius);
+    game.resolveShot(wideState, { type: 'terrain' });
+    assert.equal(standardState.lastImpact.totalDamage, 0);
+    assert.ok(wideState.lastImpact.totalDamage > 0);
+    assert.ok(wideTarget.health < game.STARTING_HEALTH);
+});
+
 test('applyDamage fully absorbs damage and itemizes its source', () => {
     const state = match(); state.activeEffects[1].push({ id: 'shield', effect: 'absorb', remainingTurns: 2, remainingCapacity: 30 });
     const result = game.applyDamage(state, 1, 20, 'falling debris');
@@ -316,11 +328,20 @@ test('movement collects overlapping pickups up to the inventory limit', () => {
 
 test('activation caps healing and tracks turn-based effects and absorption', () => {
     const state = match(5); state.tanks[0].health = 90; state.inventories[0].push('health-pack', 'shield', 'invisibility');
-    assert.equal(game.activatePowerUp(state, 0, 'health-pack').consumesTurn, true); assert.equal(state.tanks[0].health, 100);
+    assert.equal(game.activatePowerUp(state, 0, 'health-pack').consumesTurn, false); assert.equal(state.tanks[0].health, 100);
     game.activatePowerUp(state, 0, 'shield', () => 0); const shield = state.activeEffects[0].find(item => item.effect === 'absorb'); assert.deepEqual([shield.remainingTurns, shield.remainingCapacity], [2, 40]);
     game.activatePowerUp(state, 0, 'invisibility', () => .5); assert.equal(state.activeEffects[0].find(item => item.effect === 'invisible').remainingTurns, 2);
     game.beginTurnEffects(state, 0); game.beginTurnEffects(state, 0);
     assert.equal(state.activeEffects[0].some(item => item.effect === 'invisible'), false);
+});
+
+test('every power-up preserves the active turn', () => {
+    for (const id of Object.keys(game.POWER_UP_CATALOG)) {
+        const state = match(`turn-preserving-${id}`); state.inventories[0].push(id);
+        const result = game.activatePowerUp(state, 0, id, () => 0);
+        assert.equal(result.consumesTurn, false, `${id} should not consume the turn`);
+        assert.equal(state.activePlayer, 0); assert.equal(state.phase, 'aiming'); assert.equal(state.completedTurns, 0);
+    }
 });
 
 test('shield duration expires after the protected player completes turns', () => {
@@ -352,7 +373,8 @@ test('weapon registry defines complete, id-driven launch, damage, terrain, ammo,
         assert.ok(Number.isFinite(weapon.blastRadius)); assert.ok(Number.isFinite(weapon.terrainDamage));
         assert.equal(typeof weapon.ammo.unlimited, 'boolean');
     }
-    const standard = game.WEAPON_REGISTRY.shell, heavy = game.WEAPON_REGISTRY['heavy-shell'];
+    const standard = game.WEAPON_REGISTRY.shell, wide = game.WEAPON_REGISTRY['wide-blast'], heavy = game.WEAPON_REGISTRY['heavy-shell'];
+    assert.ok(wide.blastRadius >= standard.blastRadius * 2); assert.ok(wide.baseDamage < standard.baseDamage);
     assert.ok(heavy.launch.mass > standard.launch.mass); assert.ok(heavy.launch.powerSpeed < standard.launch.powerSpeed);
     assert.ok(heavy.baseDamage > standard.baseDamage); assert.ok(heavy.blastRadius > standard.blastRadius); assert.ok(heavy.terrainDamage > standard.terrainDamage);
     assert.equal(heavy.launch.maximumPower, 100);
@@ -394,7 +416,7 @@ test('laser snapshots preserve bounded authoritative segments and reflections', 
 
 test('expanded arena and crates use the high-resolution world dimensions', () => {
     assert.equal(game.WIDTH, 1440); assert.equal(game.HEIGHT, 810);
-    assert.ok(game.PICKUP_SIZE >= 36); assert.ok(game.ARENA_LIMITS.sideSpaceMin >= 570);
+    assert.ok(game.PICKUP_SIZE >= 48); assert.ok(game.ARENA_LIMITS.sideSpaceMin >= 570);
 });
 
 test('laser resolution uses the fired projectile damage modifiers', () => {
