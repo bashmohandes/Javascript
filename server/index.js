@@ -67,9 +67,10 @@ const mime = {
 };
 const serveStaticAsset = createStaticAssetHandler({ root, mime, contentSecurityPolicy });
 
-function json(response, status, body, headers = {}) {
+function json(response, status, body, headers = {}, finished = null) {
     response.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...headers });
-    response.end(JSON.stringify(body));
+    const payload = JSON.stringify(body);
+    if (finished) response.end(payload, finished); else response.end(payload);
 }
 function cookies(request) { return parseCookies(request.headers.cookie); }
 function sessionUser(request) { return accounts.userForToken(cookies(request).arcade_session); }
@@ -170,7 +171,7 @@ const server = http.createServer(async (request, response) => {
             return json(response, 404, { error: 'API endpoint not found.' });
         } catch (error) {
             if (error instanceof SaveError) return json(response, error.status, { error: error.message, code: error.code, ...(error.current ? { current: error.current } : {}) });
-            if (error instanceof HttpError) return json(response, error.status, { error: error.message });
+            if (error instanceof HttpError) return json(response, error.status, { error: error.message }, error.closeConnection ? { connection: 'close' } : {}, error.closeConnection ? () => request.destroy() : null);
             const clientError = /Gamertag|Passcode|passcode|incorrect|taken|Unknown game|Invalid|details|JSON|large/.test(error.message);
             return json(response, clientError ? 400 : 500, { error: clientError ? error.message : 'Server error.' });
         }

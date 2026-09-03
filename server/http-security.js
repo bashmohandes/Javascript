@@ -3,7 +3,7 @@
 const net = require('node:net');
 
 class HttpError extends Error {
-    constructor(message, status = 400) { super(message); this.status = status; }
+    constructor(message, status = 400, closeConnection = false) { super(message); this.status = status; this.closeConnection = closeConnection; }
 }
 
 class RequestBodyGuard {
@@ -13,7 +13,7 @@ class RequestBodyGuard {
     }
     reserve(ip, bytes) {
         const current = this.bytesByIp.get(ip) || 0;
-        if (this.totalBytes + bytes > this.maxTotalBytes || current + bytes > this.maxBytesPerIp) throw new HttpError('Too many request bodies are already in progress.', 429);
+        if (this.totalBytes + bytes > this.maxTotalBytes || current + bytes > this.maxBytesPerIp) throw new HttpError('Too many request bodies are already in progress.', 429, true);
         this.totalBytes += bytes; this.bytesByIp.set(ip, current + bytes); let released = false;
         return () => {
             if (released) return; released = true; this.totalBytes -= bytes;
@@ -31,27 +31,28 @@ async function readJson(request, maximum = 10000, { guard = null, ip = 'unknown'
         if (Number(normalized) > maximum) throw new Error('Request is too large.');
         capacity = Number(normalized);
     }
-    const release = guard?.reserve(ip, capacity) || (() => {}); let timedOut = false;
-    const timer = guard?.timeoutMs ? setTimeout(() => { timedOut = true; request.destroy?.(); }, guard.timeoutMs) : null; timer?.unref?.();
+    const release = guard?.reserve(ip, capacity) || (() => {});
+    const reading = (async () => {
+        try {
+            let bodyBuffer = null, received = 0;
+            for await (const chunk of request) {
+                const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+                received += bytes.length;
+                if (received > maximum) throw new Error('Request is too large.');
+                if (received > capacity) throw new Error('Invalid Content-Length.');
+                bodyBuffer ||= Buffer.allocUnsafe(capacity);
+                bytes.copy(bodyBuffer, received - bytes.length);
+            }
+            const body = bodyBuffer ? bodyBuffer.subarray(0, received).toString('utf8') : '';
+            try { return body ? JSON.parse(body) : {}; } catch { throw new Error('Invalid JSON.'); }
+        } finally { release(); }
+    })();
+    let timer = null;
     try {
-        let bodyBuffer = null, received = 0;
-        for await (const chunk of request) {
-            const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-            received += bytes.length;
-            if (received > maximum) throw new Error('Request is too large.');
-            if (received > capacity) throw new Error('Invalid Content-Length.');
-            bodyBuffer ||= Buffer.allocUnsafe(capacity);
-            bytes.copy(bodyBuffer, received - bytes.length);
-        }
-        if (timedOut) throw new HttpError('Request body timed out.', 408);
-        const body = bodyBuffer ? bodyBuffer.subarray(0, received).toString('utf8') : '';
-        try { return body ? JSON.parse(body) : {}; } catch { throw new Error('Invalid JSON.'); }
-    } catch (error) {
-        if (timedOut && !(error instanceof HttpError)) throw new HttpError('Request body timed out.', 408);
-        throw error;
-    } finally {
-        if (timer) clearTimeout(timer); release();
-    }
+        if (!guard?.timeoutMs) return await reading;
+        const deadline = new Promise((resolve, reject) => { timer = setTimeout(() => reject(new HttpError('Request body timed out.', 408, true)), guard.timeoutMs); timer.unref?.(); });
+        return await Promise.race([reading, deadline]);
+    } finally { if (timer) clearTimeout(timer); }
 }
 
 const PRIVATE_TOP_LEVEL = new Set([
