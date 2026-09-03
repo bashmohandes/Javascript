@@ -3,9 +3,10 @@
 ## Purpose and boundary
 
 `scripts/game-events.js` is the browser-side coordination boundary between game
-controllers and optional presentation features. Controllers publish facts that
-already happened; audio, visual effects, accessibility helpers, tutorials, and
-future telemetry can observe those facts without being imported by game code.
+controllers and optional browser features. Controllers publish facts that
+already happened; audio, visual effects, accessibility helpers, the disposable
+unsaved-progress indicator, tutorials, and future telemetry can observe those
+facts without being imported by game code.
 
 The bus is deliberately small, synchronous, dependency-free, and in-memory. It
 is not a command bus, durable event log, WebSocket protocol, or trust boundary.
@@ -108,8 +109,11 @@ they do not use.
 
 Consumers must be optional and failure-isolated. They may update presentation,
 schedule work, or maintain disposable client state, but they must not mutate the
-mechanics object or assume events can be replayed. Store and invoke the returned
-unsubscribe function when a consumer has a shorter lifetime than the page.
+mechanics object or assume events can be replayed. The save manager may mark its
+page-local run dirty from semantic progress events, but capture, authentication,
+conflict handling, and persistence are direct operations. Store and invoke the
+returned unsubscribe function when a consumer has a shorter lifetime than the
+page.
 
 Audio is the first complete adapter: it maps domain facts to synthesized cues,
 music scenes, and pause state. The shared shell also uses the bus for appearance,

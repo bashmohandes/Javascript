@@ -174,7 +174,6 @@ function newGame() {
 function showOverlay(title, hint) { overlayTitle.textContent = title; overlayHint.textContent = hint; overlay.hidden = false; }
 function togglePause() { if (game.mode === 'online') return; if (game.over || !game.running) { newGame(); return; } game.paused = !game.paused; events.emit('game:paused', { paused: game.paused }); game.paused ? showOverlay('Game paused', 'Click or press Space to continue') : overlay.hidden = true; }
 function point(side) {
-    saves?.markDirty();
     game.score[side]++; setScore(side, game.score[side]); clearPowerUps();
     events.emit('pong:point-scored', { side, score: [...game.score] }); events.emit('game:progressed', { intensity: .2 + Math.min(.65, (game.score[0] + game.score[1]) / 14), danger: Math.max(...game.score) / 7 });
     if (game.score[side] === 7) { game.over = true; game.running = false; const playerSide = 0; const won = side === playerSide; saves?.completeRun(); events.emit('game:completed', { outcome: won ? 'win' : 'loss', score: [...game.score] }); window.Arcade?.record({ game: 'pong', won, details: { mode: game.mode, score: `${game.score[playerSide]}-${game.score[1 - playerSide]}`, seconds: Math.max(1, Math.round(game.elapsed)) } }).catch(() => {}); const name = side === 0 ? (game.mode === 'solo' ? 'You' : 'Left player') : (game.mode === 'solo' ? 'Computer' : 'Right player'); status.textContent = `${name} won ${game.score[side]}–${game.score[1 - side]} in ${formatDuration(game.elapsed)}.`; showOverlay(`${name} wins!`, `Finished in ${formatDuration(game.elapsed)} · Click to play again`); shareButton.hidden = false; return; }
@@ -248,7 +247,6 @@ canvas.addEventListener('pointerdown', event => {
     if (side === 1 && game.mode !== 'duo' && game.mode !== 'online') return;
     if (game.pointerControls.has(side)) return;
     event.preventDefault();
-    if (game.mode !== 'online') saves?.markDirty();
     game.pointerControls.set(side, event.pointerId);
     canvas.setPointerCapture(event.pointerId);
     movePaddleToPointer(side, event);
@@ -298,7 +296,8 @@ function draw() {
     }) : balls;
     renderedBalls.forEach(drawBall);
 }
-function frame(time) { const dt = Math.min((time - game.last) / 1000, .025) || 0; game.last = time; if (game.mode !== 'online' && game.running && !game.paused) update(dt); draw(); requestAnimationFrame(frame); }
+let lastLocalProgressEvent = 0;
+function frame(time) { const dt = Math.min((time - game.last) / 1000, .025) || 0; game.last = time; if (game.mode !== 'online' && game.running && !game.paused) { update(dt); if(dt>0&&time-lastLocalProgressEvent>=250){lastLocalProgressEvent=time;events.emit('game:progressed',{intensity:.2+Math.min(.65,(game.score[0]+game.score[1])/14),danger:Math.max(...game.score)/7});} } draw(); requestAnimationFrame(frame); }
 
 async function shareResult() {
     if (!game.over) return;
@@ -352,7 +351,7 @@ document.querySelector('#copy-invite').addEventListener('click', async () => { t
 document.querySelectorAll('.player-color').forEach((picker, index) => {
     const trigger = picker.querySelector('.color-trigger'); const menu = picker.querySelector('.color-menu'); const palette = picker.querySelector('.swatches');
     trigger.addEventListener('click', () => { const opening = menu.hidden; document.querySelectorAll('.color-menu').forEach(item => item.hidden = true); document.querySelectorAll('.color-trigger').forEach(item => item.setAttribute('aria-expanded', false)); menu.hidden = !opening; trigger.setAttribute('aria-expanded', opening); });
-    paddleColors.forEach(color => { const swatch = document.createElement('button'); swatch.type = 'button'; swatch.className = 'swatch'; swatch.style.setProperty('--swatch', color.value); swatch.setAttribute('aria-label', `${color.name} ${index ? 'right' : 'left'} paddle`); swatch.setAttribute('aria-pressed', paddles[index].color === color.value); swatch.addEventListener('click', () => { if (game.mode === 'online' && index !== online.side) return; paddles[index].color = color.value; if (game.mode === 'online') sendOnline({ type: 'color', color: color.value }); trigger.style.setProperty('--selected-color', color.value); palette.querySelectorAll('.swatch').forEach(button => button.setAttribute('aria-pressed', button === swatch)); menu.hidden = true; trigger.setAttribute('aria-expanded', false); trigger.focus(); draw(); }); palette.append(swatch); });
+    paddleColors.forEach(color => { const swatch = document.createElement('button'); swatch.type = 'button'; swatch.className = 'swatch'; swatch.style.setProperty('--swatch', color.value); swatch.setAttribute('aria-label', `${color.name} ${index ? 'right' : 'left'} paddle`); swatch.setAttribute('aria-pressed', paddles[index].color === color.value); swatch.addEventListener('click', () => { if (game.mode === 'online' && index !== online.side) return; paddles[index].color = color.value; if (game.mode === 'online') sendOnline({ type: 'color', color: color.value }); else events.emit('game:progressed',{intensity:.2+Math.min(.65,(game.score[0]+game.score[1])/14),danger:Math.max(...game.score)/7}); trigger.style.setProperty('--selected-color', color.value); palette.querySelectorAll('.swatch').forEach(button => button.setAttribute('aria-pressed', button === swatch)); menu.hidden = true; trigger.setAttribute('aria-expanded', false); trigger.focus(); draw(); }); palette.append(swatch); });
 });
 document.addEventListener('click', event => { if (!event.target.closest('.player-color')) { document.querySelectorAll('.color-menu').forEach(menu => menu.hidden = true); document.querySelectorAll('.color-trigger').forEach(trigger => trigger.setAttribute('aria-expanded', false)); } });
 function setFullscreenState(active) {
@@ -376,8 +375,8 @@ fullscreenButton.addEventListener('click', async () => {
 });
 arena.querySelector('.fullscreen-exit').addEventListener('click', () => fullscreenButton.click());
 document.addEventListener('fullscreenchange', () => setFullscreenState(document.fullscreenElement === arena));
-addEventListener('keydown', event => { if (event.code === 'Escape') { document.querySelectorAll('.color-menu').forEach(menu => menu.hidden = true); document.querySelectorAll('.color-trigger').forEach(trigger => trigger.setAttribute('aria-expanded', false)); if (arena.classList.contains('is-fullscreen')) setFullscreenState(false); return; } if (['ArrowUp', 'ArrowDown', 'Space'].includes(event.code)) event.preventDefault(); if (event.code === 'Space') { togglePause(); return; } game.keys.add(event.code); if (game.mode === 'online') onlineInput(); else saves?.markDirty(); }); addEventListener('keyup', event => { game.keys.delete(event.code); if (game.mode === 'online') onlineInput(); });
-document.querySelectorAll('[data-key]').forEach(button => { const key = button.dataset.key; const on = event => { event.preventDefault(); game.keys.add(key); if (game.mode === 'online') onlineInput(); else saves?.markDirty(); }; const off = event => { event.preventDefault(); game.keys.delete(key); if (game.mode === 'online') onlineInput(); }; button.addEventListener('pointerdown', on); button.addEventListener('pointerup', off); button.addEventListener('pointercancel', off); button.addEventListener('pointerleave', off); });
+addEventListener('keydown', event => { if (event.code === 'Escape') { document.querySelectorAll('.color-menu').forEach(menu => menu.hidden = true); document.querySelectorAll('.color-trigger').forEach(trigger => trigger.setAttribute('aria-expanded', false)); if (arena.classList.contains('is-fullscreen')) setFullscreenState(false); return; } if (['ArrowUp', 'ArrowDown', 'Space'].includes(event.code)) event.preventDefault(); if (event.code === 'Space') { togglePause(); return; } game.keys.add(event.code); if (game.mode === 'online') onlineInput(); }); addEventListener('keyup', event => { game.keys.delete(event.code); if (game.mode === 'online') onlineInput(); });
+document.querySelectorAll('[data-key]').forEach(button => { const key = button.dataset.key; const on = event => { event.preventDefault(); game.keys.add(key); if (game.mode === 'online') onlineInput(); }; const off = event => { event.preventDefault(); game.keys.delete(key); if (game.mode === 'online') onlineInput(); }; button.addEventListener('pointerdown', on); button.addEventListener('pointerup', off); button.addEventListener('pointercancel', off); button.addEventListener('pointerleave', off); });
 events.on('system:theme-changed', updatePongTheme);
 addEventListener('resize', resize); updatePongTheme(); resize(); requestAnimationFrame(frame);
 const invitedRoom = new URLSearchParams(location.search).get('room');

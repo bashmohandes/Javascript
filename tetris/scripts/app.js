@@ -89,12 +89,16 @@
         events.emit('tetris:local-record-broken', { score: game.score, previous: standingBest });
         clearTimeout(recordTimer); recordTimer = setTimeout(() => { stageElement.classList.remove('is-new-record'); recordCalloutElement.classList.remove('is-active'); }, 2200);
     }
+    function progressDetail(board = game.visibleBoard()) {
+        const highest = board.findIndex(row => row.some(Boolean)), danger = highest < 0 ? 0 : Math.max(0, Math.min(1, (8 - highest) / 8));
+        return { level: game.level, intensity: Math.min(.9, .2 + game.level * .07), danger };
+    }
     function render() {
         const board = game.visibleBoard(), active = new Map(game.activeCells().filter(([,y]) => y >= 0).map(([x,y]) => [`${x},${y}`, game.piece.type])), ghost = new Set(game.ghostCells().filter(([,y]) => y >= 0).map(([x,y]) => `${x},${y}`));
         if (game.pieces > presentedPieces) { presentedPieces = game.pieces; events.emit('tetris:piece-locked', { pieces: game.pieces }); }
-        const highest = board.findIndex(row => row.some(Boolean)), danger = highest < 0 ? 0 : Math.max(0, Math.min(1, (8 - highest) / 8));
+        const { danger, ...progressFacts } = progressDetail(board);
         const progress = `${game.level}:${danger.toFixed(2)}`;
-        if (!game.gameOver && progress !== presentedProgress) { presentedProgress = progress; events.emit('game:progressed', { level: game.level, intensity: Math.min(.9, .2 + game.level * .07), danger }); }
+        if (!game.gameOver && progress !== presentedProgress) { presentedProgress = progress; events.emit('game:progressed', { ...progressFacts, danger }); }
         cells.forEach((cell, index) => {
             const x = index % 10, y = Math.floor(index / 10), type = active.get(`${x},${y}`) || board[y][x];
             cell.className = `tetris-cell${!type && ghost.has(`${x},${y}`) ? ' ghost' : ''}`;
@@ -126,12 +130,11 @@
     function act(action) {
         if (game.gameOver) return;
         const actions = { left:()=>game.move(-1), right:()=>game.move(1), 'rotate-left':()=>game.rotate(-1), 'rotate-right':()=>game.rotate(1), soft:()=>game.softDrop(), hard:()=>game.hardDrop(), hold:()=>game.hold() };
-        if (actions[action]?.()) { saves?.markDirty(); events.emit('tetris:piece-manipulated', { action: action === 'hard' ? 'hard-drop' : action }); statusElement.textContent = action === 'hold' ? 'Piece held.' : action === 'hard' ? 'Piece dropped.' : 'Piece moved.'; render(); }
+        if (actions[action]?.()) { events.emit('tetris:piece-manipulated', { action: action === 'hard' ? 'hard-drop' : action }); statusElement.textContent = action === 'hold' ? 'Piece held.' : action === 'hard' ? 'Piece dropped.' : 'Piece moved.'; render(); }
         if (game.gameOver) finish();
     }
     function activateShake() {
         const result = game.useShake(); if (!result) return false;
-        saves?.markDirty();
         events.emit('tetris:power-up-activated', { type: 'shake' });
         previousMotion = null; render(); return true;
     }
@@ -204,7 +207,7 @@
             activeMilliseconds += elapsed;
             let remaining = elapsed, changed = false;
             while (remaining > 0 && !game.gameOver) { const step = Math.min(100, remaining); changed = game.update(step) || changed; remaining -= step; }
-            if (changed) { saves?.markDirty(); render(); } if (game.gameOver) finish();
+            if (changed) { events.emit('game:progressed', progressDetail()); render(); } if (game.gameOver) finish();
         }
         requestAnimationFrame(frame);
     }

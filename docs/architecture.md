@@ -31,9 +31,9 @@ flowchart TB
     Pages --> Arcade
     Pages --> Events
     Games --> Events --> Shared
+    Events --> Saves
     Arcade --> Games
     Games --> Store
-    Games --> Saves
   end
   subgraph Node_process[Node process]
     HTTP[HTTP routing + static files + security]
@@ -221,9 +221,10 @@ erDiagram
 ```
 
 Signed-in players can keep five private slots per modern game. The shared save
-manager handles authentication, management UI, first-empty allocation,
-revision conflicts, and leave reminders; each local-game controller validates
-and restores its own versioned state. Screenshots and state are returned only
+manager observes semantic game-progress events for its disposable dirty flag
+and handles authentication, management UI, first-empty allocation, revision
+conflicts, and leave reminders; each local-game controller validates and
+restores its own versioned state. Screenshots and state are returned only
 to their owner. Client-authored save metadata is display-only and never enters
 leaderboards, achievements, or trusted result flows. Online matches continue
 to use their authoritative room resume tokens instead of cloud saves. See
