@@ -83,8 +83,8 @@
             return { title, mode: captured.mode, stateVersion: adapter.stateVersion, state: captured.state, elapsedSeconds: captured.elapsedSeconds, scoreLabel: captured.scoreLabel || null, screenshot: await screenshot(await adapter.thumbnail(captured)) };
         }
         async function navigateAfterSave() {
-            const destination = exitAfterSave; exitAfterSave = null;
-            if (destination && !dirty) location.assign(destination);
+            const destination = exitAfterSave;
+            if (destination && !dirty) { exitAfterSave = null; location.assign(destination); }
             else if (destination) status('The game changed while saving. Save again before exiting.');
         }
         async function saveCurrent(replace = null) {
