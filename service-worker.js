@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE_NAME = 'js-playground-v13';
+const CACHE_NAME = 'js-playground-v14';
 const APP_SHELL = [
     './',
     './index.html',
