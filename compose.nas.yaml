@@ -1,10 +1,10 @@
 services:
-  pong:
-    image: ${PONG_IMAGE:?Set PONG_IMAGE to your Docker Hub image, for example username/javascript-pong:latest}
-    container_name: javascript-pong
+  js-playground:
+    image: ${JSPG_IMAGE:?Set JSPG_IMAGE to your Docker Hub image, for example username/js-playground:latest}
+    container_name: ${JSPG_CONTAINER_NAME:-javascript-playground}
     restart: unless-stopped
     ports:
-      - "${PONG_PORT:-8080}:8080"
+      - "${JSPG_PORT:-8080}:8080"
     environment:
       PORT: 8080
       DATABASE_PATH: /app/data/arcade.sqlite

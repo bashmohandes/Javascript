@@ -13,11 +13,12 @@ const { clientIp: getClientIp, contentSecurityPolicy, isPrivatePath, originAllow
 const { createStaticAssetHandler } = require('./static-assets');
 const { parseMessage, roomStatusMessage, send, sessionMessage } = require('./websocket-messages');
 const { generateIcons } = require('../scripts/generate-icons');
+const { createBuildInformation } = require('./build-info');
 
 const root = path.resolve(__dirname, '..');
 generateIcons(root, { onlyMissing: true });
 const port = Number(process.env.PORT) || 8080;
-const buildVersion = process.env.BUILD_VERSION || 'dev';
+const buildInformation = createBuildInformation();
 const database = openDatabase();
 const achievements = new Achievements(database);
 const accounts = new Accounts(database, achievements);
@@ -93,7 +94,7 @@ const server = http.createServer(async (request, response) => {
         response.end(JSON.stringify({ status: 'ok', rooms: rooms.rooms.size }));
         return;
     }
-    if (pathname === '/api/version' && request.method === 'GET') return json(response, 200, { version: buildVersion });
+    if (pathname === '/api/version' && request.method === 'GET') return json(response, 200, buildInformation);
     if (pathname === '/api/rooms' && request.method === 'GET') {
         response.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
         response.end(JSON.stringify({ rooms: rooms.publicRooms(publicRoomLimit) }));

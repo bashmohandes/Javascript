@@ -2,7 +2,7 @@
   "name": "javascript-playground",
   "version": "1.0.0",
   "private": true,
-  "description": "Browser games with an authoritative online Pong server",
+  "description": "Browser games with authoritative online multiplayer",
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",
@@ -10,7 +10,7 @@
     "dev": "node --watch server/index.js",
     "generate:icons": "node scripts/generate-icons.js",
     "test": "node --test",
-    "check": "node --check service-worker.js && node --check scripts/game-events.js && node --check scripts/audio.js && node --check scripts/online-rooms.js && node --check battle-tanks/scripts/game.js && node --check battle-tanks/scripts/ai.js && node --check battle-tanks/scripts/app.js && node --check tetris/scripts/game.js && node --check tetris/scripts/app.js && node --check server/battle-tanks-rooms.js && node --check server/index.js && node --check server/static-assets.js && node --check server/websocket-messages.js && node --check server/room-identity.js && node --check server/http-security.js && node --check server/achievements.js && node --check server/tictactoe-rooms.js && node --check tictactoe/scripts/game.js && node --check tictactoe/scripts/app.js && node --check server/database.js && node --check server/accounts.js && node --check server/game.js && node --check server/rooms.js && node --check theme-init.js && node --check arcade.js && node --check profile.js && node --check pong/scripts/online-client.js && node --check pong/scripts/motion.js && node --check pong/scripts/app.js && node --check Sudoku/scripts/game.js && node --check Sudoku/scripts/app.js && node --check Minesweeper/scripts/app.js && node --check scripts/generate-icons.js && node --check scripts/game-colors.js && node --check scripts/share-result.js",
+    "check": "node --check service-worker.js && node --check scripts/game-events.js && node --check scripts/audio.js && node --check scripts/online-rooms.js && node --check scripts/release-notes.js && node --check battle-tanks/scripts/game.js && node --check battle-tanks/scripts/ai.js && node --check battle-tanks/scripts/app.js && node --check tetris/scripts/game.js && node --check tetris/scripts/app.js && node --check server/battle-tanks-rooms.js && node --check server/build-info.js && node --check server/index.js && node --check server/static-assets.js && node --check server/websocket-messages.js && node --check server/room-identity.js && node --check server/http-security.js && node --check server/achievements.js && node --check server/tictactoe-rooms.js && node --check tictactoe/scripts/game.js && node --check tictactoe/scripts/app.js && node --check server/database.js && node --check server/accounts.js && node --check server/game.js && node --check server/rooms.js && node --check theme-init.js && node --check arcade.js && node --check profile.js && node --check pong/scripts/online-client.js && node --check pong/scripts/motion.js && node --check pong/scripts/app.js && node --check Sudoku/scripts/game.js && node --check Sudoku/scripts/app.js && node --check Minesweeper/scripts/app.js && node --check scripts/generate-icons.js && node --check scripts/game-colors.js && node --check scripts/share-result.js",
     "audit": "npm audit --omit=dev"
   },
   "engines": {

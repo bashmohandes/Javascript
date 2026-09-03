@@ -113,12 +113,12 @@
         const updateHint = () => { hint.hidden = isStandalone() || dismissed() || (!installPrompt && !manualGuide()); };
         const renderDialog = () => {
             const guide = installPrompt ? {
-                label: 'Install JavaScript Arcade',
+                label: 'Install JavaScript Playground',
                 intro: 'Your browser can install the arcade now.',
-                steps: ['Select “Install now” below.', 'Confirm Install in your browser.', 'Open JavaScript Arcade from your apps, Home Screen, or Dock.']
+                steps: ['Select “Install now” below.', 'Confirm Install in your browser.', 'Open JavaScript Playground from your apps, Home Screen, or Dock.']
             } : manualGuide();
             if (!guide) return false;
-            installDialog.innerHTML = `<form method="dialog"><header><div><small>JavaScript Arcade</small><h2>${guide.label}</h2></div><button value="close" aria-label="Close install instructions">×</button></header><p>${guide.intro}</p><ol>${guide.steps.map(step => `<li>${step}</li>`).join('')}</ol><p class="arcade-install-status" role="status" aria-live="polite"></p><div class="arcade-install-actions">${installPrompt ? '<button type="button" class="arcade-install-now">Install now</button>' : ''}<button value="close" class="secondary">${installPrompt ? 'Not now' : 'Got it'}</button></div></form>`;
+            installDialog.innerHTML = `<form method="dialog"><header><div><small>JavaScript Playground</small><h2>${guide.label}</h2></div><button value="close" aria-label="Close install instructions">×</button></header><p>${guide.intro}</p><ol>${guide.steps.map(step => `<li>${step}</li>`).join('')}</ol><p class="arcade-install-status" role="status" aria-live="polite"></p><div class="arcade-install-actions">${installPrompt ? '<button type="button" class="arcade-install-now">Install now</button>' : ''}<button value="close" class="secondary">${installPrompt ? 'Not now' : 'Got it'}</button></div></form>`;
             installDialog.querySelector('.arcade-install-now')?.addEventListener('click', async event => {
                 event.currentTarget.disabled = true;
                 const prompt = installPrompt;
@@ -146,8 +146,8 @@
     topbarInner.className = 'arcade-topbar-inner';
     const home = document.createElement('a');
     home.className = 'arcade-home'; home.href = rootPath;
-    home.setAttribute('aria-label', 'JavaScript Arcade home');
-    home.innerHTML = '<span class="arcade-home-mark" aria-hidden="true">JS</span><span>JavaScript Arcade</span>';
+    home.setAttribute('aria-label', 'JavaScript Playground home');
+    home.innerHTML = '<span class="arcade-home-mark" aria-hidden="true">JSPG</span><span>JavaScript Playground</span>';
     const account = document.createElement('nav');
     account.className = 'arcade-account'; account.setAttribute('aria-label', 'Arcade account and appearance');
     topbarInner.append(home, account); topbar.append(topbarInner);
@@ -189,13 +189,51 @@
     dialog.innerHTML = `<form class="arcade-auth" method="dialog"><h2>Arcade account</h2><p>Use one gamertag to save play history and scores across every game.</p><label>Gamertag<input name="gamertag" minlength="3" maxlength="24" pattern="[A-Za-z0-9_-]+" autocomplete="username" required></label><label>Passcode<input name="passcode" type="password" minlength="4" maxlength="128" autocomplete="current-password" required></label><p class="arcade-auth-message" role="status"></p><div class="arcade-auth-actions"><button value="login">Sign in</button><button value="register" class="secondary">Create account</button><button value="cancel" class="secondary" formnovalidate>Cancel</button></div></form>`;
     const buildVersion = document.createElement('footer');
     buildVersion.className = 'arcade-build-version';
-    buildVersion.textContent = 'Build …';
+    const buildVersionButton = document.createElement('button');
+    buildVersionButton.type = 'button'; buildVersionButton.textContent = 'Build …'; buildVersionButton.setAttribute('aria-haspopup', 'dialog');
+    buildVersion.append(buildVersionButton);
+    const releaseDialog = document.createElement('dialog'); releaseDialog.className = 'arcade-dialog arcade-release-dialog';
+    releaseDialog.innerHTML = '<form method="dialog"><header><div><small>JavaScript Playground</small><h2>Build details</h2></div><button value="close" aria-label="Close release notes">×</button></header><p class="arcade-release-summary"></p><div class="arcade-release-sections"></div><div class="arcade-release-actions"><button value="close">Got it</button></div></form>';
+    const showReleaseDialog = () => { if (!releaseDialog.open) releaseDialog.showModal(); };
+    const renderBuildInformation = result => {
+        const channel = ['stable', 'alpha', 'dev'].includes(result.channel) ? result.channel : 'dev';
+        buildVersionButton.textContent = channel === 'stable' ? `Version ${result.version}` : channel === 'alpha' ? `Alpha · ${result.version}` : result.version && result.version !== 'dev' ? `Development · ${result.version}` : 'Development build';
+        const release = channel === 'stable' && result.release?.version === result.version ? result.release : null;
+        const heading = releaseDialog.querySelector('h2'), summary = releaseDialog.querySelector('.arcade-release-summary'), sections = releaseDialog.querySelector('.arcade-release-sections');
+        sections.replaceChildren();
+        if (release) {
+            heading.textContent = release.title; summary.textContent = release.summary;
+            for (const [label, items] of [['Highlights', release.highlights], ['Fixes', release.fixes]]) {
+                if (!Array.isArray(items) || !items.length) continue;
+                const section = document.createElement('section'), title = document.createElement('h3'), list = document.createElement('ul');
+                title.textContent = label;
+                items.forEach(item => { const entry = document.createElement('li'); entry.textContent = item; list.append(entry); });
+                section.append(title, list); sections.append(section);
+            }
+        } else {
+            heading.textContent = channel === 'alpha' ? 'Alpha build' : channel === 'stable' ? 'Stable build' : 'Development build';
+            summary.textContent = channel === 'alpha' ? `${result.version} follows the newest changes on master. Automatic release notes appear only for stable releases.` : channel === 'stable' ? `Version ${result.version} does not have bundled release notes.` : result.version && result.version !== 'dev' ? `Build ${result.version} does not have published release notes.` : 'This local build does not have published release notes.';
+        }
+        buildVersionButton.addEventListener('click', showReleaseDialog);
+        if (!release) return;
+        const seenKey = 'arcade:seen-releases';
+        let seenVersions = [];
+        try {
+            const stored = JSON.parse(localStorage.getItem(seenKey) || '[]');
+            if (Array.isArray(stored)) seenVersions = [...new Set(stored.filter(version => typeof version === 'string'))];
+        } catch { /* Show once in this page when storage is unavailable. */ }
+        const seen = seenVersions.includes(release.version);
+        if (!seen && !document.querySelector('dialog[open]')) {
+            showReleaseDialog();
+            try { localStorage.setItem(seenKey, JSON.stringify([...seenVersions, release.version])); } catch { /* The dialog remains available from the footer. */ }
+        }
+    };
     document.body.classList.add('arcade-has-topbar');
     document.body.prepend(topbar);
-    document.body.append(dialog, appearanceDialog, ...(audioDialog ? [audioDialog] : []), buildVersion);
+    document.body.append(dialog, appearanceDialog, ...(audioDialog ? [audioDialog] : []), releaseDialog, buildVersion);
     let achievementDialog;
     const shareAchievement = async achievement => {
-        const text = `${achievement.icon} Achievement unlocked: “${achievement.title}” in JavaScript Arcade — ${achievement.condition}`;
+        const text = `${achievement.icon} Achievement unlocked: “${achievement.title}” in JavaScript Playground — ${achievement.condition}`;
         const url = location.origin + '/profile.html#achievements';
         const image = window.ResultShare?.achievement(achievement);
         if (image) return window.ResultShare.share({ image, filename: `achievement-${achievement.id}.png`, title: achievement.title, text, url });
@@ -255,7 +293,7 @@
         achievementDialog.querySelector('header button').addEventListener('click', () => achievementDialog.close());
         document.body.append(achievementDialog);
     }
-    api('/api/version').then(result => { buildVersion.textContent = `Build ${result.version}`; }).catch(() => { buildVersion.hidden = true; });
+    api('/api/version').then(renderBuildInformation).catch(() => { buildVersion.hidden = true; });
     const render = () => {
         account.replaceChildren();
         account.append(appearanceButton);

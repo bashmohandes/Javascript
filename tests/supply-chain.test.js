@@ -5,8 +5,8 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 
 test('GitHub Actions dependencies use immutable commit SHAs', () => {
-    const workflow = fs.readFileSync('.github/workflows/container.yml', 'utf8');
-    const actions = [...workflow.matchAll(/^\s*uses:\s*([^\s#]+)/gm)].map(match => match[1]);
+    const workflows = fs.readdirSync('.github/workflows').filter(file => file.endsWith('.yml')).map(file => fs.readFileSync(`.github/workflows/${file}`, 'utf8'));
+    const actions = workflows.flatMap(workflow => [...workflow.matchAll(/^\s*uses:\s*([^\s#]+)/gm)].map(match => match[1]));
     assert.ok(actions.length > 0);
     for (const action of actions) assert.match(action, /^[^@\s]+@[0-9a-f]{40}$/, action);
 });
@@ -34,8 +34,48 @@ test('container scanning uses an immutable Trivy image and cannot publish on sch
     assert.match(workflow, /^\s*schedule:\s*$[\s\S]*?^\s*- cron:/m);
     assert.match(workflow, /^\s*group: container-\$\{\{ github\.event_name \}\}-\$\{\{ github\.ref \}\}$/m);
     assert.match(workflow, /^\s*load:\s*true$/m);
-    assert.match(workflow, /arcade-trivy:ci image[\s\S]*?--severity HIGH,CRITICAL[\s\S]*?javascript-pong:ci/);
-    assert.match(workflow, /^\s*if: github\.event_name == 'push' \|\| github\.event_name == 'workflow_dispatch'$/m);
+    assert.match(workflow, /arcade-trivy:ci image[\s\S]*?--severity HIGH,CRITICAL[\s\S]*?js-playground:ci/);
+    assert.match(workflow, /^\s*if: github\.event_name == 'push' && github\.ref == 'refs\/heads\/master'$/m);
+    assert.match(workflow, /images: \$\{\{ secrets\.DOCKERHUB_USERNAME \}\}\/js-playground/);
+    assert.match(workflow, /type=raw,value=alpha/);
+    assert.doesNotMatch(workflow, /type=raw,value=latest/);
+});
+
+test('stable releases are manual, branch guarded, versioned, and scanned before publishing', () => {
+    const workflow = fs.readFileSync('.github/workflows/release.yml', 'utf8');
+    assert.match(workflow, /^\s*workflow_dispatch:\s*$/m);
+    assert.match(workflow, /refs\/heads\/release[\s\S]*refs\/tags\/v\$\{RELEASE_VERSION\}/);
+    assert.match(workflow, /release-notes\.js validate/);
+    assert.match(workflow, /js-playground:release-candidate[\s\S]*Scan stable container[\s\S]*type=raw,value=latest,enable=\$\{\{ github\.ref == 'refs\/heads\/release' \}\}/);
+    assert.match(workflow, /type=semver,pattern=\{\{version\}\}/);
+    assert.match(workflow, /type=semver,pattern=\{\{major\}\}\.\{\{minor\}\},value=\$\{\{ inputs\.version \}\},enable=\$\{\{ github\.ref == 'refs\/heads\/release' \}\}/);
+    assert.match(workflow, /gh release create/);
+    assert.match(workflow, /latest_flag=--latest=false[\s\S]*GITHUB_REF[\s\S]*latest_flag=--latest[\s\S]*gh release create[^\n]+--verify-tag[^\n]+"\$latest_flag"/);
+    assert.match(workflow, /images: \$\{\{ secrets\.DOCKERHUB_USERNAME \}\}\/js-playground/);
+    assert.match(workflow, /^\s*contents: write$/m);
+    assert.ok(workflow.indexOf('git push origin') < workflow.indexOf('Build and push multi-platform stable image'), 'the immutable tag must exist before public image tags move');
+});
+
+test('Compose services and containers use configurable playground names', () => {
+    for (const file of ['compose.yaml', 'compose.nas.yaml']) {
+        const compose = fs.readFileSync(file, 'utf8');
+        assert.match(compose, /^\s{2}js-playground:$/m, file);
+        assert.match(compose, /^\s*container_name: \$\{JSPG_CONTAINER_NAME:-javascript-playground\}$/m, file);
+        assert.match(compose, /\$\{JSPG_PORT:-8080\}/, file);
+    }
+    assert.match(fs.readFileSync('compose.nas.yaml', 'utf8'), /\$\{JSPG_IMAGE:\?Set JSPG_IMAGE/);
+});
+
+test('release operations are documented with the promotion and deployment model', () => {
+    const readme = fs.readFileSync('README.md', 'utf8');
+    const guide = fs.readFileSync('docs/release-process.md', 'utf8');
+    const decision = fs.readFileSync('docs/adr/0026-controlled-release-trains.md', 'utf8');
+    assert.match(readme, /\[release process\]\(docs\/release-process\.md\)/);
+    assert.match(guide, /```mermaid[\s\S]*master[\s\S]*promotion pull request[\s\S]*release/);
+    assert.match(guide, /master.*head branch[\s\S]*release[\s\S]*base branch/);
+    assert.match(guide, /JSPG_IMAGE=.*js-playground:latest[\s\S]*JSPG_IMAGE=.*js-playground:alpha/);
+    assert.match(guide, /Never point[\s\S]*alpha[\s\S]*stable's SQLite database/);
+    assert.match(decision, /retry dispatched from an existing version tag[\s\S]*immutable full-version and SHA/);
 });
 
 test('Dependabot checks every build dependency ecosystem daily', () => {

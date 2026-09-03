@@ -15,7 +15,7 @@
     const duration = row => Number.isFinite(Number(row.details?.seconds)) ? formatDuration(row.details.seconds) : '—';
     const details = row => Object.entries(row.details || {}).filter(([key]) => key !== 'seconds' && (row.game !== 'tetris' || ['lines','level','pieces','tetrises'].includes(key))).map(([key, value]) => `${detailLabels[key] || key}: ${value}`).join(' · ') || '—';
     async function shareAchievement(item) {
-        const text = `${item.icon} I unlocked “${item.title}” in JavaScript Arcade — ${item.condition}`;
+        const text = `${item.icon} I unlocked “${item.title}” in JavaScript Playground — ${item.condition}`;
         const url = location.href.split('#')[0] + '#achievements';
         const image = window.ResultShare?.achievement(item);
         if (image) return window.ResultShare.share({ image, filename: `achievement-${item.id}.png`, title: item.title, text, url });

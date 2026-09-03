@@ -8,6 +8,7 @@ const PRIVATE_TOP_LEVEL = new Set([
     'Dockerfile',
     'package.json',
     'package-lock.json',
+    'releases.json',
     'project.json',
     'project.lock.json'
 ]);

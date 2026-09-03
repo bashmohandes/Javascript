@@ -88,7 +88,7 @@
     }
     function achievement({ icon, title, condition, game }) {
         const card = makeCanvas(), ctx = card.getContext('2d');
-        frame(ctx, 'Achievement unlocked', title, game ? `Earned in ${game}` : 'JavaScript Arcade');
+        frame(ctx, 'Achievement unlocked', title, game ? `Earned in ${game}` : 'JavaScript Playground');
         ctx.fillStyle = color.white; ctx.strokeStyle = color.line; ctx.lineWidth = 3;
         ctx.beginPath(); ctx.roundRect(695, 95, 360, 360, 42); ctx.fill(); ctx.stroke();
         label(ctx, icon, 875, 315, 150, 700, color.ink, 'center');

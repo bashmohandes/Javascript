@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE_NAME = 'javascript-arcade-v4';
+const CACHE_NAME = 'js-playground-v6';
 const APP_SHELL = [
     './',
     './index.html',

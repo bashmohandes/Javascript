@@ -71,7 +71,25 @@ body.arena-fullscreen .arcade-account { display:none; }
 @media (max-width: 520px) { .arcade-install-hint { right:max(12px,env(safe-area-inset-right)); bottom:max(12px,env(safe-area-inset-bottom)); left:auto; } .arcade-install-dialog form { padding:19px; } }
 @media (max-width: 480px) { .result-share-content { padding: 17px; } .result-share-actions button { flex: 1; } }
 @media (prefers-reduced-motion: reduce) { .arcade-install-hint { animation:none; } }
-.arcade-build-version { margin: 24px auto calc(18px + env(safe-area-inset-bottom)); padding: 0 16px; color: var(--arcade-dialog-muted); font: 12px/1.4 system-ui, sans-serif; text-align: center; }
+.arcade-build-version { margin: 24px auto calc(18px + env(safe-area-inset-bottom)); padding: 0 16px; text-align:center; }
+.arcade-build-version button { min-height:44px; padding:8px 12px; color:var(--arcade-dialog-muted); background:transparent; border:1px solid transparent; border-radius:8px; font:700 12px/1.4 system-ui,sans-serif; cursor:pointer; text-decoration:underline; text-underline-offset:3px; }
+.arcade-build-version button:hover { color:var(--arcade-nav-ink); border-color:var(--arcade-nav-line); }
+.arcade-build-version button:focus-visible,.arcade-release-dialog button:focus-visible { outline:3px solid #d76b45; outline-offset:2px; }
+.arcade-release-dialog { width:min(680px,calc(100% - 28px)); max-height:min(760px,calc(100vh - 40px)); }
+.arcade-release-dialog form { display:grid; gap:18px; padding:24px; font:15px/1.5 system-ui,sans-serif; }
+.arcade-release-dialog header { display:flex; align-items:flex-start; justify-content:space-between; gap:18px; }
+.arcade-release-dialog :is(h2,h3,p,ul) { margin:0; }
+.arcade-release-dialog h2 { margin-top:2px; font-size:clamp(23px,5vw,30px); line-height:1.15; }
+.arcade-release-dialog header small { color:#83e6c3; font-size:10px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; }
+.arcade-release-dialog header button { width:44px; height:44px; padding:0; color:var(--arcade-nav-ink); background:var(--arcade-dialog-field); border:0; border-radius:50%; font-size:24px; cursor:pointer; }
+.arcade-release-summary { color:var(--arcade-dialog-muted); }
+.arcade-release-sections { display:grid; gap:14px; }
+.arcade-release-sections section { padding:15px; background:var(--arcade-dialog-field); border:1px solid var(--arcade-nav-line); border-radius:12px; }
+.arcade-release-sections h3 { margin-bottom:8px; font-size:17px; }
+.arcade-release-sections ul { display:grid; gap:7px; padding-left:22px; color:var(--arcade-dialog-muted); }
+.arcade-release-actions { display:flex; justify-content:flex-end; }
+.arcade-release-actions button { min-height:44px; padding:10px 16px; color:#10271f; background:#83e6c3; border:0; border-radius:9px; font-weight:800; cursor:pointer; }
+@media(max-width:520px){.arcade-release-dialog form{padding:18px}.arcade-release-dialog{max-height:calc(100vh - 24px)}}
 .modern-game :is(button,select,.board,.board-wrap,.tetris-stage),.classic-game :is(button,canvas,#canvas) { touch-action:manipulation; }
 .achievement-dialog { width:min(720px,calc(100% - 28px)); max-height:min(760px,calc(100vh - 40px)); }
 .achievement-dialog > header { position:sticky; z-index:1; top:0; display:flex; align-items:center; justify-content:space-between; padding:22px 24px; background:var(--arcade-dialog-bg); border-bottom:1px solid var(--arcade-nav-line); }
