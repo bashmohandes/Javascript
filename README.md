@@ -176,6 +176,7 @@ the NAS, save the following as `.env` beside `compose.nas.yaml`:
 
 ```dotenv
 PONG_IMAGE=YOUR_DOCKERHUB_USERNAME/javascript-pong:1.0.0
+ARCADE_CONTAINER_NAME=javascript-playground
 PONG_PORT=8080
 ALLOWED_ORIGINS=https://js-playground.tail01f640.ts.net
 COOKIE_SECURE=true
@@ -183,6 +184,13 @@ TRUST_PROXY=true
 WS_MAX_CONNECTIONS_PER_IP=20
 ROOM_MAX_PER_IP=5
 ```
+
+The container defaults to `javascript-playground` when
+`ARCADE_CONTAINER_NAME` is omitted. To run stable and alpha deployments side by
+side, give them distinct container names, ports, and Compose project names (for
+example, `javascript-playground-stable` with `-p arcade-stable` and
+`javascript-playground-alpha` with `-p arcade-alpha`). The different project
+names keep their `arcade-data` volumes isolated.
 
 `TRUST_PROXY=true` is appropriate when the container is reachable only through
 the trusted NAS reverse proxy; it lets authentication throttling use the

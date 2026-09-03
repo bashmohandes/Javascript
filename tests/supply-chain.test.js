@@ -52,6 +52,13 @@ test('stable releases are manual, branch guarded, versioned, and scanned before 
     assert.ok(workflow.indexOf('git push origin') < workflow.indexOf('Build and push multi-platform stable image'), 'the immutable tag must exist before public image tags move');
 });
 
+test('Compose containers use a configurable playground name', () => {
+    for (const file of ['compose.yaml', 'compose.nas.yaml']) {
+        const compose = fs.readFileSync(file, 'utf8');
+        assert.match(compose, /^\s*container_name: \$\{ARCADE_CONTAINER_NAME:-javascript-playground\}$/m, file);
+    }
+});
+
 test('Dependabot checks every build dependency ecosystem daily', () => {
     const configuration = fs.readFileSync('.github/dependabot.yml', 'utf8');
     const ecosystems = [...configuration.matchAll(/^\s*- package-ecosystem:\s*(\S+)$/gm)].map(match => match[1]);
