@@ -21,10 +21,12 @@
 
     function pickupMove(state, side, tank, bounds) {
         if ((state.inventories?.[side]?.length || 0) >= core.INVENTORY_LIMIT) return null;
-        const reachable = (state.pickups || []).filter(pickup => Number.isFinite(pickup?.x) && pickup.x + core.PICKUP_SIZE / 2 > bounds.min && pickup.x - core.PICKUP_SIZE / 2 < bounds.max + core.TANK_W).map(pickup => {
+        const reachable = (state.pickups || []).filter(pickup => Number.isFinite(pickup?.x) && Number.isFinite(pickup?.y) && pickup.x + core.PICKUP_SIZE / 2 > bounds.min && pickup.x - core.PICKUP_SIZE / 2 < bounds.max + core.TANK_W).map(pickup => {
             const collectionX = Math.max(bounds.min, Math.min(bounds.max, pickup.x - core.TANK_W / 2));
-            return { pickup, collectionX, distance: Math.abs(collectionX - tank.x) };
-        }).sort((a,b) => a.distance - b.distance || a.pickup.serial - b.pickup.serial);
+            const collectionY = core.tankYAt(state, { ...tank, x: collectionX }), pickupTop = pickup.y - core.PICKUP_SIZE;
+            const overlaps = collectionX < pickup.x + core.PICKUP_SIZE / 2 && collectionX + core.TANK_W > pickup.x - core.PICKUP_SIZE / 2 && collectionY < pickup.y && collectionY + core.TANK_H > pickupTop;
+            return { pickup, collectionX, distance: Math.abs(collectionX - tank.x), overlaps };
+        }).filter(target => target.overlaps).sort((a,b) => a.distance - b.distance || a.pickup.serial - b.pickup.serial);
         if (!reachable.length || reachable[0].distance < .5) return null;
         const target = reachable[0], directionSign = Math.sign(target.collectionX - tank.x), amount = Math.min(104, target.distance), targetX = tank.x + directionSign * amount;
         return { direction: directionSign < 0 ? (side ? 'forward' : 'backward') : (side ? 'backward' : 'forward'), amount, startX: tank.x, targetX, reason: 'pickup', pickupSerial: target.pickup.serial, pickupId: target.pickup.id };

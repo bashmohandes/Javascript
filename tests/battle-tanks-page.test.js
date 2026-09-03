@@ -159,9 +159,10 @@ test('Battle Tanks collects pickups along local pointer-drag movement', () => {
 });
 
 test('Battle Tanks renders larger, item-specific power-up crates', () => {
-    const app = read('battle-tanks/scripts/app.js'), core = require('../battle-tanks/scripts/game'), visuals = app.match(/const pickupVisuals=\{([\s\S]*?)\};/)?.[1] || '';
+    const app = read('battle-tanks/scripts/app.js'), styles = read('styles/modern-game.css'), core = require('../battle-tanks/scripts/game'), visuals = app.match(/const pickupVisuals=\{([\s\S]*?)\};/)?.[1] || '';
     assert.ok(core.PICKUP_SIZE >= 48);
     for (const id of Object.keys(core.POWER_UP_CATALOG)) assert.ok(visuals.includes(id), `${id} should have a crate treatment`);
+    assert.doesNotMatch(visuals, /#[0-9a-f]{3,8}/i); assert.match(styles, /--battle-pickup-health:/); assert.match(styles, /data-arcade-theme="cabinet"[^}]+--battle-pickup-health:/); assert.match(styles, /data-arcade-theme="calm"[^}]+--battle-pickup-health:/); assert.match(app, /pickupHealth:'--battle-pickup-health'/);
     assert.match(app, /shadowBlur=26/); assert.match(app, /arc\(pickup\.x,top\+size\/2,14/);
 });
 

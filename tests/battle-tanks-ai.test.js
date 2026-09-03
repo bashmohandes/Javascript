@@ -28,9 +28,10 @@ test('solo CPU movement changes across turns and reverses safely at arena edges'
 
 test('solo CPU prioritizes the nearest reachable pickup while inventory has space', () => {
     const state = core.createInitialState(321); core.beginTurn(state, 1); const tank = state.tanks[1], before = core.snapshot(state);
+    const pickupY = x => core.terrainHeightAt(state.arena, x);
     state.pickups.push(
-        { serial: 1, id: 'health-pack', x: tank.x - 280, y: 700 },
-        { serial: 2, id: 'shield', x: tank.x + core.TANK_W / 2 + 70, y: 700 }
+        { serial: 1, id: 'health-pack', x: tank.x - 280, y: pickupY(tank.x - 280) },
+        { serial: 2, id: 'shield', x: tank.x + core.TANK_W / 2 + 70, y: pickupY(tank.x + core.TANK_W / 2 + 70) }
     );
     const aiming = core.snapshot(state), move = ai.planMove(state, 1);
     assert.equal(move.reason, 'pickup'); assert.equal(move.pickupSerial, 2); assert.equal(move.pickupId, 'shield');
@@ -39,6 +40,14 @@ test('solo CPU prioritizes the nearest reachable pickup while inventory has spac
     assert.notDeepEqual(aiming, before);
     state.inventories[1].push('shield', 'shield', 'shield');
     assert.equal(ai.planMove(state, 1).reason, 'reposition', 'a full inventory should stop pickup pursuit');
+});
+
+test('solo CPU ignores pickups stranded above deformed terrain', () => {
+    const state = core.createInitialState(322); core.beginTurn(state, 1); const tank = state.tanks[1], pickupX = tank.x + core.TANK_W / 2 + 50;
+    state.pickups.push({ serial: 1, id: 'shield', x: pickupX, y: core.terrainHeightAt(state.arena, pickupX) - core.TANK_H * 2 });
+    const move = ai.planMove(state, 1);
+    assert.equal(move.reason, 'reposition');
+    assert.notEqual(move.pickupSerial, 1);
 });
 
 test('solo CPU plans useful inventory activations without wasting or stacking effects', () => {
