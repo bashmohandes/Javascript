@@ -39,7 +39,12 @@ approximately 70/30 split. The rail keeps the current score, lines, level, high
 score, held piece, next-piece queue, pause, and new-game actions visible while
 the existing touch controls remain below the play area. Board height is also
 limited by the dynamic viewport and bottom safe area so the board and controls
-fit together without hiding the status information.
+fit together without hiding the status information. Tablet portrait and short
+landscape layouts remove the decorative introduction, tighten the two-column
+game surface, and size the board against the available viewport so play is
+ready without an initial scroll. The Tetris shell retains natural document
+scrolling as a fallback when browser chrome, accessibility settings, or an
+unusually short viewport leave less space than expected.
 
 ## Clears and high scores
 

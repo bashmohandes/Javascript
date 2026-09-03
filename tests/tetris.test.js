@@ -137,9 +137,18 @@ test('Tetris keeps phone controls visible alongside the board', () => {
     const page = read('tetris/index.html'), styles = read('tetris/styles.css');
     assert.match(styles, /@media\(max-width:780px\)[^{]*\{[\s\S]*?\.touch-controls\{[^}]*position:fixed;[^}]*bottom:max\(8px,env\(safe-area-inset-bottom\)\)/);
     assert.match(styles, /padding-bottom:calc\(160px \+ env\(safe-area-inset-bottom\)\)/);
-    assert.match(styles, /\.game-layout \.tetris-stage\{width:min\([^}]*calc\(\(100dvh - 160px - env\(safe-area-inset-bottom\)\)\/2\)\)/);
+    assert.match(styles, /\.game-layout \.tetris-stage\{width:min\([^}]*calc\(\(100dvh - 260px - env\(safe-area-inset-top\) - env\(safe-area-inset-bottom\)\)\/2\)\)/);
     assert.match(styles, /grid-template-columns:minmax\(0,7fr\) minmax\(96px,3fr\)/);
     assert.match(page, /class="tetris-controls"[\s\S]*class="stats"[\s\S]*id="next"/);
+});
+
+test('Tetris fits tablet viewports without clipping fallback page scrolling', () => {
+    const styles = read('tetris/styles.css');
+    assert.match(styles, /\.game-tetris \.app-shell\{[^}]*height:auto;[^}]*overflow:visible/);
+    assert.match(styles, /@media \(min-width:781px\) and \(max-width:850px\)[\s\S]*?\.game-tetris \.intro\{display:none\}/);
+    assert.match(styles, /@media \(min-width:781px\) and \(max-height:900px\)[\s\S]*?\.game-tetris>\.arcade-topbar\{[^}]*padding-top:calc\(6px \+ env\(safe-area-inset-top\)\)/);
+    assert.match(styles, /max-height:900px[\s\S]*?\.game-tetris \.game-layout\{height:auto;[^}]*grid-template-columns:minmax\(300px,1fr\) minmax\(360px,440px\)/);
+    assert.match(styles, /max-height:900px[\s\S]*?\.game-tetris \.tetris-stage\{width:min\([^}]*100dvh - 124px/);
 });
 
 test('Tetris gives occupied cells layered code-native block faces', () => {
