@@ -59,6 +59,11 @@ appearance dialog, persists changes, synchronizes tabs, and emits the
 `system:theme-changed` domain event for DOM and canvas games. Shared component and layout
 tokens live in `arcade.css` and `styles/modern-game.css`; homepage and profile
 styles consume the same root attributes for their page-specific layouts.
+Modern game shells always retain natural document scrolling. At tablet widths
+and short landscape heights, the shared presentation hides decorative intros,
+compacts both header rows, and keeps the playable surface and primary controls
+in the initial viewport; game-specific styles only supply the board or command
+deck sizing needed to satisfy that shared contract.
 
 The shared shell also owns the progressive-web-app install surface. It points
 modern pages at the root arcade manifest, uses the browser's native install
@@ -113,9 +118,10 @@ Pong full screen keeps the complete court as the only play surface, reuses the e
 
 Tetris keeps mechanics independent from DOM presentation, submits bounded
 top-out aggregates for server-derived scoring, and consumes a scoped theme-token
-interface. At phone widths, the controller's board and status rail use an
-approximately 70/30 viewport-aware layout while the touch controls remain
-available.
+interface. At phone portrait widths, the controller's board and status rail use
+an approximately 70/30 viewport-aware layout while the touch controls remain
+available. Short phone landscapes preserve a playable board and dock the touch
+controls inside a compact side rail instead of covering the board.
 Line-clear and live-record celebrations are non-authoritative,
 non-blocking presentation driven by mechanics events and local best-score state.
 Random magic breakers and motion-assisted stack compaction are mechanics-owned,

@@ -46,10 +46,12 @@ top-out rather than producing a win or loss.
 8. Tetris JavaScript must not inspect theme attributes, branch on registered
    theme names, or embed experience palettes. A new theme supports Tetris by
    implementing the existing token interface.
-9. At mobile widths, the board and information rail remain side by side in an
-   approximately 70/30 split. Dynamic-viewport and safe-area constraints keep
-   the board, score, high score, lines, level, hold, next queue, actions, and
-   existing touch controls available together.
+9. At mobile portrait widths, the board and information rail remain side by
+   side in an approximately 70/30 split. Short phone landscapes instead use a
+   viewport-height-sized board beside a compact rail with stat, preview, touch,
+   and action rows. Dynamic-viewport and safe-area constraints keep the board,
+   score, high score, lines, level, hold, next queue, actions, and existing touch
+   controls available together without a fixed tray covering play.
 10. A line-clear mechanics event drives an intentionally prominent but
     non-blocking presentation layer. Its flash, recoil, streaks, sparks, and
     clear count scale with the number of lines; reduced-motion users receive a
@@ -85,10 +87,11 @@ are plausibility-checked rather than authoritative, so a determined client can
 still fabricate a local result; authoritative play would require moving the
 simulation server-side.
 
-The narrow layout deliberately gives the board most of the horizontal space
-while preserving a compact information rail and the established touch-control
-placement. Clear and record effects add presentation state to the controller,
-but do not enter the mechanics or result schemas.
+The narrow portrait layout deliberately gives the board most of the horizontal
+space while preserving a compact information rail and the established fixed
+touch-control placement. Short landscapes trade that ratio for a minimum usable
+board and an in-flow control rail. Clear and record effects add presentation
+state to the controller, but do not enter the mechanics or result schemas.
 
 Scoring, result fields, achievement rules, and the database game constraint must
 be changed together. Any future mode must define its completion semantics and
@@ -105,6 +108,6 @@ validation separately instead of overloading the marathon payload.
 * Tetris rendering code does not select or identify an experience theme.
 * Every experience theme exposes the complete scoped Tetris token contract.
 * Mobile layout keeps live statistics and previews visible beside the board
-  without removing the touch controls.
+  without removing the touch controls or allowing them to cover play.
 * Clear and record celebrations never pause or alter gameplay state.
 * Reduced-motion preferences preserve visible feedback without large movement.
