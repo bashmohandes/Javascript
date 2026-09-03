@@ -84,7 +84,8 @@ Use <kbd>A</kbd>/<kbd>D</kbd> or <kbd>←</kbd>/<kbd>→</kbd> to move,
 to change power. Press <kbd>Space</kbd> or **Fire** to shoot. Pointer and touch
 players can use all visible buttons; in solo or local mode they may also drag the active
 tank horizontally. The weapon selector chooses available ammunition. **Enter
-full screen** adds movement, aim, power, weapon, fire, and exit controls. In
+full screen** is available from both the full settings panel and the compact
+control deck; it adds movement, aim, power, weapon, fire, and exit controls. In
 landscape, those controls move into a compact side deck so the 16:9 battlefield
 can use nearly the full screen height without covering either tank.
 
