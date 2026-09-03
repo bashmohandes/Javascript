@@ -10,7 +10,7 @@ const { openDatabase } = require('./database');
 const { Accounts } = require('./accounts');
 const { GameSaves, SaveError } = require('./saves');
 const { Achievements } = require('./achievements');
-const { clientIp: getClientIp, contentSecurityPolicy, isPrivatePath, originAllowed, parseCookies, RateLimiter, readJson, useSecureCookies, WebSocketGuard } = require('./http-security');
+const { clientIp: getClientIp, contentSecurityPolicy, HttpError, isPrivatePath, originAllowed, parseCookies, RateLimiter, readJson, RequestBodyGuard, useSecureCookies, WebSocketGuard } = require('./http-security');
 const { createStaticAssetHandler } = require('./static-assets');
 const { parseMessage, roomStatusMessage, send, sessionMessage } = require('./websocket-messages');
 const { generateIcons } = require('../scripts/generate-icons');
@@ -37,6 +37,11 @@ const positiveInteger = (value, fallback) => Number.isSafeInteger(Number(value))
 const gameSaves = new GameSaves(database, {
     maxTotalBytes: positiveInteger(process.env.SAVE_MAX_TOTAL_BYTES, 512 * 1024 * 1024),
     maxUserBytes: positiveInteger(process.env.SAVE_MAX_BYTES_PER_USER, 16 * 1024 * 1024)
+});
+const requestBodyGuard = new RequestBodyGuard({
+    maxTotalBytes: positiveInteger(process.env.HTTP_BODY_MAX_IN_FLIGHT_BYTES, 16 * 1024 * 1024),
+    maxBytesPerIp: positiveInteger(process.env.HTTP_BODY_MAX_IN_FLIGHT_BYTES_PER_IP, 4 * 1024 * 1024),
+    timeoutMs: positiveInteger(process.env.HTTP_BODY_TIMEOUT_MS, 30000)
 });
 const websocketGuard = new WebSocketGuard({
     maxConnections: positiveInteger(process.env.WS_MAX_CONNECTIONS, 250),
@@ -76,6 +81,7 @@ const registrationLimiter = new RateLimiter(5, 60 * 60 * 1000);
 const resultLimiter = new RateLimiter(60, 60 * 60 * 1000);
 const saveLimiter = new RateLimiter(120, 60 * 60 * 1000);
 function clientIp(request) { return getClientIp(request, trustProxy); }
+function readRequestJson(request, maximum) { return readJson(request, maximum, { guard: requestBodyGuard, ip: clientIp(request) }); }
 function throttle(response, retryAfter) { return json(response, 429, { error: 'Too many attempts. Try again later.' }, { 'retry-after': retryAfter }); }
 function sameOrigin(request, requireOrigin = false) {
     return originAllowed(request, allowedOrigins, trustProxy, requireOrigin);
@@ -110,11 +116,11 @@ const server = http.createServer(async (request, response) => {
             if (!sameOrigin(request)) return json(response, 403, { error: 'Origin not allowed.' });
             if (pathname === '/api/auth/register' && request.method === 'POST') {
                 const retryAfter = registrationLimiter.consume(clientIp(request)); if (retryAfter) return throttle(response, retryAfter);
-                const body = await readJson(request), user = await accounts.create(body.gamertag, body.passcode), session = accounts.createSession(user.id);
+                const body = await readRequestJson(request), user = await accounts.create(body.gamertag, body.passcode), session = accounts.createSession(user.id);
                 return json(response, 201, { user }, { 'set-cookie': sessionCookie(session.token, session.expiresAt) });
             }
             if (pathname === '/api/auth/login' && request.method === 'POST') {
-                const body = await readJson(request), ip = clientIp(request), loginKey = `${ip}:${String(body.gamertag || '').trim().toLowerCase()}`;
+                const body = await readRequestJson(request), ip = clientIp(request), loginKey = `${ip}:${String(body.gamertag || '').trim().toLowerCase()}`;
                 const retryAfter = Math.max(loginLimiter.consume(loginKey), loginIpLimiter.consume(ip)); if (retryAfter) return throttle(response, retryAfter);
                 const user = await accounts.authenticate(body.gamertag, body.passcode), session = accounts.createSession(user.id); loginLimiter.reset(loginKey);
                 return json(response, 200, { user }, { 'set-cookie': sessionCookie(session.token, session.expiresAt) });
@@ -139,12 +145,12 @@ const server = http.createServer(async (request, response) => {
             if (saveCollection && request.method === 'GET') return json(response, 200, { game: saveCollection[1], saves: gameSaves.list(user.id, saveCollection[1]) });
             if (saveCollection && request.method === 'POST') {
                 const retryAfter = saveLimiter.consume(user.id); if (retryAfter) return throttle(response, retryAfter);
-                return json(response, 201, { save: gameSaves.create(user.id, saveCollection[1], await readJson(request, 768 * 1024)) });
+                return json(response, 201, { save: gameSaves.create(user.id, saveCollection[1], await readRequestJson(request, 768 * 1024)) });
             }
             if (saveItem && request.method === 'GET') return json(response, 200, { save: gameSaves.load(user.id, saveItem[1], saveItem[2]) });
             if (saveItem && ['PUT', 'PATCH', 'DELETE'].includes(request.method)) {
                 const retryAfter = saveLimiter.consume(user.id); if (retryAfter) return throttle(response, retryAfter);
-                const body = await readJson(request, request.method === 'PUT' ? 768 * 1024 : 10000);
+                const body = await readRequestJson(request, request.method === 'PUT' ? 768 * 1024 : 10000);
                 if (request.method === 'PUT') return json(response, 200, { save: gameSaves.update(user.id, saveItem[1], saveItem[2], body) });
                 if (request.method === 'PATCH') return json(response, 200, { save: gameSaves.rename(user.id, saveItem[1], saveItem[2], body) });
                 return json(response, 200, gameSaves.delete(user.id, saveItem[1], saveItem[2], body.expectedRevision, body.expectedGeneration));
@@ -154,16 +160,17 @@ const server = http.createServer(async (request, response) => {
                 return json(response, 200, accounts.profile(user.id, parameters.get('page'), parameters.get('pageSize')));
             }
             if (pathname === '/api/profile' && request.method === 'PATCH') {
-                const updated = await accounts.update(user.id, await readJson(request)), session = accounts.createSession(user.id);
+                const updated = await accounts.update(user.id, await readRequestJson(request)), session = accounts.createSession(user.id);
                 return json(response, 200, { user: updated }, { 'set-cookie': sessionCookie(session.token, session.expiresAt) });
             }
             if (pathname === '/api/results' && request.method === 'POST') {
                 const retryAfter = resultLimiter.consume(user.id); if (retryAfter) return throttle(response, retryAfter);
-                return json(response, 201, accounts.record(user.id, await readJson(request)));
+                return json(response, 201, accounts.record(user.id, await readRequestJson(request)));
             }
             return json(response, 404, { error: 'API endpoint not found.' });
         } catch (error) {
             if (error instanceof SaveError) return json(response, error.status, { error: error.message, code: error.code, ...(error.current ? { current: error.current } : {}) });
+            if (error instanceof HttpError) return json(response, error.status, { error: error.message });
             const clientError = /Gamertag|Passcode|passcode|incorrect|taken|Unknown game|Invalid|details|JSON|large/.test(error.message);
             return json(response, clientError ? 400 : 500, { error: clientError ? error.message : 'Server error.' });
         }

@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
 const fs = require('node:fs');
 const path = require('node:path');
-const { clientIp, contentSecurityPolicy, isPrivatePath, originAllowed, parseCookies, RateLimiter, readJson, requestOrigin, useSecureCookies, WebSocketGuard } = require('../server/http-security');
+const { clientIp, contentSecurityPolicy, HttpError, isPrivatePath, originAllowed, parseCookies, RateLimiter, readJson, RequestBodyGuard, requestOrigin, useSecureCookies, WebSocketGuard } = require('../server/http-security');
 
 function request(headers = {}, encrypted = false) {
     return { headers, socket: { encrypted, remoteAddress: '127.0.0.1' } };
@@ -19,6 +19,23 @@ test('JSON request limits count chunks incrementally and reject oversized declar
     let read = false;
     await assert.rejects(readJson({ headers: { 'content-length': '9' }, async *[Symbol.asyncIterator]() { read = true; yield '{}'; } }, 8), /too large/i);
     assert.equal(read, false);
+});
+
+test('request body guard bounds aggregate reservations and releases completed bodies', async () => {
+    const guard = new RequestBodyGuard({ maxTotalBytes: 12, maxBytesPerIp: 8, timeoutMs: 100 });
+    const release = guard.reserve('first', 8);
+    assert.throws(() => guard.reserve('first', 1), error => error instanceof HttpError && error.status === 429);
+    assert.throws(() => guard.reserve('second', 5), error => error instanceof HttpError && error.status === 429);
+    release();
+    assert.deepEqual(await readJson({ headers: { 'content-length': '7' }, async *[Symbol.asyncIterator]() { yield '{"x":1}'; } }, 10, { guard, ip: 'first' }), { x: 1 });
+    assert.equal(guard.totalBytes, 0); assert.equal(guard.bytesByIp.size, 0);
+});
+
+test('request body guard times out unfinished bodies and releases their reservation', async () => {
+    const guard = new RequestBodyGuard({ maxTotalBytes: 64, maxBytesPerIp: 64, timeoutMs: 5 }); let finish;
+    const pending = { headers: {}, destroy() { finish(); }, async *[Symbol.asyncIterator]() { await new Promise(resolve => { finish = resolve; }); } };
+    await assert.rejects(readJson(pending, 64, { guard, ip: 'first' }), error => error instanceof HttpError && error.status === 408);
+    assert.equal(guard.totalBytes, 0); assert.equal(guard.bytesByIp.size, 0);
 });
 
 test('cookie parsing tolerates malformed values and preserves equals signs', () => {

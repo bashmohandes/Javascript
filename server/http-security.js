@@ -2,7 +2,28 @@
 
 const net = require('node:net');
 
-async function readJson(request, maximum = 10000) {
+class HttpError extends Error {
+    constructor(message, status = 400) { super(message); this.status = status; }
+}
+
+class RequestBodyGuard {
+    constructor({ maxTotalBytes, maxBytesPerIp, timeoutMs }) {
+        this.maxTotalBytes = maxTotalBytes; this.maxBytesPerIp = maxBytesPerIp; this.timeoutMs = timeoutMs;
+        this.totalBytes = 0; this.bytesByIp = new Map();
+    }
+    reserve(ip, bytes) {
+        const current = this.bytesByIp.get(ip) || 0;
+        if (this.totalBytes + bytes > this.maxTotalBytes || current + bytes > this.maxBytesPerIp) throw new HttpError('Too many request bodies are already in progress.', 429);
+        this.totalBytes += bytes; this.bytesByIp.set(ip, current + bytes); let released = false;
+        return () => {
+            if (released) return; released = true; this.totalBytes -= bytes;
+            const remaining = (this.bytesByIp.get(ip) || 0) - bytes;
+            if (remaining > 0) this.bytesByIp.set(ip, remaining); else this.bytesByIp.delete(ip);
+        };
+    }
+}
+
+async function readJson(request, maximum = 10000, { guard = null, ip = 'unknown' } = {}) {
     const declaredValue = request.headers?.['content-length']; let capacity = maximum;
     if (declaredValue !== undefined) {
         const normalized = String(declaredValue);
@@ -10,17 +31,27 @@ async function readJson(request, maximum = 10000) {
         if (Number(normalized) > maximum) throw new Error('Request is too large.');
         capacity = Number(normalized);
     }
-    let bodyBuffer = null, received = 0;
-    for await (const chunk of request) {
-        const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-        received += bytes.length;
-        if (received > maximum) throw new Error('Request is too large.');
-        if (received > capacity) throw new Error('Invalid Content-Length.');
-        bodyBuffer ||= Buffer.allocUnsafe(capacity);
-        bytes.copy(bodyBuffer, received - bytes.length);
+    const release = guard?.reserve(ip, capacity) || (() => {}); let timedOut = false;
+    const timer = guard?.timeoutMs ? setTimeout(() => { timedOut = true; request.destroy?.(); }, guard.timeoutMs) : null; timer?.unref?.();
+    try {
+        let bodyBuffer = null, received = 0;
+        for await (const chunk of request) {
+            const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+            received += bytes.length;
+            if (received > maximum) throw new Error('Request is too large.');
+            if (received > capacity) throw new Error('Invalid Content-Length.');
+            bodyBuffer ||= Buffer.allocUnsafe(capacity);
+            bytes.copy(bodyBuffer, received - bytes.length);
+        }
+        if (timedOut) throw new HttpError('Request body timed out.', 408);
+        const body = bodyBuffer ? bodyBuffer.subarray(0, received).toString('utf8') : '';
+        try { return body ? JSON.parse(body) : {}; } catch { throw new Error('Invalid JSON.'); }
+    } catch (error) {
+        if (timedOut && !(error instanceof HttpError)) throw new HttpError('Request body timed out.', 408);
+        throw error;
+    } finally {
+        if (timer) clearTimeout(timer); release();
     }
-    const body = bodyBuffer ? bodyBuffer.subarray(0, received).toString('utf8') : '';
-    try { return body ? JSON.parse(body) : {}; } catch { throw new Error('Invalid JSON.'); }
 }
 
 const PRIVATE_TOP_LEVEL = new Set([
@@ -209,4 +240,4 @@ class WebSocketGuard {
     ownRoom(socket, room) { this.roomOwners.set(room, this.socketIps.get(socket) || 'unknown'); }
 }
 
-module.exports = { clientIp, contentSecurityPolicy, isPrivatePath, originAllowed, parseCookies, RateLimiter, readJson, requestOrigin, useSecureCookies, WebSocketGuard };
+module.exports = { clientIp, contentSecurityPolicy, HttpError, isPrivatePath, originAllowed, parseCookies, RateLimiter, readJson, RequestBodyGuard, requestOrigin, useSecureCookies, WebSocketGuard };

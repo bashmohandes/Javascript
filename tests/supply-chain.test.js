@@ -63,6 +63,9 @@ test('Compose services and containers use configurable playground names', () => 
         assert.match(compose, /^\s*container_name: \$\{JSPG_CONTAINER_NAME:-javascript-playground\}$/m, file);
         assert.match(compose, /SAVE_MAX_BYTES_PER_USER: \$\{SAVE_MAX_BYTES_PER_USER:-16777216\}/, file);
         assert.match(compose, /SAVE_MAX_TOTAL_BYTES: \$\{SAVE_MAX_TOTAL_BYTES:-536870912\}/, file);
+        assert.match(compose, /HTTP_BODY_MAX_IN_FLIGHT_BYTES: \$\{HTTP_BODY_MAX_IN_FLIGHT_BYTES:-16777216\}/, file);
+        assert.match(compose, /HTTP_BODY_MAX_IN_FLIGHT_BYTES_PER_IP: \$\{HTTP_BODY_MAX_IN_FLIGHT_BYTES_PER_IP:-4194304\}/, file);
+        assert.match(compose, /HTTP_BODY_TIMEOUT_MS: \$\{HTTP_BODY_TIMEOUT_MS:-30000\}/, file);
         assert.match(compose, /\$\{JSPG_PORT:-8080\}/, file);
     }
     assert.match(fs.readFileSync('compose.nas.yaml', 'utf8'), /\$\{JSPG_IMAGE:\?Set JSPG_IMAGE/);
