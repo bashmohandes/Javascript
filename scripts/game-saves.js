@@ -145,7 +145,7 @@
         function closeManager() { dialog.close(); }
         dialog.querySelector('[data-save-close]').addEventListener('click', closeManager);
         dialog.querySelector('[data-save-current]').addEventListener('click', () => saveCurrent());
-        dialog.addEventListener('close', () => { const token = dialogPause; dialogPause = null; resumeFrom(token); replacing = false; });
+        dialog.addEventListener('close', () => { const token = dialogPause; dialogPause = null; exitAfterSave = null; resumeFrom(token); replacing = false; });
         button.addEventListener('click', open);
         function showLeave(destination) { exitAfterSave = destination; leavePause = pauseFor('leave'); leaveDialog.querySelector('.arcade-leave-status').textContent = ''; leaveDialog.showModal(); }
         leaveDialog.querySelector('[data-leave-stay]').addEventListener('click', () => { exitAfterSave = null; leaveDialog.close(); });
