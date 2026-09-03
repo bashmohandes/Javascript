@@ -13,6 +13,8 @@ const MODES = Object.freeze({
 });
 const MAX_STATE_BYTES = 256 * 1024;
 const MAX_SCREENSHOT_BYTES = 256 * 1024;
+const DEFAULT_MAX_TOTAL_BYTES = 512 * 1024 * 1024;
+const DEFAULT_MAX_USER_BYTES = 16 * 1024 * 1024;
 
 class SaveError extends Error {
     constructor(message, status = 400, code = 'INVALID_SAVE', current = null) {
@@ -74,10 +76,22 @@ function summary(row) {
         screenshotUrl: `/api/saves/${row.game}/${row.slot}/screenshot?g=${row.generation}&v=${row.revision}`
     };
 }
+function payloadBytes(values) { return Buffer.byteLength(values.stateJson) + values.data.length; }
 
 class GameSaves {
-    constructor(database) { this.database = database; }
+    constructor(database, { maxTotalBytes = DEFAULT_MAX_TOTAL_BYTES, maxUserBytes = DEFAULT_MAX_USER_BYTES } = {}) {
+        if (!Number.isSafeInteger(maxTotalBytes) || maxTotalBytes < 1 || !Number.isSafeInteger(maxUserBytes) || maxUserBytes < 1) throw new Error('Invalid save storage limit.');
+        this.database = database; this.maxTotalBytes = maxTotalBytes; this.maxUserBytes = maxUserBytes;
+    }
     row(userId, game, slot) { return this.database.prepare('SELECT * FROM game_saves WHERE user_id = ? AND game = ? AND slot = ?').get(userId, game, slot); }
+    storedBytes(userId = null) {
+        const where = userId === null ? '' : ' WHERE user_id = ?';
+        return this.database.prepare(`SELECT COALESCE(SUM(length(CAST(state_json AS BLOB)) + length(screenshot)), 0) bytes FROM game_saves${where}`).get(...(userId === null ? [] : [userId])).bytes;
+    }
+    assertCapacity(userId, addedBytes, replacedBytes = 0) {
+        if (this.storedBytes(userId) - replacedBytes + addedBytes > this.maxUserBytes) throw new SaveError('Your cloud-save storage is full.', 507, 'SAVE_STORAGE_FULL');
+        if (this.storedBytes() - replacedBytes + addedBytes > this.maxTotalBytes) throw new SaveError('Cloud-save storage is temporarily full.', 507, 'SAVE_STORAGE_FULL');
+    }
     list(userId, gameValue) {
         const game = gameId(gameValue);
         return this.database.prepare('SELECT * FROM game_saves WHERE user_id = ? AND game = ? ORDER BY slot').all(userId, game).map(summary);
@@ -101,6 +115,7 @@ class GameSaves {
             const occupied = new Set(this.database.prepare('SELECT slot FROM game_saves WHERE user_id = ? AND game = ?').all(userId, game).map(row => row.slot));
             const slot = [1,2,3,4,5].find(candidate => !occupied.has(candidate));
             if (!slot) throw new SaveError('All five save slots are occupied.', 409, 'SAVE_SLOTS_FULL');
+            this.assertCapacity(userId, payloadBytes(values));
             this.database.prepare(`INSERT INTO game_saves
                 (user_id, game, slot, title, mode, state_version, state_json, elapsed_seconds, score_label, screenshot, screenshot_mime, generation)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(userId, game, slot, values.title, values.mode, values.stateVersion, values.stateJson, values.elapsedSeconds, values.scoreLabel, values.data, values.mimeType, randomBytes(16).toString('hex'));
@@ -113,14 +128,21 @@ class GameSaves {
     }
     update(userId, gameValue, slotValue, payload) {
         const game = gameId(gameValue), slot = slotNumber(slotValue), values = validatePayload(game, payload);
-        const current = this.row(userId, game, slot);
-        if (!current) throw new SaveError('Save slot not found.', 404, 'SAVE_NOT_FOUND');
-        const revision = integer(payload.expectedRevision, 1, Number.MAX_SAFE_INTEGER, 'save revision'), generation = saveGeneration(payload.expectedGeneration);
-        if (revision !== current.revision || generation !== current.generation) throw new SaveError('This save changed on another device.', 409, 'SAVE_CONFLICT', summary(current));
-        const result = this.database.prepare(`UPDATE game_saves SET title = ?, mode = ?, state_version = ?, state_json = ?, elapsed_seconds = ?, score_label = ?, screenshot = ?, screenshot_mime = ?, revision = revision + 1, updated_at = CURRENT_TIMESTAMP
-            WHERE user_id = ? AND game = ? AND slot = ? AND generation = ? AND revision = ?`).run(values.title, values.mode, values.stateVersion, values.stateJson, values.elapsedSeconds, values.scoreLabel, values.data, values.mimeType, userId, game, slot, generation, revision);
-        if (!result.changes) throw new SaveError('This save changed on another device.', 409, 'SAVE_CONFLICT', summary(this.row(userId, game, slot)));
-        return summary(this.row(userId, game, slot));
+        this.database.exec('BEGIN IMMEDIATE');
+        try {
+            const current = this.row(userId, game, slot);
+            if (!current) throw new SaveError('Save slot not found.', 404, 'SAVE_NOT_FOUND');
+            const revision = integer(payload.expectedRevision, 1, Number.MAX_SAFE_INTEGER, 'save revision'), generation = saveGeneration(payload.expectedGeneration);
+            if (revision !== current.revision || generation !== current.generation) throw new SaveError('This save changed on another device.', 409, 'SAVE_CONFLICT', summary(current));
+            this.assertCapacity(userId, payloadBytes(values), Buffer.byteLength(current.state_json) + current.screenshot.length);
+            const result = this.database.prepare(`UPDATE game_saves SET title = ?, mode = ?, state_version = ?, state_json = ?, elapsed_seconds = ?, score_label = ?, screenshot = ?, screenshot_mime = ?, revision = revision + 1, updated_at = CURRENT_TIMESTAMP
+                WHERE user_id = ? AND game = ? AND slot = ? AND generation = ? AND revision = ?`).run(values.title, values.mode, values.stateVersion, values.stateJson, values.elapsedSeconds, values.scoreLabel, values.data, values.mimeType, userId, game, slot, generation, revision);
+            if (!result.changes) throw new SaveError('This save changed on another device.', 409, 'SAVE_CONFLICT', summary(this.row(userId, game, slot)));
+            const updated = summary(this.row(userId, game, slot)); this.database.exec('COMMIT'); return updated;
+        } catch (error) {
+            if (this.database.isTransaction) this.database.exec('ROLLBACK');
+            throw error;
+        }
     }
     rename(userId, gameValue, slotValue, payload) {
         const game = gameId(gameValue), slot = slotNumber(slotValue), { title } = validatePayload(game, payload, { stateRequired: false });
@@ -143,4 +165,4 @@ class GameSaves {
     }
 }
 
-module.exports = { GameSaves, SaveError, MAX_SCREENSHOT_BYTES, MAX_STATE_BYTES };
+module.exports = { DEFAULT_MAX_TOTAL_BYTES, DEFAULT_MAX_USER_BYTES, GameSaves, SaveError, MAX_SCREENSHOT_BYTES, MAX_STATE_BYTES };

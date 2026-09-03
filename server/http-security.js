@@ -2,6 +2,24 @@
 
 const net = require('node:net');
 
+async function readJson(request, maximum = 10000) {
+    const declaredValue = request.headers?.['content-length'];
+    if (declaredValue !== undefined) {
+        const normalized = String(declaredValue);
+        if (!/^\d+$/.test(normalized) || !Number.isSafeInteger(Number(normalized))) throw new Error('Invalid Content-Length.');
+        if (Number(normalized) > maximum) throw new Error('Request is too large.');
+    }
+    const chunks = []; let received = 0;
+    for await (const chunk of request) {
+        const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+        received += bytes.length;
+        if (received > maximum) throw new Error('Request is too large.');
+        chunks.push(bytes);
+    }
+    const body = Buffer.concat(chunks, received).toString('utf8');
+    try { return body ? JSON.parse(body) : {}; } catch { throw new Error('Invalid JSON.'); }
+}
+
 const PRIVATE_TOP_LEVEL = new Set([
     'compose.yaml',
     'compose.nas.yaml',
@@ -188,4 +206,4 @@ class WebSocketGuard {
     ownRoom(socket, room) { this.roomOwners.set(room, this.socketIps.get(socket) || 'unknown'); }
 }
 
-module.exports = { clientIp, contentSecurityPolicy, isPrivatePath, originAllowed, parseCookies, RateLimiter, requestOrigin, useSecureCookies, WebSocketGuard };
+module.exports = { clientIp, contentSecurityPolicy, isPrivatePath, originAllowed, parseCookies, RateLimiter, readJson, requestOrigin, useSecureCookies, WebSocketGuard };

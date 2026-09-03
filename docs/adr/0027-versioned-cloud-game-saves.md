@@ -41,6 +41,6 @@ client-authored checkpoint as a trusted result.
 All modern controllers gain explicit persistence boundaries while the arcade
 stays build-free. State schema changes require a new adapter version or a
 compatible importer. SQLite storage grows with private screenshots but remains
-bounded to thirty slots per account. This decision supersedes ADR 0010's
+bounded by thirty slots per account and the payload budgets in ADR 0028. This decision supersedes ADR 0010's
 initial choice not to persist unfinished Tetris runs; completed results keep
 their existing server-derived validation path.
