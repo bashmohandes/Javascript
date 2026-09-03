@@ -20,6 +20,10 @@ timbre:
 Music reacts lightly to progress, pace, or danger. It does not affect mechanics,
 online state, results, or scoring.
 
+In Tetris, the music shifts into a faster tension tempo when the locked tower
+rises above two-thirds of the playfield, then returns to its normal tempo after
+line clears or power-ups bring the tower back down.
+
 ## Public-domain quotations
 
 The following note sequences are manually encoded in `scripts/audio.js`.

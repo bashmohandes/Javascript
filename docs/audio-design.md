@@ -60,6 +60,12 @@ filtered-noise offbeats. `intensity` increases melodic detail and may increase
 tempo by at most 10 BPM; `danger` introduces a restrained counter-line. Neither
 value rewrites game timing.
 
+For Tetris, the locked stack height is published as normalized danger. Once the
+stack exceeds two-thirds of the 20-row playfield, the scheduler adds 32 BPM to
+the current level-based tempo; clearing back to two-thirds or lower removes the
+boost. The next scheduler window adopts either transition without restarting
+the melody.
+
 Theme profiles change oscillator types, brightness, envelope shape, density, and
 gain. The active composition remains recognizable across themes. Theme changes
 affect newly scheduled voices and do not require controllers to know theme names.

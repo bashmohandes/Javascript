@@ -33,6 +33,11 @@
     });
 
     const emptyBoard = () => Array.from({ length: HEIGHT }, () => Array(WIDTH).fill(null));
+    function stackHeightRatio(board) {
+        if (!Array.isArray(board) || !board.length) return 0;
+        const highest = board.findIndex(row => Array.isArray(row) && row.some(Boolean));
+        return highest < 0 ? 0 : (board.length - highest) / board.length;
+    }
     const cellsFor = piece => piece.type === 'M' ? [[piece.x, piece.y]] : SHAPES[piece.type][piece.rotation].map(([x, y]) => [piece.x + x, piece.y + y]);
 
     class TetrisGame {
@@ -204,5 +209,5 @@
         details(seconds) { return { mode: 'marathon', seconds, lines: this.lines, level: this.level, pieces: this.pieces, singles: this.singles, doubles: this.doubles, triples: this.triples, tetrises: this.tetrises, softDropCells: this.softDropCells, hardDropCells: this.hardDropCells, magicPowerUps: this.magicPowerUps, magicBlocksDestroyed: this.magicBlocksDestroyed, shakePowerUps: this.shakePowerUps }; }
     }
 
-    return { TetrisGame, WIDTH, HEIGHT, HIDDEN_ROWS, VISIBLE_ROWS, TYPES, SHAPES, MAGIC_BLOCK_POINTS, cellsFor };
+    return { TetrisGame, WIDTH, HEIGHT, HIDDEN_ROWS, VISIBLE_ROWS, TYPES, SHAPES, MAGIC_BLOCK_POINTS, cellsFor, stackHeightRatio };
 });

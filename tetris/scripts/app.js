@@ -90,8 +90,14 @@
         events.emit('tetris:local-record-broken', { score: game.score, previous: standingBest });
         clearTimeout(recordTimer); recordTimer = setTimeout(() => { stageElement.classList.remove('is-new-record'); recordCalloutElement.classList.remove('is-active'); }, 2200);
     }
+    function towerHeightRatio(board, rules = window.TetrisRules) {
+        if (typeof rules.stackHeightRatio === 'function') return rules.stackHeightRatio(board);
+        if (!Array.isArray(board) || !board.length) return 0;
+        const highest = board.findIndex(row => Array.isArray(row) && row.some(Boolean));
+        return highest < 0 ? 0 : (board.length - highest) / board.length;
+    }
     function progressDetail(board = game.visibleBoard()) {
-        const highest = board.findIndex(row => row.some(Boolean)), danger = highest < 0 ? 0 : Math.max(0, Math.min(1, (8 - highest) / 8));
+        const danger = towerHeightRatio(board);
         return { level: game.level, intensity: Math.min(.9, .2 + game.level * .07), danger };
     }
     function checkpointLiveAchievements() {

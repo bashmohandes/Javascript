@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { TetrisGame, TYPES, MAGIC_BLOCK_POINTS } = require('../tetris/scripts/game');
+const { TetrisGame, TYPES, MAGIC_BLOCK_POINTS, stackHeightRatio } = require('../tetris/scripts/game');
 const { validateResult, Accounts } = require('../server/accounts');
 const { Achievements } = require('../server/achievements');
 const { openDatabase } = require('../server/database');
@@ -16,6 +16,28 @@ const tetrisDetails = overrides => ({ mode:'marathon', seconds:60, lines:4, leve
 test('seven-bag generation contains every tetromino exactly once', () => {
     const game = new TetrisGame({ random: () => .5 });
     assert.deepEqual(new Set([game.piece.type, ...game.queue.slice(0, 6)]), new Set(TYPES));
+});
+
+test('stack height reports crossings above and below two-thirds of the visible board', () => {
+    const board = Array.from({ length: 20 }, () => Array(10).fill(null));
+    assert.equal(stackHeightRatio(board), 0);
+    board[7][0] = 'T';
+    assert.equal(stackHeightRatio(board), .65);
+    board[6][0] = 'T';
+    assert.equal(stackHeightRatio(board), .7);
+    board[6][0] = null; board[7][0] = null; board[12][0] = 'T';
+    assert.equal(stackHeightRatio(board), .4);
+});
+
+test('Tetris controller preserves tower danger when an older mechanics script is cached', () => {
+    const app = read('tetris/scripts/app.js');
+    const source = app.match(/function towerHeightRatio[\s\S]*?\n    }/)?.[0];
+    assert.ok(source, 'controller should define a compatibility helper');
+    const towerHeightRatio = Function(`${source}; return towerHeightRatio;`)();
+    const board = Array.from({ length: 20 }, () => Array(10).fill(null));
+    board[6][0] = 'T';
+    assert.equal(towerHeightRatio(board, {}), .7, 'older cached mechanics should use the controller fallback');
+    assert.equal(towerHeightRatio(board, { stackHeightRatio: () => .4 }), .4, 'current mechanics should remain authoritative');
 });
 
 test('movement, rotation, hold, ghost, and hard drop obey game boundaries', () => {
