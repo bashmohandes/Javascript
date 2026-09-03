@@ -10,12 +10,12 @@ const { openDatabase } = require('../server/database');
 const { GameSaves, SaveError, MAX_SCREENSHOT_BYTES, MAX_STATE_BYTES } = require('../server/saves');
 
 const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
-function fixture(t) {
+function fixture(t, options) {
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'arcade-saves-'));
     const database = openDatabase(path.join(directory, 'test.sqlite'));
     database.prepare("INSERT INTO users (id, gamertag, passcode_hash) VALUES (1, 'First', 'unused'), (2, 'Second', 'unused')").run();
     t.after(() => { database.close(); fs.rmSync(directory, { recursive: true, force: true }); });
-    return { database, saves: new GameSaves(database) };
+    return { database, saves: new GameSaves(database, options) };
 }
 function payload(change = {}) {
     return { title: '', mode: 'marathon', stateVersion: 1, state: { board: [[null]], score: 40 }, elapsedSeconds: 12, scoreLabel: '40 points', screenshot: { mimeType: 'image/png', data: PNG }, ...change };
@@ -86,4 +86,17 @@ test('account deletion cascades to cloud saves', t => {
     const { database, saves } = fixture(t);
     saves.create(1, 'tetris', payload()); database.prepare('DELETE FROM users WHERE id = 1').run();
     assert.equal(database.prepare('SELECT COUNT(*) count FROM game_saves').get().count, 0);
+});
+
+test('enforces per-account and aggregate payload budgets before storage grows', t => {
+    const bytes = Buffer.byteLength(JSON.stringify(payload().state)) + Buffer.from(PNG, 'base64').length;
+    const userFixture = fixture(t, { maxUserBytes: bytes, maxTotalBytes: bytes * 10 });
+    const first = userFixture.saves.create(1, 'tetris', payload());
+    userFixture.saves.maxUserBytes = 1; userFixture.saves.maxTotalBytes = 1;
+    const replaced = userFixture.saves.update(1, 'tetris', first.slot, payload({ expectedRevision: first.revision, expectedGeneration: first.generation }));
+    assert.equal(replaced.revision, 2, 'non-growing replacements stay available above a lowered quota');
+    assert.throws(() => userFixture.saves.create(1, 'pong', { ...payload(), mode: 'solo' }), error => error.code === 'SAVE_STORAGE_FULL' && error.status === 507);
+    const totalFixture = fixture(t, { maxUserBytes: bytes * 10, maxTotalBytes: bytes });
+    totalFixture.saves.create(1, 'tetris', payload());
+    assert.throws(() => totalFixture.saves.create(2, 'tetris', payload()), error => error.code === 'SAVE_STORAGE_FULL' && error.status === 507);
 });

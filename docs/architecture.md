@@ -228,8 +228,11 @@ conflicts, and leave reminders; each local-game controller validates and
 restores its own versioned state. Screenshots and state are returned only
 to their owner. Client-authored save metadata is display-only and never enters
 leaderboards, achievements, or trusted result flows. Online matches continue
-to use their authoritative room resume tokens instead of cloud saves. See
-[ADR 0027](adr/0027-versioned-cloud-game-saves.md).
+to use their authoritative room resume tokens instead of cloud saves. Request
+bytes are counted incrementally, and transactional per-account plus configurable
+global payload budgets reject writes before cloud saves can exhaust storage. See
+[ADR 0027](adr/0027-versioned-cloud-game-saves.md) and
+[ADR 0028](adr/0028-cloud-save-resource-budgets.md).
 
 ## Online gaming
 

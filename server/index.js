@@ -10,7 +10,7 @@ const { openDatabase } = require('./database');
 const { Accounts } = require('./accounts');
 const { GameSaves, SaveError } = require('./saves');
 const { Achievements } = require('./achievements');
-const { clientIp: getClientIp, contentSecurityPolicy, isPrivatePath, originAllowed, parseCookies, RateLimiter, useSecureCookies, WebSocketGuard } = require('./http-security');
+const { clientIp: getClientIp, contentSecurityPolicy, isPrivatePath, originAllowed, parseCookies, RateLimiter, readJson, useSecureCookies, WebSocketGuard } = require('./http-security');
 const { createStaticAssetHandler } = require('./static-assets');
 const { parseMessage, roomStatusMessage, send, sessionMessage } = require('./websocket-messages');
 const { generateIcons } = require('../scripts/generate-icons');
@@ -23,7 +23,6 @@ const buildInformation = createBuildInformation();
 const database = openDatabase();
 const achievements = new Achievements(database);
 const accounts = new Accounts(database, achievements);
-const gameSaves = new GameSaves(database);
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || '').split(',').map(value => value.trim()).filter(Boolean);
 const trustProxy = process.env.TRUST_PROXY === 'true';
 const trustedResult = (userId, result) => accounts.record(userId, result, { trustedOnline: true });
@@ -35,6 +34,10 @@ const rooms = new RoomManager({
 const ticRooms = new TicTacToeRooms({ reconnectMs: Number(process.env.RECONNECT_GRACE_MS) || 15000, roomTimeoutMs: Number(process.env.ROOM_TIMEOUT_MS) || 1800000, recordResult: trustedResult });
 const tankRooms = new BattleTanksRooms({ reconnectMs: Number(process.env.RECONNECT_GRACE_MS) || 15000, roomTimeoutMs: Number(process.env.ROOM_TIMEOUT_MS) || 1800000, recordResult: trustedResult });
 const positiveInteger = (value, fallback) => Number.isSafeInteger(Number(value)) && Number(value) > 0 ? Number(value) : fallback;
+const gameSaves = new GameSaves(database, {
+    maxTotalBytes: positiveInteger(process.env.SAVE_MAX_TOTAL_BYTES, 512 * 1024 * 1024),
+    maxUserBytes: positiveInteger(process.env.SAVE_MAX_BYTES_PER_USER, 16 * 1024 * 1024)
+});
 const websocketGuard = new WebSocketGuard({
     maxConnections: positiveInteger(process.env.WS_MAX_CONNECTIONS, 250),
     maxConnectionsPerIp: positiveInteger(process.env.WS_MAX_CONNECTIONS_PER_IP, 20),
@@ -74,11 +77,6 @@ const resultLimiter = new RateLimiter(60, 60 * 60 * 1000);
 const saveLimiter = new RateLimiter(120, 60 * 60 * 1000);
 function clientIp(request) { return getClientIp(request, trustProxy); }
 function throttle(response, retryAfter) { return json(response, 429, { error: 'Too many attempts. Try again later.' }, { 'retry-after': retryAfter }); }
-async function readJson(request, maximum = 10000) {
-    let body = '';
-    for await (const chunk of request) { body += chunk; if (Buffer.byteLength(body) > maximum) throw new Error('Request is too large.'); }
-    try { return body ? JSON.parse(body) : {}; } catch { throw new Error('Invalid JSON.'); }
-}
 function sameOrigin(request, requireOrigin = false) {
     return originAllowed(request, allowedOrigins, trustProxy, requireOrigin);
 }
