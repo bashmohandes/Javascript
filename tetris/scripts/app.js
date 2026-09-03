@@ -4,7 +4,7 @@
     const events = window.ArcadeEvents;
     const boardElement = document.querySelector('#board'), scoreElement = document.querySelector('#score'), linesElement = document.querySelector('#lines'), levelElement = document.querySelector('#level'), bestElement = document.querySelector('#best');
     const statusElement = document.querySelector('#status'), finishElement = document.querySelector('#finish'), pauseButton = document.querySelector('#pause'), shareButton = document.querySelector('#share-result');
-    const stageElement = document.querySelector('.tetris-stage'), clearEffectElement = document.querySelector('#line-clear-effect'), clearStreaksElement = document.querySelector('#clear-streaks'), clearBurstElement = document.querySelector('#clear-burst'), clearMultiplierElement = document.querySelector('#clear-multiplier'), recordCalloutElement = document.querySelector('#record-callout');
+    const arenaElement = document.querySelector('#tetris-arena'), fullscreenButton = document.querySelector('#fullscreen'), stageElement = document.querySelector('.tetris-stage'), clearEffectElement = document.querySelector('#line-clear-effect'), clearStreaksElement = document.querySelector('#clear-streaks'), clearBurstElement = document.querySelector('#clear-burst'), clearMultiplierElement = document.querySelector('#clear-multiplier'), recordCalloutElement = document.querySelector('#record-callout');
     const destructionElement = document.querySelector('#magic-destruction'), compactionElement = document.querySelector('#compaction-effect'), powerUpBannerElement = document.querySelector('#power-up-banner'), powerUpIconElement = document.querySelector('#power-up-icon'), powerUpTitleElement = document.querySelector('#power-up-title'), powerUpMessageElement = document.querySelector('#power-up-message'), useShakeButton = document.querySelector('#use-shake');
     const cells = Array.from({ length: 200 }, () => { const cell = document.createElement('span'); cell.className = 'tetris-cell'; boardElement.append(cell); return cell; });
     let activeMilliseconds = 0, lastFrame = performance.now(), submitted = false, themeColors = {}, miniatureSignature = '', presentedClearId = 0, presentedDestructionId = 0, presentedCompactionId = 0, presentedPowerUpId = 0, presentedPieces = game.pieces, presentedProgress = '', clearEffectTimer = 0, destructionTimer = 0, compactionTimer = 0, recordTimer = 0, standingBest = Number(localStorage.getItem('tetris-best-score')) || 0, liveBest = standingBest, recordBroken = false, motionPermission = 'unknown', previousMotion = null, lastShakeAt = 0;
@@ -164,9 +164,33 @@
         } catch (error) { if (error.name !== 'AbortError') shareButton.textContent = 'Could not share'; }
         finally { shareButton.disabled = false; setTimeout(() => { shareButton.textContent = 'Share result'; }, 2600); }
     }
+    function setFullscreenState(active) {
+        arenaElement.classList.toggle('is-fullscreen', active && document.fullscreenElement !== arenaElement);
+        document.body.classList.toggle('arena-fullscreen', active);
+        const label = active ? 'Exit full screen' : 'Enter full screen';
+        fullscreenButton.textContent = active ? '×' : '⛶';
+        fullscreenButton.setAttribute('aria-label', label);
+        fullscreenButton.title = label;
+        fullscreenButton.setAttribute('aria-pressed', active);
+    }
+    fullscreenButton.addEventListener('click', async () => {
+        const active = document.fullscreenElement === arenaElement || arenaElement.classList.contains('is-fullscreen');
+        if (active) {
+            if (document.fullscreenElement) await document.exitFullscreen();
+            else setFullscreenState(false);
+            return;
+        }
+        if (arenaElement.requestFullscreen) {
+            try { await arenaElement.requestFullscreen(); return; } catch { /* iOS home-screen apps need the CSS fallback. */ }
+        }
+        setFullscreenState(true);
+    });
+    arenaElement.querySelector('.fullscreen-exit').addEventListener('click', () => fullscreenButton.click());
+    document.addEventListener('fullscreenchange', () => setFullscreenState(document.fullscreenElement === arenaElement));
     document.addEventListener('keydown', event => {
         const interactive = event.target.closest?.('button,a,input,select,textarea,dialog,[contenteditable="true"],[role="button"],[role="radio"]');
         if (event.defaultPrevented || interactive || document.querySelector('dialog[open]')) return;
+        if (event.code === 'Escape' && arenaElement.classList.contains('is-fullscreen')) { event.preventDefault(); setFullscreenState(false); return; }
         const keyActions = { ArrowLeft:'left', ArrowRight:'right', ArrowDown:'soft', ArrowUp:'rotate-right', KeyX:'rotate-right', KeyZ:'rotate-left', Space:'hard', KeyC:'hold', ShiftLeft:'hold', ShiftRight:'hold' };
         if (keyActions[event.code]) { event.preventDefault(); act(keyActions[event.code]); }
         else if (event.code === 'KeyS' && game.shakeReady) { event.preventDefault(); activateShake(); }

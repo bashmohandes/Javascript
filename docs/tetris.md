@@ -41,6 +41,15 @@ the existing touch controls remain below the play area. Board height is also
 limited by the dynamic viewport and bottom safe area so the board and controls
 fit together without hiding the status information.
 
+## Full screen
+
+Full screen keeps the 10×20 board at its correct proportions and turns the
+remaining landscape space into a compact command deck. Score, lines, level,
+high score, hold, next pieces, pause, restart, and every touch action remain
+available without covering the board. The layout uses dynamic viewport and
+safe-area insets, with a CSS fallback for installed browsers that cannot use
+the native Fullscreen API.
+
 ## Clears and high scores
 
 Line clears trigger an intentionally theatrical, non-blocking presentation:

@@ -17,11 +17,12 @@
 </head>
 <body class="modern-game game-tetris">
 <main class="app-shell">
-    <header class="topbar"><a class="brand" href="../index.html" aria-label="Back to games"><span class="brand-mark" aria-hidden="true">▦</span> Tetris</a><button class="icon-button" id="new-game-top" type="button" aria-label="Start a new game">↻</button></header>
+    <header class="topbar"><a class="brand" href="../index.html" aria-label="Back to games"><span class="brand-mark" aria-hidden="true">▦</span> Tetris</a><div class="topbar-actions"><button class="icon-button" id="fullscreen" type="button" aria-label="Enter full screen" aria-pressed="false" title="Enter full screen">⛶</button><button class="icon-button" id="new-game-top" type="button" aria-label="Start a new game">↻</button></div></header>
     <section class="intro" aria-labelledby="page-title">
         <div><p class="eyebrow">Keep it moving</p><h1 id="page-title">Build. Clear. Repeat.</h1><p>Stack all seven pieces, clear lines, and stay ahead of the rising speed.</p></div>
     </section>
-    <section class="game-layout">
+    <section class="game-layout" id="tetris-arena">
+        <button class="fullscreen-exit" type="button" aria-label="Exit full screen">Exit full screen</button>
         <div class="tetris-stage">
             <div id="board" class="tetris-board" role="img" tabindex="-1" aria-label="Empty Tetris board"></div>
             <div class="magic-destruction" id="magic-destruction" aria-hidden="true"></div>
