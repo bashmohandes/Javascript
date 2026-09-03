@@ -243,6 +243,7 @@
     const scoreMessages = ['The leaderboard just felt that!', 'New legend status unlocked!', 'That record never stood a chance!', 'History, officially rewritten!'];
     const notificationQueue = [];
     const notifiedAchievementIds = new Set();
+    let notifiedAchievementUserId = null;
     let showingNotification = false;
     const showNextNotification = () => {
         const notification = notificationQueue.shift();
@@ -308,6 +309,8 @@
     const settleAuthentication = value => { const waiters = authenticationWaiters; authenticationWaiters = []; waiters.forEach(resolve => resolve(value)); };
     const saveManager = game && window.ArcadeSaveManager ? window.ArcadeSaveManager.create({ game, api, user: () => currentUser, signIn: requestAuthentication }) : null;
     const render = () => {
+        const userId = currentUser?.id ?? null;
+        if (userId !== notifiedAchievementUserId) { notifiedAchievementUserId = userId; notifiedAchievementIds.clear(); }
         account.replaceChildren();
         account.append(appearanceButton);
         if (game && audio) { updateAudioControls(); account.append(audioButton); }

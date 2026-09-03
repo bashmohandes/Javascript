@@ -134,6 +134,7 @@ test('top-score and achievement notifications share one sequential queue', () =>
 test('live achievement checkpoints notify during play without duplicating result unlocks', () => {
     const shell = read('arcade.js'), styles = read('arcade.css'), tetris = read('tetris/scripts/app.js'), tanks = read('battle-tanks/scripts/app.js');
     assert.match(shell, /notifiedAchievementIds = new Set\(\)[\s\S]*notifiedAchievementIds\.has\(detail\.id\)/);
+    assert.match(shell, /userId !== notifiedAchievementUserId[^}]*notifiedAchievementIds\.clear\(\)/);
     assert.match(shell, /checkpoint: async checkpoint =>.*achievement-checkpoints/);
     assert.match(tetris, /game\.tetrises >= 1[\s\S]*game\.level >= 10[\s\S]*Arcade\.checkpoint/);
     assert.match(tanks, /powerUpsAcquired>=1[\s\S]*shieldDamageAbsorbed>=50[\s\S]*Arcade\.checkpoint/);
