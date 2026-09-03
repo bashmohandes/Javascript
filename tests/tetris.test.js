@@ -29,6 +29,17 @@ test('stack height reports crossings above and below two-thirds of the visible b
     assert.equal(stackHeightRatio(board), .4);
 });
 
+test('Tetris controller preserves tower danger when an older mechanics script is cached', () => {
+    const app = read('tetris/scripts/app.js');
+    const source = app.match(/function towerHeightRatio[\s\S]*?\n    }/)?.[0];
+    assert.ok(source, 'controller should define a compatibility helper');
+    const towerHeightRatio = Function(`${source}; return towerHeightRatio;`)();
+    const board = Array.from({ length: 20 }, () => Array(10).fill(null));
+    board[6][0] = 'T';
+    assert.equal(towerHeightRatio(board, {}), .7, 'older cached mechanics should use the controller fallback');
+    assert.equal(towerHeightRatio(board, { stackHeightRatio: () => .4 }), .4, 'current mechanics should remain authoritative');
+});
+
 test('movement, rotation, hold, ghost, and hard drop obey game boundaries', () => {
     const game = new TetrisGame({ random: () => .2 });
     while (game.move(-1));
