@@ -190,6 +190,9 @@ COOKIE_SECURE=true
 TRUST_PROXY=true
 WS_MAX_CONNECTIONS_PER_IP=20
 ROOM_MAX_PER_IP=5
+HTTP_BODY_MAX_IN_FLIGHT_BYTES=16777216
+HTTP_BODY_MAX_IN_FLIGHT_BYTES_PER_IP=4194304
+HTTP_BODY_TIMEOUT_MS=30000
 SAVE_MAX_BYTES_PER_USER=16777216
 SAVE_MAX_TOTAL_BYTES=536870912
 ```
@@ -232,6 +235,9 @@ limits are still recommended for internet-facing deployments.
 Cloud-save payloads default to 16 MiB per account and 512 MiB across the
 service. Override `SAVE_MAX_BYTES_PER_USER` and `SAVE_MAX_TOTAL_BYTES` to fit
 the persistent volume; keep the aggregate budget below its usable capacity.
+Incoming JSON bodies also reserve at most 16 MiB service-wide and 4 MiB per
+client address, with a 30-second deadline. The corresponding `HTTP_BODY_*`
+variables tune those limits for the proxy and host capacity.
 
 Then deploy or update without cloning the source repository:
 

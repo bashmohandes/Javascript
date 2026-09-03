@@ -55,7 +55,13 @@ test('save writes serialize and semantic events own dirty progress tracking', ()
     assert.match(manager, /activeSave\?\.slot === save\.slot && activeSave\.generation === save\.generation/);
     assert.match(manager, /activeSave\?\.slot === slot && activeSave\.generation === save\?\.generation/);
     assert.match(manager, /renameSave[\s\S]*?error\.code === 'SAVE_CONFLICT'[\s\S]*?status\(message\);[\s\S]*?try \{ await refresh\(\); \} catch \(refreshError\)/);
+    assert.match(manager, /const capturedProgress = progressVersion;[\s\S]*?if \(progressVersion === capturedProgress\) dirty = false/);
+    assert.match(manager, /deleteSave[\s\S]*?const activeAtDelete = activeSave\?\.slot === save\.slot[\s\S]*?activeSave\?\.slot === activeAtDelete\.slot && activeSave\.generation === activeAtDelete\.generation/);
+    assert.match(manager, /deleteSave[\s\S]*?error\.code === 'SAVE_CONFLICT'[\s\S]*?try \{ await refresh\(\); \} catch \(refreshError\)/);
+    assert.match(manager, /deleteSave[\s\S]*?error\.code === 'SAVE_CONFLICT'[\s\S]*?activeSave\?\.slot === save\.slot\) activeSave = error\.current/);
     assert.match(manager, /dialogPause; dialogPause = null; exitAfterSave = null; resumeFrom/);
+    assert.match(manager, /if \(destination && !dirty\) \{ exitAfterSave = null; location\.assign\(destination\); \}/);
+    assert.doesNotMatch(manager, /const destination = exitAfterSave; exitAfterSave = null;/);
     assert.match(manager, /window\.ArcadeEvents\?\.on\('\*', observeProgress\)/);
     assert.match(manager, /event\.type === 'game:started' \|\| event\.type === 'game:progressed'/);
     assert.match(manager, /event\.type\.startsWith\(`\$\{namespace\}:`\)/);

@@ -24,7 +24,7 @@
         return canvas;
     }
     function create({ game, api, user, signIn }) {
-        let adapter = null, activeSave = null, dirty = false, saving = false, saves = [], replacing = false, exitAfterSave = null, dialogPause = null, leavePause = null, accountId = user()?.id ?? null;
+        let adapter = null, activeSave = null, dirty = false, progressVersion = 0, saving = false, saves = [], replacing = false, exitAfterSave = null, dialogPause = null, leavePause = null, accountId = user()?.id ?? null;
         const button = document.createElement('button'); button.type = 'button'; button.className = 'arcade-saves-button'; button.textContent = 'Saves'; button.setAttribute('aria-haspopup', 'dialog');
         const dialog = document.createElement('dialog'); dialog.className = 'arcade-dialog arcade-saves-dialog';
         dialog.innerHTML = `<div class="arcade-saves-content"><header><div><small>Continue anywhere</small><h2>Game saves</h2></div><button type="button" data-save-close aria-label="Close game saves">×</button></header><div class="arcade-save-create"><label>Optional title<input maxlength="60" data-save-title placeholder="My run"></label><button type="button" data-save-current>Save current game</button></div><p class="arcade-save-status" role="status" aria-live="polite"></p><div class="arcade-save-slots"></div></div>`;
@@ -38,7 +38,7 @@
         const observeProgress = event => {
             const namespace = window.ArcadeEvents?.game;
             if (!namespace || event.game !== namespace || !eligible() || !hasProgress()) return;
-            if (event.type === 'game:started' || event.type === 'game:progressed' || event.type.startsWith(`${namespace}:`)) dirty = true;
+            if (event.type === 'game:started' || event.type === 'game:progressed' || event.type.startsWith(`${namespace}:`)) { dirty = true; progressVersion += 1; }
         };
         async function authenticated() {
             if (user()) return true;
@@ -83,8 +83,9 @@
             return { title, mode: captured.mode, stateVersion: adapter.stateVersion, state: captured.state, elapsedSeconds: captured.elapsedSeconds, scoreLabel: captured.scoreLabel || null, screenshot: await screenshot(await adapter.thumbnail(captured)) };
         }
         async function navigateAfterSave() {
-            const destination = exitAfterSave; exitAfterSave = null;
-            if (destination) { dirty = false; location.assign(destination); }
+            const destination = exitAfterSave;
+            if (destination && !dirty) { exitAfterSave = null; location.assign(destination); }
+            else if (destination) status('The game changed while saving. Save again before exiting.');
         }
         async function saveCurrent(replace = null) {
             if (saving) return null;
@@ -94,12 +95,13 @@
                 if (!await authenticated()) return null;
                 status('Saving…');
                 const title = dialog.querySelector('[data-save-title]').value.trim() || activeSave?.title || replace?.title || '';
+                const capturedProgress = progressVersion;
                 const body = await capture(title);
                 let result;
                 if (activeSave) result = await api(`/api/saves/${game}/${activeSave.slot}`, { method: 'PUT', body: JSON.stringify({ ...body, expectedRevision: activeSave.revision, expectedGeneration: activeSave.generation }) });
                 else if (replace) result = await api(`/api/saves/${game}/${replace.slot}`, { method: 'PUT', body: JSON.stringify({ ...body, expectedRevision: replace.revision, expectedGeneration: replace.generation }) });
                 else result = await api(`/api/saves/${game}`, { method: 'POST', body: JSON.stringify(body) });
-                activeSave = result.save; dirty = false; replacing = false; dialog.querySelector('[data-save-title]').value = activeSave.title || '';
+                activeSave = result.save; if (progressVersion === capturedProgress) dirty = false; replacing = false; dialog.querySelector('[data-save-title]').value = activeSave.title || '';
                 await refresh(); status(`Saved to slot ${activeSave.slot}.`); await navigateAfterSave(); return activeSave;
             } catch (error) {
                 if (error.code === 'SAVE_SLOTS_FULL') { replacing = true; await refresh(); status('All five slots are full. Choose one to replace.'); }
@@ -137,10 +139,18 @@
         }
         async function deleteSave(save) {
             if (!window.confirm(`Delete ${save.title || `slot ${save.slot}`}? This cannot be undone.`)) return;
+            const activeAtDelete = activeSave?.slot === save.slot ? { slot: activeSave.slot, generation: activeSave.generation } : null;
             try {
                 await api(`/api/saves/${game}/${save.slot}`, { method: 'DELETE', body: JSON.stringify({ expectedRevision: save.revision, expectedGeneration: save.generation }) });
-                if (activeSave?.slot === save.slot) activeSave = null; await refresh(); status('Save deleted.');
-            } catch (error) { status(error.message); }
+                if (activeAtDelete && activeSave?.slot === activeAtDelete.slot && activeSave.generation === activeAtDelete.generation) activeSave = null; await refresh(); status('Save deleted.');
+            } catch (error) {
+                if (error.code === 'SAVE_CONFLICT') {
+                    if (activeSave?.slot === save.slot) activeSave = error.current;
+                    const message = 'That save changed on another device. Review it before deleting again.'; status(message);
+                    try { await refresh(); } catch (refreshError) { status(`${message} Could not refresh saves: ${refreshError.message}`); }
+                }
+                else status(error.message);
+            }
         }
         async function open() {
             const token = pauseFor('saves');
@@ -190,7 +200,7 @@
         return {
             button,
             registerAdapter(value) { adapter = value; renderSlots(); },
-            startRun() { activeSave = null; dirty = false; },
+            startRun() { activeSave = null; dirty = false; progressVersion += 1; },
             completeRun,
             open, save: saveCurrent, active: () => activeSave, isDirty: () => dirty,
             helpers: { makeCanvas, formatTime }
