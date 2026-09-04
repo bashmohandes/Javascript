@@ -19,23 +19,23 @@ const catalog = [
     { id: 'tic-online', game: 'tictactoe', icon: '📡', title: 'Three Bars, Three Marks', condition: 'Finish an online Tic-tac-toe match.', event: 'result', where: { 'details.mode': 'online' }, target: 1 },
     { id: 'tic-speed', game: 'tictactoe', icon: '💨', title: 'Blink and You Missed X', condition: 'Win Tic-tac-toe in five moves or fewer.', event: 'result', where: { won: true, 'details.moves': { lte: 5 } }, target: 1 },
     { id: 'tetris-first', game: 'tetris', icon: '🧱', title: 'Block Party', condition: 'Finish your first Tetris run.', event: 'result', target: 1 },
-    { id: 'tetris-four-line', game: 'tetris', icon: '4️⃣', title: 'Fourgone Conclusion', condition: 'Clear four lines at once.', event: 'result', where: { 'details.tetrises': { gte: 1 } }, target: 1 },
-    { id: 'tetris-level-ten', game: 'tetris', icon: '🔟', title: 'Double Digits', condition: 'Reach level 10.', event: 'result', where: { 'details.level': { gte: 10 } }, target: 1 },
+    { id: 'tetris-four-line', game: 'tetris', icon: '4️⃣', title: 'Fourgone Conclusion', condition: 'Clear four lines at once.', event: 'result', live: true, where: { 'details.tetrises': { gte: 1 } }, target: 1 },
+    { id: 'tetris-level-ten', game: 'tetris', icon: '🔟', title: 'Double Digits', condition: 'Reach level 10.', event: 'result', live: true, where: { 'details.level': { gte: 10 } }, target: 1 },
     { id: 'tetris-five', game: 'tetris', icon: '🏗️', title: 'Piece and Persist', condition: 'Finish five Tetris runs.', event: 'result', target: 5 },
     { id: 'tanks-first', game: 'battletanks', icon: '🏁', title: 'Battle Tested', condition: 'Finish a Battle Tanks match.', event: 'result', target: 1 },
     { id: 'tanks-win', game: 'battletanks', icon: '🏆', title: 'Tank Commander', condition: 'Win a Battle Tanks match.', event: 'result', where: { won: true }, target: 1 },
     { id: 'tanks-accurate', game: 'battletanks', icon: '🎯', title: 'Deadeye', condition: 'Win with at least 50% accuracy.', event: 'result', where: { won: true, 'details.accuracy': { gte: 50 } }, target: 1 },
     { id: 'tanks-untouched', game: 'battletanks', icon: '🛡️', title: 'Untouchable', condition: 'Win without taking damage.', event: 'result', where: { won: true, 'details.damageTaken': 0 }, target: 1 },
     { id: 'tanks-online', game: 'battletanks', icon: '🌐', title: 'Long-Distance Call', condition: 'Finish an online Battle Tanks match.', event: 'result', where: { 'details.mode': 'online' }, target: 1 },
-    { id: 'tanks-power-first', game: 'battletanks', icon: '🃏', title: 'Card on the Table', condition: 'Acquire your first power-up.', event: 'result', where: { 'details.powerUpsAcquired': { gte: 1 } }, target: 1 },
-    { id: 'tanks-power-variety', game: 'battletanks', icon: '🎴', title: 'Full Deck', condition: 'Use three different power-up types in one match.', event: 'result', where: { 'details.powerUpTypesUsed': { lengthGte: 3 } }, target: 1 },
-    { id: 'tanks-shield-break', game: 'battletanks', icon: '🛡️', title: 'Not Even a Scratch', condition: 'Absorb at least 50 damage with shields in one match.', event: 'result', where: { 'details.shieldDamageAbsorbed': { gte: 50 } }, target: 1 },
+    { id: 'tanks-power-first', game: 'battletanks', icon: '🃏', title: 'Card on the Table', condition: 'Acquire your first power-up.', event: 'result', live: true, where: { 'details.powerUpsAcquired': { gte: 1 } }, target: 1 },
+    { id: 'tanks-power-variety', game: 'battletanks', icon: '🎴', title: 'Full Deck', condition: 'Use three different power-up types in one match.', event: 'result', live: true, where: { 'details.powerUpTypesUsed': { lengthGte: 3 } }, target: 1 },
+    { id: 'tanks-shield-break', game: 'battletanks', icon: '🛡️', title: 'Not Even a Scratch', condition: 'Absorb at least 50 damage with shields in one match.', event: 'result', live: true, where: { 'details.shieldDamageAbsorbed': { gte: 50 } }, target: 1 },
     { id: 'tanks-second-wind', game: 'battletanks', icon: '💚', title: 'Back in the Fight', condition: 'Restore at least 25 health with health packs and win.', event: 'result', where: { won: true, 'details.healthRestored': { gte: 25 } }, target: 1 },
     { id: 'tanks-invisible-win', game: 'battletanks', icon: '👻', title: 'Now You See Me', condition: 'Win an online match after activating invisibility.', event: 'result', where: { won: true, 'details.mode': 'online', 'details.invisibilityActivations': { gte: 1 } }, target: 1 },
-    { id: 'tanks-laser-ricochet', game: 'battletanks', icon: '📐', title: 'Geometry Wins', condition: 'Damage an opponent with a reflected laser.', event: 'result', where: { 'details.laserRicochetHits': { gte: 1 } }, target: 1 },
-    { id: 'tanks-laser-self-hit', game: 'battletanks', icon: '⚠️', title: 'Calculated Risk', condition: 'Survive damage from your own reflected laser.', event: 'result', where: { 'details.laserSelfDamage': { gte: 1 } }, target: 1 },
-    { id: 'tanks-homing-hit', game: 'battletanks', icon: '↩️', title: 'Return to Sender', condition: 'Damage an opponent with a homing projectile.', event: 'result', where: { 'details.homingHits': { gte: 1 } }, target: 1 },
-    { id: 'tanks-heavy-hit', game: 'battletanks', icon: '💥', title: 'Heavy Artillery', condition: 'Deal at least 40 health damage with one heavy projectile.', event: 'result', where: { 'details.heavyProjectileMaxDamage': { gte: 40 } }, target: 1 },
+    { id: 'tanks-laser-ricochet', game: 'battletanks', icon: '📐', title: 'Geometry Wins', condition: 'Damage an opponent with a reflected laser.', event: 'result', live: true, where: { 'details.laserRicochetHits': { gte: 1 } }, target: 1 },
+    { id: 'tanks-laser-self-hit', game: 'battletanks', icon: '⚠️', title: 'Calculated Risk', condition: 'Survive damage from your own reflected laser.', event: 'result', live: true, where: { 'details.laserSelfDamage': { gte: 1 } }, target: 1 },
+    { id: 'tanks-homing-hit', game: 'battletanks', icon: '↩️', title: 'Return to Sender', condition: 'Damage an opponent with a homing projectile.', event: 'result', live: true, where: { 'details.homingHits': { gte: 1 } }, target: 1 },
+    { id: 'tanks-heavy-hit', game: 'battletanks', icon: '💥', title: 'Heavy Artillery', condition: 'Deal at least 40 health damage with one heavy projectile.', event: 'result', live: true, where: { 'details.heavyProjectileMaxDamage': { gte: 40 } }, target: 1 },
     { id: 'tanks-powered-win', game: 'battletanks', icon: '⚡', title: 'Power Player', condition: 'Win after two power-up-powered hits.', event: 'result', where: { won: true, 'details.poweredHits': { gte: 2 } }, target: 1 },
     { id: 'tanks-power-collector', game: 'battletanks', icon: '🗂️', title: 'Deck Builder', condition: 'Finish ten matches in which you acquired a power-up.', event: 'result', where: { 'details.powerUpsAcquired': { gte: 1 } }, target: 10 }
 ];
@@ -62,7 +62,7 @@ class Achievements {
     }
     process(userId, game, event, payload) {
         const unlocked = [];
-        for (const item of catalog.filter(item => item.game === game && item.event === event && matches(item.where, payload))) {
+        for (const item of catalog.filter(item => item.game === game && (item.event === event || event === 'checkpoint' && item.live) && matches(item.where, payload))) {
             const existing = this.database.prepare('SELECT * FROM achievement_progress WHERE user_id = ? AND achievement_id = ?').get(userId, item.id);
             if (existing?.unlocked_at) continue;
             const progress = Math.min(item.target, (existing?.progress || 0) + 1);

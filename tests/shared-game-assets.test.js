@@ -123,12 +123,23 @@ test('modern games keep tablet play surfaces visible without clipping page scrol
 test('top-score and achievement notifications share one sequential queue', () => {
     const script = read('arcade.js');
     assert.match(script, /notificationQueue\.push\(\.\.\.notifications\)/);
-    assert.match(script, /showUnlocks = unlocked => enqueueNotifications/);
+    assert.match(script, /showUnlocks = unlocked => \{[\s\S]*enqueueNotifications/);
     assert.match(script, /showTopScore = topScore => \{ if \(topScore\) enqueueNotifications/);
     assert.match(script, /notifyResult = result =>/);
     assert.match(script, /record: async result =>.*notifyResult\(await api/);
     assert.match(script, /showNextNotification\(\)/);
     assert.doesNotMatch(script, /index \* 450/);
+});
+
+test('live achievement checkpoints notify during play without duplicating result unlocks', () => {
+    const shell = read('arcade.js'), styles = read('arcade.css'), tetris = read('tetris/scripts/app.js'), tanks = read('battle-tanks/scripts/app.js');
+    assert.match(shell, /notifiedAchievementIds = new Set\(\)[\s\S]*notifiedAchievementIds\.has\(detail\.id\)/);
+    assert.match(shell, /userId !== notifiedAchievementUserId[^}]*notifiedAchievementIds\.clear\(\)/);
+    assert.match(shell, /checkpoint: async checkpoint =>.*achievement-checkpoints/);
+    assert.match(tetris, /game\.tetrises >= 1[\s\S]*game\.level >= 10[\s\S]*Arcade\.checkpoint/);
+    assert.match(tanks, /powerUpsAcquired>=1[\s\S]*shieldDamageAbsorbed>=50[\s\S]*Arcade\.checkpoint/);
+    assert.match(styles, /\.achievement-toast\{[^}]*pointer-events:none/);
+    assert.match(styles, /max-width:650px[^}]*\.achievement-toast\{top:max\([^}]*bottom:auto/);
 });
 
 test('achievement shares include a generated image on game and profile pages', () => {

@@ -80,6 +80,7 @@ const loginLimiter = new RateLimiter(10, 15 * 60 * 1000);
 const loginIpLimiter = new RateLimiter(50, 15 * 60 * 1000);
 const registrationLimiter = new RateLimiter(5, 60 * 60 * 1000);
 const resultLimiter = new RateLimiter(60, 60 * 60 * 1000);
+const achievementCheckpointLimiter = new RateLimiter(120, 60 * 60 * 1000);
 const saveLimiter = new RateLimiter(120, 60 * 60 * 1000);
 function clientIp(request) { return getClientIp(request, trustProxy); }
 function readRequestJson(request, maximum) { return readJson(request, maximum, { guard: requestBodyGuard, ip: clientIp(request) }); }
@@ -167,6 +168,10 @@ const server = http.createServer(async (request, response) => {
             if (pathname === '/api/results' && request.method === 'POST') {
                 const retryAfter = resultLimiter.consume(user.id); if (retryAfter) return throttle(response, retryAfter);
                 return json(response, 201, accounts.record(user.id, await readRequestJson(request)));
+            }
+            if (pathname === '/api/achievement-checkpoints' && request.method === 'POST') {
+                const retryAfter = achievementCheckpointLimiter.consume(user.id); if (retryAfter) return throttle(response, retryAfter);
+                return json(response, 200, accounts.checkpoint(user.id, await readRequestJson(request)));
             }
             return json(response, 404, { error: 'API endpoint not found.' });
         } catch (error) {
