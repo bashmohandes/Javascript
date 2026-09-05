@@ -44,7 +44,7 @@
       "fixes": [
         "Restored normal page scrolling in iPad browsers so players can reach content below the game area.",
         "Reduced unused top spacing and compacted modern game layouts, including Tetris controls in phone landscape, so gameplay stays visible without scrolling when space permits.",
-        "Restored the Battle Tanks full-screen action in compact tablet and short-viewport controls."
+        "Restored the Battle Tanks full-screen action in compact tablet and phone-landscape controls without shrinking narrow portrait battlefields."
       ],
       "technical": [
         "Applied shared short-viewport and tablet layout rules consistently across the modern arcade."
