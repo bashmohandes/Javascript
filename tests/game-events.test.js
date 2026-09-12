@@ -62,7 +62,7 @@ test('modern controllers publish domain facts without importing audio', () => {
 
 test('shared shell notifications and extension boundaries use the event contract', () => {
     const shell = read('arcade.js'), guide = read('docs/game-events.md'), adr = read('docs/adr/0014-browser-domain-event-bus.md');
-    for (const page of ['index.html','profile.html']) assert.match(read(page), /scripts\/game-events\.js[\s\S]*arcade\.js/);
+    for (const page of ['index.html','profile.html','about.html']) assert.match(read(page), /scripts\/game-events\.js[\s\S]*arcade\.js/);
     for (const type of ['system:theme-changed','account:user-changed','achievement:unlocked','score:top']) assert.match(shell, new RegExp(type));
     assert.match(read('profile.js'), /account:user-changed/);
     assert.match(guide, /not a command bus, durable event log, WebSocket protocol, or trust boundary/);

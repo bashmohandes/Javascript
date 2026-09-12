@@ -162,6 +162,7 @@ test('result sharing preserves user activation when the preview is confirmed', (
 test('every arcade page opts into shared iPhone safe-area handling', () => {
     const pages = [
         'index.html',
+        'about.html',
         'profile.html',
         'pong/index.html',
         'pong/classic/index.html',

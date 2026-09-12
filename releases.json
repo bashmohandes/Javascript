@@ -2,6 +2,21 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "version": "1.2.5",
+      "title": "JavaScript Playground 1.2.5",
+      "summary": "A new About page introduces Mohamed Elsherif and connects the arcade with his work across software architecture and the developer community.",
+      "highlights": [
+        "Meet Mohamed Elsherif through a game-native profile of his career, community work, granted patents, websites, and social profiles.",
+        "Open the About page from the shared arcade navigation on phones, tablets, and desktops."
+      ],
+      "fixes": [
+        "Keeps the About link available in compact phone navigation while moving the less essential Top scores shortcut out of the narrow layout."
+      ],
+      "technical": [
+        "Adds the responsive About page to every experience theme and the offline application shell, with regression coverage for content, links, navigation, and safe-area behavior."
+      ]
+    },
+    {
       "version": "1.2.0",
       "title": "JavaScript Playground 1.2.0",
       "summary": "Achievements now celebrate key Tetris and Battle Tanks milestones at the moment players earn them.",

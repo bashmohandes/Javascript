@@ -21,7 +21,7 @@ flowchart LR
 ```mermaid
 flowchart TB
   subgraph Browser
-    Pages[Home, profile, game pages]
+    Pages[Home, profile, about, game pages]
     Arcade[arcade.js: account, appearance, results, achievements]
     Events[game-events.js: browser domain events]
     Shared[room UI, colors, sharing]

@@ -1,9 +1,11 @@
 'use strict';
 
-const CACHE_NAME = 'js-playground-v14';
+const CACHE_NAME = 'js-playground-v15';
 const APP_SHELL = [
     './',
     './index.html',
+    './about.html',
+    './about.css',
     './arcade.css',
     './arcade.js',
     './fonts/Silkscreen-Regular.ttf',
