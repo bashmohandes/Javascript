@@ -50,10 +50,12 @@ test('about page supports every experience theme and phone layouts', () => {
 test('about page uses the current color-mode contract and contrast-safe text and focus colors', () => {
     assert.match(styles, /:root\[data-color-mode="dark"\]/);
     assert.doesNotMatch(styles, /data-theme=/);
+    assert.match(styles, /h1 span \{ color:var\(--pink-heading\)/);
     assert.match(styles, /color:var\(--pink-text\)/);
     assert.match(styles, /outline:3px solid var\(--focus\)/);
     assert.match(styles, /\.patent-list b \{ color:var\(--link-accent\)/);
     for (const [foreground, background, minimum] of [
+        ['#e13a87', '#fff4d6', 3],
         ['#a31558', '#fff9e8', 4.5],
         ['#4b2fc9', '#fff9e8', 3],
         ['#315f54', '#f8fbf9', 4.5],
