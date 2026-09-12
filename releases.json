@@ -4,10 +4,11 @@
     {
       "version": "1.2.0",
       "title": "JavaScript Playground 1.2.0",
-      "summary": "Achievements now celebrate key Tetris and Battle Tanks milestones at the moment players earn them.",
+      "summary": "Achievements now celebrate key Tetris and Battle Tanks milestones as they happen, and a new About page introduces the person behind the arcade.",
       "highlights": [
         "See achievement unlocks during active play when reaching Tetris level 10, clearing four lines at once, or completing eligible Battle Tanks power-up and tactical challenges.",
-        "Hear the Tetris music accelerate when the tower rises above two-thirds of the playfield, then settle back to its normal tempo when the danger clears."
+        "Hear the Tetris music accelerate when the tower rises above two-thirds of the playfield, then settle back to its normal tempo when the danger clears.",
+        "Meet Mohamed Elsherif through a new game-native About page with his career, community work, patents, websites, and social profiles."
       ],
       "fixes": [
         "Prevents live achievement notifications from appearing again when the final game result is recorded.",
