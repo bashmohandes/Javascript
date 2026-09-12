@@ -10,6 +10,7 @@ body:not(.arcade-has-topbar)::before { display:block; height:env(safe-area-inset
 body.arena-fullscreen .arcade-topbar { display:none; }
 body.arena-fullscreen .arcade-account { display:none; }
 .arcade-account a, .arcade-account button { padding: 8px 11px; color: inherit; background: transparent; border: 0; border-radius: 9px; font: inherit; text-decoration: none; cursor: pointer; }
+.arcade-account a[aria-current="page"] { text-decoration:underline; text-decoration-thickness:2px; text-underline-offset:5px; }
 .arcade-account button { color: #10271f; background: #83e6c3; }
 .arcade-appearance-button::before { margin-right:6px; content:'◐'; }
 .arcade-audio-button::before { margin-right:6px; content:'♪'; }.arcade-audio-button[data-audio-muted="true"]::before{content:'×';}.arcade-audio-button:disabled{cursor:not-allowed;opacity:.55}
@@ -67,7 +68,7 @@ body.arena-fullscreen .arcade-account { display:none; }
 .result-share-cancel { color: #f7f8fc; background: rgba(255,255,255,.09); }
 .result-share-confirm { color: #10271f; background: #83e6c3; }
 @media (max-width: 760px) { .arcade-topbar-inner { align-items:flex-start; flex-direction:column; gap:11px; } .arcade-account { width:100%; justify-content:flex-start; overflow-x:auto; padding:2px 3px 5px; scrollbar-width:none; } .arcade-account::-webkit-scrollbar { display:none; } }
-@media (max-width: 520px) { .arcade-topbar { padding-inline:12px; } .arcade-home > span:last-child { font-size:14px; } .arcade-account > a:first-of-type { display:none; } .arcade-account a,.arcade-account button { white-space:nowrap; } }
+@media (max-width: 520px) { .arcade-topbar { padding-inline:12px; } .arcade-home > span:last-child { font-size:14px; } .arcade-account > .arcade-scores-link { display:none; } .arcade-account a,.arcade-account button { white-space:nowrap; } }
 @media (max-width: 520px) { .arcade-install-hint { right:max(12px,env(safe-area-inset-right)); bottom:max(12px,env(safe-area-inset-bottom)); left:auto; } .arcade-install-dialog form { padding:19px; } }
 @media (max-width: 480px) { .result-share-content { padding: 17px; } .result-share-actions button { flex: 1; } }
 @media (prefers-reduced-motion: reduce) { .arcade-install-hint { animation:none; } }
