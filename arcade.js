@@ -149,7 +149,7 @@
     home.setAttribute('aria-label', 'JavaScript Playground home');
     home.innerHTML = '<span class="arcade-home-mark" aria-hidden="true">JSPG</span><span>JavaScript Playground</span>';
     const account = document.createElement('nav');
-    account.className = 'arcade-account'; account.setAttribute('aria-label', 'Arcade account and appearance');
+    account.className = 'arcade-account'; account.setAttribute('aria-label', 'Arcade navigation and account');
     topbarInner.append(home, account); topbar.append(topbarInner);
     const appearanceButton = document.createElement('button'); appearanceButton.type = 'button'; appearanceButton.className = 'arcade-appearance-button'; appearanceButton.textContent = 'Appearance';
     const audioButton = document.createElement('button'); audioButton.type = 'button'; audioButton.className = 'arcade-audio-button'; audioButton.textContent = 'Sound'; audioButton.setAttribute('aria-haspopup', 'dialog');
@@ -316,7 +316,9 @@
         if (game && audio) { updateAudioControls(); account.append(audioButton); }
         if (saveManager) account.append(saveManager.button);
         if (game) { const achievements = document.createElement('button'); achievements.type = 'button'; achievements.className = 'achievement-nav'; achievements.textContent = 'Achievements'; achievements.addEventListener('click', () => { achievementDialog.showModal(); loadAchievements().catch(() => {}); }); account.append(achievements); }
-        const scores = document.createElement('a'); scores.href = `${rootPath}profile.html#leaderboards`; scores.textContent = 'Top scores'; account.append(scores);
+        const about = document.createElement('a'); about.href = `${rootPath}about.html`; about.className = 'arcade-about-link'; about.textContent = 'About';
+        if (location.pathname.endsWith('/about.html')) about.setAttribute('aria-current', 'page');
+        const scores = document.createElement('a'); scores.href = `${rootPath}profile.html#leaderboards`; scores.className = 'arcade-scores-link'; scores.textContent = 'Top scores'; account.append(about, scores);
         if (currentUser) {
             const profile = document.createElement('a'); profile.href = `${rootPath}profile.html`; profile.textContent = currentUser.gamertag;
             const logout = document.createElement('button'); logout.type = 'button'; logout.textContent = 'Sign out'; logout.addEventListener('click', async () => { await api('/api/auth/logout', { method: 'POST', body: '{}' }); currentUser = null; render(); });

@@ -29,6 +29,14 @@ test('release notes render tailored public and GitHub views', () => {
     assert.match(markdown, /^## Technical notes$/m);
 });
 
+test('current release notes introduce the new About page', () => {
+    const release = releaseForVersion(manifest, packageVersion);
+    assert.equal(release.version, '1.2.5');
+    assert.match(release.summary, /new About page/);
+    assert.ok(release.highlights.some(item => /Mohamed Elsherif[\s\S]*career[\s\S]*social profiles/.test(item)));
+    assert.doesNotMatch(releaseForVersion(manifest, '1.2.0').summary, /About page/);
+});
+
 test('build information exposes release notes only for an exact stable version', () => {
     assert.deepEqual(createBuildInformation({}, manifest), { version: 'dev', channel: 'dev', release: null });
     assert.deepEqual(createBuildInformation({ BUILD_VERSION: 'sha-1234567', BUILD_CHANNEL: 'alpha' }, manifest), { version: 'sha-1234567', channel: 'alpha', release: null });
