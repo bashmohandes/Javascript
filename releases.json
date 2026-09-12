@@ -2,13 +2,27 @@
   "schemaVersion": 1,
   "releases": [
     {
+      "version": "1.2.5",
+      "title": "JavaScript Playground 1.2.5",
+      "summary": "A new About page introduces Mohamed Elsherif and connects the arcade with his work across software architecture and the developer community.",
+      "highlights": [
+        "Meet Mohamed Elsherif through a game-native profile of his career, community work, granted patents, websites, and social profiles.",
+        "Open the About page from the shared arcade navigation on phones, tablets, and desktops."
+      ],
+      "fixes": [
+        "Keeps the About link available in compact phone navigation while moving the less essential Top scores shortcut out of the narrow layout."
+      ],
+      "technical": [
+        "Adds the responsive About page to every experience theme and the offline application shell, with regression coverage for content, links, navigation, and safe-area behavior."
+      ]
+    },
+    {
       "version": "1.2.0",
       "title": "JavaScript Playground 1.2.0",
-      "summary": "Achievements now celebrate key Tetris and Battle Tanks milestones as they happen, and a new About page introduces the person behind the arcade.",
+      "summary": "Achievements now celebrate key Tetris and Battle Tanks milestones at the moment players earn them.",
       "highlights": [
         "See achievement unlocks during active play when reaching Tetris level 10, clearing four lines at once, or completing eligible Battle Tanks power-up and tactical challenges.",
-        "Hear the Tetris music accelerate when the tower rises above two-thirds of the playfield, then settle back to its normal tempo when the danger clears.",
-        "Meet Mohamed Elsherif through a new game-native About page with his career, community work, patents, websites, and social profiles."
+        "Hear the Tetris music accelerate when the tower rises above two-thirds of the playfield, then settle back to its normal tempo when the danger clears."
       ],
       "fixes": [
         "Prevents live achievement notifications from appearing again when the final game result is recorded.",
