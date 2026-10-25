@@ -2,6 +2,7 @@
 
 const { createGame, startGame, update, setInput, setColor, snapshot } = require('./game');
 const { createRoomCode, createRoomToken, normalizePasscode } = require('./room-identity');
+const { send, sendSerialized } = require('./websocket-messages');
 
 class RoomManager {
     constructor({ reconnectMs = 15000, roomTimeoutMs = 30 * 60 * 1000, random = Math.random, recordResult = null } = {}) {
@@ -111,8 +112,7 @@ class RoomManager {
 
     deliverResult(player) {
         if (!player.pendingResult || player.socket?.readyState !== 1) return;
-        player.socket.send(JSON.stringify({ type: 'result-recorded', result: player.pendingResult }));
-        player.pendingResult = null;
+        if (send(player.socket, { type: 'result-recorded', result: player.pendingResult })) player.pendingResult = null;
     }
 
     disconnect(room, player, socket = player.socket) {
@@ -143,7 +143,7 @@ class RoomManager {
 
     broadcast(room, message) {
         const body = JSON.stringify(message);
-        room.players.forEach(player => { if (player?.socket?.readyState === 1) player.socket.send(body); });
+        room.players.forEach(player => sendSerialized(player?.socket, body));
     }
 
     broadcastStates(serverTime = Date.now()) {

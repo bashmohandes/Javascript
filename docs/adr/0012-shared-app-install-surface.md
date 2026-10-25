@@ -23,8 +23,11 @@ manifest so every shared install action installs JavaScript Playground rather th
 a game-specific application. The shell registers a root service worker that
 uses network-first navigation and stale-while-revalidate static assets in a
 versioned cache. Cache writes run in the background so a fetched response is
-not delayed by storage. API requests are explicitly excluded from interception
-and caching. Generated raster icons are
+not delayed by storage. API requests, including encoded path aliases, are
+explicitly excluded from interception and caching. Responses declaring
+`Cache-Control: private` or `no-store` are never stored. Changes to this privacy
+boundary advance the cache version so activation removes older cached responses.
+Generated raster icons are
 not part of the atomic app-shell precache, and the Node server creates any
 missing icons before it begins listening so clean direct-server checkouts remain
 installable.

@@ -48,7 +48,9 @@ class Accounts {
     async authenticate(gamertagValue, passcodeValue) {
         const row = this.database.prepare('SELECT * FROM users WHERE gamertag = ? COLLATE NOCASE').get(normalizeGamertag(gamertagValue));
         if (!row || !await verifyPasscode(String(passcodeValue || ''), row.passcode_hash)) throw new Error('Gamertag or passcode is incorrect.');
-        return publicUser(row);
+        const current = this.database.prepare('SELECT * FROM users WHERE id = ? AND passcode_hash = ?').get(row.id, row.passcode_hash);
+        if (!current) throw new Error('Gamertag or passcode is incorrect.');
+        return publicUser(current);
     }
 
     createSession(userId) {
@@ -76,7 +78,8 @@ class Accounts {
         try {
             const passcodeHash = passcode ? await hashPasscode(passcode) : current.passcode_hash;
             this.database.exec('BEGIN IMMEDIATE');
-            this.database.prepare('UPDATE users SET gamertag = ?, passcode_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(gamertag, passcodeHash, userId);
+            const updated = this.database.prepare('UPDATE users SET gamertag = ?, passcode_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND passcode_hash = ?').run(gamertag, passcodeHash, userId, current.passcode_hash);
+            if (!updated.changes) throw new Error('Current passcode is incorrect.');
             this.database.prepare('DELETE FROM sessions WHERE user_id = ?').run(userId);
             this.database.exec('COMMIT');
         } catch (error) {

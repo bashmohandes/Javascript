@@ -1,5 +1,6 @@
 'use strict';
 const {createRoomCode,createRoomToken,normalizePasscode}=require('./room-identity');
+const {send,sendSerialized}=require('./websocket-messages');
 const game=require('../tictactoe/scripts/game');
 class TicTacToeRooms {
  constructor({reconnectMs=15000,roomTimeoutMs=1800000,random=Math.random,recordResult=null}={}){this.rooms=new Map();Object.assign(this,{reconnectMs,roomTimeoutMs,random,recordResult});}
@@ -13,11 +14,11 @@ class TicTacToeRooms {
  ready(room,player){if(room.running&&!room.over)throw new Error('The match is already in progress.');player.ready=true;if(room.players.every(item=>item?.ready&&item.connected)){this.start(room);return true;}return false;}
  rematch(room){if(!room.players.every(item=>item?.connected))throw new Error('Both players must be connected to start a rematch.');if(room.running&&!room.over)return true;if(!room.over)throw new Error('The match must be finished before starting a rematch.');this.start(room);room.touchedAt=Date.now();return true;}
  finish(room){if(room.recorded||!room.over)return;room.recorded=true;const seconds=Math.max(1,Math.min(86400,Math.round((Date.now()-room.started)/1000))),moves=room.board.filter(Boolean).length;room.players.forEach((player,side)=>{if(!player?.userId||!this.recordResult)return;const draw=room.winner===null,won=!draw&&room.winner===side;try{player.pendingResult=this.recordResult(player.userId,{game:'tictactoe',won,details:{mode:'online',moves,seconds,outcome:draw?'draw':won?'win':'loss'}})||null;this.deliverResult(player);}catch{/* A persistence failure must not stop the room. */}});}
- deliverResult(player){if(!player.pendingResult||player.socket?.readyState!==1)return;player.socket.send(JSON.stringify({type:'result-recorded',result:player.pendingResult}));player.pendingResult=null;}
+ deliverResult(player){if(!player.pendingResult||player.socket?.readyState!==1)return;if(send(player.socket,{type:'result-recorded',result:player.pendingResult}))player.pendingResult=null;}
  move(room,player,cell){if(!room.running||room.over)throw new Error('The match is not active.');if(player.side!==room.turn)throw new Error('Wait for your turn.');if(!Number.isInteger(cell)||cell<0||cell>8||room.board[cell])throw new Error('That square is unavailable.');const result=game.play(room.board,cell,player.side);room.board=result.board;if(result.over)Object.assign(room,{running:false,over:true,winner:result.winner,winningLine:result.winningLine});else room.turn=1-room.turn;room.touchedAt=Date.now();if(room.over)this.finish(room);}
  color(room,player,color){if(/^#[0-9a-f]{6}$/i.test(color))room.colors[player.side]=color;}
  state(room){return{board:room.board,turn:room.turn,running:room.running,over:room.over,winner:room.winner,winningLine:room.winningLine,colors:room.colors,started:room.started};}
- broadcast(room,message){const body=JSON.stringify(message);room.players.forEach(item=>{if(item?.socket?.readyState===1)item.socket.send(body);});}
+ broadcast(room,message){const body=JSON.stringify(message);room.players.forEach(item=>sendSerialized(item?.socket,body));}
  disconnect(room,player,socket=player.socket){if(player.socket!==socket)return false;Object.assign(player,{connected:false,socket:null,disconnectedAt:Date.now()});return true;}
  tick(now=Date.now()){for(const[code,room]of this.rooms){const expired=room.players.some(item=>item&&!item.connected&&now-item.disconnectedAt>this.reconnectMs);if(expired||now-room.touchedAt>this.roomTimeoutMs){this.broadcast(room,{type:'room-closed',reason:expired?'An opponent did not reconnect in time.':'Room expired.'});this.rooms.delete(code);}}}
 }

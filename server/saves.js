@@ -15,6 +15,7 @@ const MAX_STATE_BYTES = 256 * 1024;
 const MAX_SCREENSHOT_BYTES = 256 * 1024;
 const DEFAULT_MAX_TOTAL_BYTES = 512 * 1024 * 1024;
 const DEFAULT_MAX_USER_BYTES = 16 * 1024 * 1024;
+const SUMMARY_COLUMNS = 'slot, game, title, mode, state_version, elapsed_seconds, score_label, generation, revision, created_at, updated_at';
 
 class SaveError extends Error {
     constructor(message, status = 400, code = 'INVALID_SAVE', current = null) {
@@ -95,7 +96,7 @@ class GameSaves {
     }
     list(userId, gameValue) {
         const game = gameId(gameValue);
-        return this.database.prepare('SELECT * FROM game_saves WHERE user_id = ? AND game = ? ORDER BY slot').all(userId, game).map(summary);
+        return this.database.prepare(`SELECT ${SUMMARY_COLUMNS} FROM game_saves WHERE user_id = ? AND game = ? ORDER BY slot`).all(userId, game).map(summary);
     }
     load(userId, gameValue, slotValue) {
         const game = gameId(gameValue), slot = slotNumber(slotValue), row = this.row(userId, game, slot);
@@ -105,7 +106,7 @@ class GameSaves {
         return { ...summary(row), state };
     }
     screenshot(userId, gameValue, slotValue) {
-        const game = gameId(gameValue), slot = slotNumber(slotValue), row = this.row(userId, game, slot);
+        const game = gameId(gameValue), slot = slotNumber(slotValue), row = this.database.prepare('SELECT screenshot, screenshot_mime FROM game_saves WHERE user_id = ? AND game = ? AND slot = ?').get(userId, game, slot);
         if (!row) throw new SaveError('Save screenshot not found.', 404, 'SAVE_NOT_FOUND');
         return { data: Buffer.from(row.screenshot), mimeType: row.screenshot_mime };
     }

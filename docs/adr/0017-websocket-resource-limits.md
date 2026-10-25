@@ -24,6 +24,12 @@ per minute, 200 rooms across the arcade, 100 rooms per game, 5 rooms per
 address, and 50 entries per public listing. Deployments may lower or raise these
 limits through documented environment variables.
 
+Every outbound room message also passes a shared 1 MiB per-socket queued-byte
+ceiling, including the message being sent. Slow consumers are terminated and
+can use the existing room resume flow; unsent result receipts remain pending.
+Protocol errors terminate their offending socket without escaping as unhandled
+process errors. Replaced sockets cannot issue commands on any game endpoint.
+
 **Consequences:** A remote peer cannot allocate unbounded sockets, rooms, game
 state, broadcast work, or lobby responses. Limits are intentionally
 process-local because rooms are process-local. Multi-instance deployments need

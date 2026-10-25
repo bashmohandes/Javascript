@@ -18,7 +18,7 @@ const { createBuildInformation } = require('./build-info');
 
 const root = path.resolve(__dirname, '..');
 generateIcons(root, { onlyMissing: true });
-const port = Number(process.env.PORT) || 8080;
+const port = process.env.PORT === '0' ? 0 : Number(process.env.PORT) || 8080;
 const buildInformation = createBuildInformation();
 const database = openDatabase();
 const achievements = new Achievements(database);
@@ -79,6 +79,7 @@ function sessionCookie(token, expiresAt) { return `arcade_session=${encodeURICom
 const loginLimiter = new RateLimiter(10, 15 * 60 * 1000);
 const loginIpLimiter = new RateLimiter(50, 15 * 60 * 1000);
 const registrationLimiter = new RateLimiter(5, 60 * 60 * 1000);
+const profileLimiter = new RateLimiter(10, 15 * 60 * 1000);
 const resultLimiter = new RateLimiter(60, 60 * 60 * 1000);
 const achievementCheckpointLimiter = new RateLimiter(120, 60 * 60 * 1000);
 const saveLimiter = new RateLimiter(120, 60 * 60 * 1000);
@@ -162,6 +163,7 @@ const server = http.createServer(async (request, response) => {
                 return json(response, 200, accounts.profile(user.id, parameters.get('page'), parameters.get('pageSize')));
             }
             if (pathname === '/api/profile' && request.method === 'PATCH') {
+                const retryAfter = Math.max(profileLimiter.consume(user.id), loginIpLimiter.consume(clientIp(request))); if (retryAfter) return throttle(response, retryAfter);
                 const updated = await accounts.update(user.id, await readRequestJson(request)), session = accounts.createSession(user.id);
                 return json(response, 200, { user: updated }, { 'set-cookie': sessionCookie(session.token, session.expiresAt) });
             }
@@ -233,6 +235,7 @@ function acceptMessage(socket) {
 }
 
 websocketServer.on('connection', (socket, request) => {
+    socket.on('error', () => socket.terminate());
     // Every websocket shares the same heartbeat. Tic-tac-toe used to return
     // before these handlers were installed, so its healthy connections were
     // terminated on the first heartbeat interval.
@@ -282,6 +285,7 @@ function handleTicSocket(socket, request) {
         if (!acceptMessage(socket)) return;
         try {
             const message = parseMessage(raw);
+            if (membership && membership.player.socket !== socket) throw new Error('This connection has been replaced by a newer session.');
             if (!membership && message.type === 'create-room') membership = createRoom(socket, ticRooms, () => ticRooms.create(socket, { ...message, user }));
             else if (!membership && message.type === 'join-room') membership = joinRoom(socket, () => ticRooms.join(message.roomCode, socket, message.passcode, gamertag, user));
             else if (!membership && message.type === 'resume') membership = ticRooms.resume(message.roomCode, message.playerToken, socket);
@@ -335,7 +339,7 @@ let lastTankTick = Date.now();
 const tankSimulation = setInterval(() => { const now = Date.now(); tankRooms.tick((now - lastTankTick) / 1000, now); lastTankTick = now; tankRooms.broadcastStates(now); }, 1000 / 60);
 const heartbeat = setInterval(() => websocketServer.clients.forEach(socket => { if (!socket.isAlive) return socket.terminate(); socket.isAlive = false; socket.ping(); }), 15000);
 
-server.listen(port, '0.0.0.0', () => console.log(`JavaScript Playground listening on http://0.0.0.0:${port}`));
+server.listen(port, '0.0.0.0', () => console.log(`JavaScript Playground listening on http://0.0.0.0:${server.address().port}`));
 function shutdown() { clearInterval(simulation); clearInterval(ticCleanup); clearInterval(tankSimulation); clearInterval(broadcast); clearInterval(heartbeat); websocketServer.clients.forEach(socket => socket.close(1001, 'Server shutting down')); server.close(() => { database.close(); process.exit(0); }); }
 process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);

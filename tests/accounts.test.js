@@ -58,6 +58,30 @@ test('validates result structure and derives scores on the server', async t => {
     assert.throws(() => accounts.record(user.id, { game: 'minesweeper', won: true, details: { difficulty: 'impossible', seconds: 1 } }), /Invalid Minesweeper/);
 });
 
+test('a profile update cannot restore a passcode changed during asynchronous verification', async t => {
+    const accounts = fixture(t), user = await accounts.create('Original', 'old-passcode');
+    await accounts.create('Replacement', 'new-passcode');
+    const replacementHash = accounts.database.prepare('SELECT passcode_hash FROM users WHERE gamertag = ?').get('Replacement').passcode_hash;
+    const session = accounts.createSession(user.id);
+    const pending = accounts.update(user.id, { gamertag: 'Renamed', currentPasscode: 'old-passcode' });
+    // Model another completed credential update while the old verification is awaiting scrypt.
+    accounts.database.prepare('UPDATE users SET passcode_hash = ? WHERE id = ?').run(replacementHash, user.id);
+    await assert.rejects(pending, /Current passcode is incorrect/);
+    assert.equal((await accounts.authenticate('Original', 'new-passcode')).id, user.id);
+    await assert.rejects(() => accounts.authenticate('Original', 'old-passcode'), /incorrect/);
+    assert.equal(accounts.userForToken(session.token).id, user.id, 'rejected updates must not revoke other sessions');
+});
+
+test('an in-flight login cannot authenticate a passcode that has just been replaced', async t => {
+    const accounts = fixture(t), user = await accounts.create('Original', 'old-passcode');
+    await accounts.create('Replacement', 'new-passcode');
+    const replacementHash = accounts.database.prepare('SELECT passcode_hash FROM users WHERE gamertag = ?').get('Replacement').passcode_hash;
+    const pending = accounts.authenticate('Original', 'old-passcode');
+    accounts.database.prepare('UPDATE users SET passcode_hash = ? WHERE id = ?').run(replacementHash, user.id);
+    await assert.rejects(pending, /incorrect/);
+    assert.equal((await accounts.authenticate('Original', 'new-passcode')).id, user.id);
+});
+
 test('faster time breaks ties on the leaderboard', async t => {
     const accounts = fixture(t);
     const fast = await accounts.create('Fast', 'passcode');
