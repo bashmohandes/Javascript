@@ -22,3 +22,9 @@ foreign form targets remain blocked. Production session and deletion cookies
 always carry the `Secure` attribute; development deployments may opt into it but
 cannot opt production out.
 
+Static serving validates normalized and real filesystem paths, including
+directory links, before reading or caching bytes. Case and Windows path aliases
+cannot bypass private-path checks. Only GET and HEAD serve assets. Cached
+buffers use an 8 MiB least-recently-used budget with a 512 KiB per-file ceiling;
+larger files stream with backpressure instead of being retained in memory.
+

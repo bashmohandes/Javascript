@@ -1,6 +1,7 @@
 'use strict';
 
 const net = require('node:net');
+const path = require('node:path');
 
 class HttpError extends Error {
     constructor(message, status = 400, closeConnection = false) { super(message); this.status = status; this.closeConnection = closeConnection; }
@@ -58,7 +59,7 @@ async function readJson(request, maximum = 10000, { guard = null, ip = 'unknown'
 const PRIVATE_TOP_LEVEL = new Set([
     'compose.yaml',
     'compose.nas.yaml',
-    'Dockerfile',
+    'dockerfile',
     'package.json',
     'package-lock.json',
     'releases.json',
@@ -133,7 +134,7 @@ function useSecureCookies(environment = process.env) {
 }
 
 function isPrivatePath(pathname) {
-    const segments = pathname.split('/').filter(Boolean);
+    const segments = path.posix.normalize('/' + pathname.replace(/\\/g, '/')).split('/').filter(Boolean).map(segment => segment.toLowerCase().replace(/[. ]+$/g, ''));
     if (segments.some(segment => segment.startsWith('.'))) return true;
     if (['server', 'tests', 'node_modules', 'data'].includes(segments[0])) return true;
     return segments.length === 1 && PRIVATE_TOP_LEVEL.has(segments[0]);

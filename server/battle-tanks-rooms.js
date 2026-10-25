@@ -1,5 +1,7 @@
 'use strict';
 
+const { send, sendSerialized } = require('./websocket-messages');
+
 const game = require('../battle-tanks/scripts/game');
 const { createRoomCode, createRoomToken, normalizePasscode } = require('./room-identity');
 
@@ -155,8 +157,8 @@ class BattleTanksRooms {
         }
     }
     disconnect(room, player, socket = player.socket) { if (player.socket !== socket) return false; Object.assign(player, { connected: false, socket: null, disconnectedAt: Date.now() }); room.paused = room.game.phase !== 'setup' && room.game.phase !== 'game-over'; room.touchedAt = Date.now(); return true; }
-    broadcast(room, message) { const body = JSON.stringify(message); room.players.forEach(item => { if (item?.socket?.readyState === 1) item.socket.send(body); }); }
-    broadcastState(room, { forceArena = false } = {}) { const arenaVersion = `${room.matchId}:${room.game.impactSerial || 0}`; room.players.forEach((item, side) => { if (item?.socket?.readyState !== 1) return; const includeArena = forceArena || item.arenaVersion !== arenaVersion; item.socket.send(JSON.stringify({ type: 'state', state: this.stateFor(room, side, { includeArena }) })); item.arenaVersion = arenaVersion; }); }
+    broadcast(room, message) { const body = JSON.stringify(message); room.players.forEach(item => sendSerialized(item?.socket, body)); }
+    broadcastState(room, { forceArena = false } = {}) { const arenaVersion = `${room.matchId}:${room.game.impactSerial || 0}`; room.players.forEach((item, side) => { if (item?.socket?.readyState !== 1) return; const includeArena = forceArena || item.arenaVersion !== arenaVersion; if (send(item.socket, { type: 'state', state: this.stateFor(room, side, { includeArena }) })) item.arenaVersion = arenaVersion; }); }
     broadcastStates(now = Date.now()) { for (const room of this.rooms.values()) if (room.game.phase === 'projectile-flight' && now - room.lastBroadcast >= 40) { room.lastBroadcast = now; this.broadcastState(room); } }
 }
 

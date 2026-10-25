@@ -1,7 +1,19 @@
 'use strict';
 
+const MAX_BUFFERED_BYTES = 1024 * 1024;
+
+function sendSerialized(socket, body) {
+    if (socket?.readyState !== 1) return false;
+    if ((socket.bufferedAmount || 0) + Buffer.byteLength(body) > MAX_BUFFERED_BYTES) {
+        socket.terminate();
+        return false;
+    }
+    socket.send(body);
+    return true;
+}
+
 function send(socket, message) {
-    if (socket.readyState === 1) socket.send(JSON.stringify(message));
+    return sendSerialized(socket, JSON.stringify(message));
 }
 
 function parseMessage(raw) {
@@ -34,4 +46,4 @@ function roomStatusMessage(room) {
     };
 }
 
-module.exports = { parseMessage, roomStatusMessage, send, sessionMessage };
+module.exports = { parseMessage, roomStatusMessage, send, sendSerialized, sessionMessage };

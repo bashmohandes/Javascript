@@ -23,7 +23,7 @@ test('shared shell owns one installable arcade manifest', () => {
     assert.match(runtime, /manifest\.webmanifest/);
     assert.match(runtime, /serviceWorker\.register\(`\$\{rootPath\}service-worker\.js`/);
     assert.match(worker, /addEventListener\('fetch'/);
-    assert.match(worker, /url\.pathname\.includes\('\/api\/'\)/);
+    assert.match(worker, /pathname\.includes\('\/api\/'\)/);
     assert.match(worker, /request\.mode === 'navigate'/);
     assert.match(worker, /event\.waitUntil\(network\.then/);
     assert.match(worker, /fonts\/Silkscreen-Regular\.ttf/);
