@@ -23,7 +23,8 @@ test('CI and container stages use the same immutable multi-platform Node release
     assert.ok(ciNodeMajor);
     assert.ok(containerNodeMajor);
     assert.equal(ciNodeMajor[1], containerNodeMajor[1]);
-    assert.match(dockerfile, /apk add --no-cache --upgrade libcrypto3=\d+\.\d+\.\d+-r\d+ libssl3=\d+\.\d+\.\d+-r\d+/);
+    // Keep both libraries on the reviewed patch; 3.5.8-r0 conflicts with this Node base.
+    assert.match(dockerfile, /apk add --no-cache --upgrade libcrypto3=3\.5\.9-r0 libssl3=3\.5\.9-r0/);
     assert.match(dockerfile, /rm -rf \/usr\/local\/lib\/node_modules\/npm \/usr\/local\/lib\/node_modules\/corepack \/opt\/yarn-v\*/);
 });
 
