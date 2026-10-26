@@ -14,7 +14,7 @@ LABEL org.opencontainers.image.release-channel=${BUILD_CHANNEL}
 WORKDIR /app
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
-RUN apk add --no-cache --upgrade libcrypto3=3.5.8-r0 libssl3=3.5.8-r0 \
+RUN apk add --no-cache --upgrade libcrypto3=3.5.9-r0 libssl3=3.5.9-r0 \
     && node scripts/generate-icons.js \
     && mkdir -p /app/data \
     && rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack /opt/yarn-v* \
